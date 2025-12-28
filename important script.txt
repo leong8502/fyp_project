@@ -1,0 +1,9 @@
+venv\Scripts\activate
+
+python manage.py runserver
+
+cd fyp_project
+
+
+project name: fyp_project
+db name: fyp_db
