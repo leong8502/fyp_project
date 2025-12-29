@@ -1,0 +1,60 @@
+<!-- freelancers/templates/match.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }} - AI Powered Freelancer Platform</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background: #f8f9fa; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .search-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 6px rgba(32,33,36,0.28); margin-bottom: 30px; }
+        textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        button { padding: 12px 24px; background: #1a73e8; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; margin-top: 10px; }
+        button:hover { background: #1557b0; }
+        .results { margin-top: 20px; }
+        .result-item { background: white; padding: 20px; margin-bottom: 16px; border-radius: 8px; box-shadow: 0 1px 6px rgba(32,33,36,0.1); }
+        .result-title { font-size: 20px; color: #1a0dab; margin: 0 0 8px 0; }
+        .result-snippet { color: #333; line-height: 1.4; }
+        .relevance { color: #d93025; font-weight: bold; }
+        h1 { text-align: center; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Powered Job Matching: Freelancer Side</h1>
+        <div class="search-box">
+            <form method="post">
+                {% csrf_token %}
+                {{ form.skills.label_tag }}
+                {{ form.skills }}
+                {{ form.skills.help_text }}
+                <br><br>
+                <button type="submit">Find Matching Jobs</button>
+            </form>
+        </div>
+
+        {% if query %}
+            <p><strong>Showing results for:</strong> "{{ query }}"</p>
+            <p><em>{{ results|length }} job(s) found</em></p>
+        {% endif %}
+
+        <div class="results">
+            {% for result in results %}
+                <div class="result-item">
+                    <h3 class="result-title">{{ result.job.title }}</h3>
+                    <p class="result-snippet">{{ result.snippet }}</p>
+                    <p class="relevance">AI Match Score: {{ result.score }}%</p>
+                </div>
+            {% empty %}
+                {% if query %}
+                    <p>No matching jobs found. Try different skills!</p>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <p style="text-align:center; margin-top:50px; color:#666;">
+            By Gun Yu Xing | TAR UMT | Bachelor of Software Engineering (Honours)
+        </p>
+    </div>
+</body>
+</html>
