@@ -8,6 +8,18 @@ from sklearn.metrics.pairwise import cosine_similarity
 def home(request):
     return render(request, 'core/home.html')
 
+def client_home(request):
+    return render(request, 'core/client_home.html')
+
+def client_project(request):
+    return render(request, 'core/client_project.html')
+
+def client_about(request):
+    return render(request, 'core/client_about.html')
+
+def client_chat(request):
+    return render(request, 'core/client_chat.html')
+
 def match_jobs(request):
     """
     AI-Powered Job Matching Demo
