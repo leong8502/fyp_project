@@ -2,9 +2,10 @@ python -m venv venv
 venv\Scripts\activate
 
 python manage.py runserver
-
 cd fyp_project
 
+pip install -r requirements.txt
+pip freeze > requirements.txt
 
 project name: fyp_project
 db name: fyp_db
