@@ -7,5 +7,9 @@ cd fyp_project
 pip install -r requirements.txt
 pip freeze > requirements.txt
 
+Db migration
+python manage.py makemigrations
+python manage.py migrate
+
 project name: fyp_project
 db name: fyp_db
