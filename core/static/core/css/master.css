@@ -1,3 +1,138 @@
-h1 {
-    font-size: 68px;
+body {
+    margin: 0;
+}
+
+.site-header {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0; 
+    z-index: 1000; /* ?? */
+    padding: 20px 0;
+    background-color: #ffffff;
+    border-bottom: 1px solid #eee;
+}
+
+.nav_container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo-link {
+    display: block;
+    height: 60px;
+}
+
+img.logo {
+    height: 60px;
+    width: auto;
+}
+
+/* Center navigation */
+.main-nav {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 50px;          
+}
+
+.main-nav a {
+    text-decoration: none;
+    color: #333;
+    font-size: 18px;
+    font-weight: 500;
+    transition: color 0.3s;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.main-nav a:hover {
+    color: #007bff;        /* Blue hover like in selection */
+}
+
+/* Right-side small company logo */
+.user-logo img {
+    height: 45px;
+    width: 45px;
+    border-radius: 50%;    /* Makes it circular */
+    object-fit: cover;
+    border: 2px solid #ddd; 
+}
+
+.footer {
+    background-color: #1d1d1d;
+    padding: 30px 0;
+    color: #eeeded;
+    font-size: 14px;
+    width: 100%;
+    margin-top: 20px;
+}
+
+.footer-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+}
+
+@media (min-width: 768px) {
+    .footer-container {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+.footer-section h3 {
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin-bottom: 8px;
+}
+
+.footer-section ul li a {
+    color: #a7a6a6;
+    text-decoration: none;
+}
+
+.footer-section ul li span {
+    color: #a7a6a6;
+}
+
+.footer-section ul li a:hover {
+    text-decoration: underline;
+}
+
+.social-icons {
+    margin-top: 10px;
+}
+
+.social-icons a {
+    margin-right: 10px;
+    color: #eeeded;;
+    font-size: 16px;
+}
+
+.partners img {
+    height: 24px;
+    margin-right: 10px;
+    vertical-align: middle;
+}
+
+.footer-bottom {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+    font-size: 12px;
 }
