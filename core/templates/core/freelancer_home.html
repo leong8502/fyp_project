@@ -1,0 +1,36 @@
+{% extends 'core/master.html' %}
+
+{% block title %}Freelancer Dashboard - TalentSync{% endblock %}
+
+{% block content %}
+{% load static %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_home.css' %}">
+
+<section class="hero-section">
+    <div class="hero-background"></div>
+    <div class="hero-content">
+        <h1 class="hero-title">Find the Perfect<br>Job Opportunity</h1>
+        <p class="hero-subtitle">
+            Discover AI-matched projects from clients worldwide. 
+            Showcase your skills and get hired for work that fits you perfectly.
+        </p>
+        <form method="post" action="{% url 'match_jobs' %}" class="search-bar">
+            {% csrf_token %}
+            <input 
+                type="text" 
+                name="skills" 
+                class="search-input" 
+                placeholder="Enter your skills (e.g., Python, Django, AI, BERT)" 
+                required
+            >
+            <button type="submit" class="search-button">Search Jobs →</button>
+        </form>
+    </div>
+
+    <img 
+        src="{% static 'core/images/freelancer_img.jpg' %}" 
+        alt="Freelancer working remotely" 
+        class="hero-image"
+    >
+</section>
+{% endblock %}

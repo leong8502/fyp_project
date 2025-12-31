@@ -1,10 +1,11 @@
 # core/urls.py
 from django.urls import path
-from .views import match_jobs
+from .views import match_jobs, login
 from . import views  # for home view
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('login/', login, name='login'),
     path('match/', match_jobs, name='match_jobs'),
     path('client_home/', views.client_home, name='client_home'),
     path('project/', views.client_project, name='client_project'),

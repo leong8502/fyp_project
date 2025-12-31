@@ -75,3 +75,14 @@ def match_jobs(request):
     }
 
     return render(request, 'core/match.html', {'form': form, 'results': results})
+
+def login(request):
+    if request.method == 'POST':
+        role = request.POST.get('role')
+        # Simulate successful login (no real check)
+        if role == 'freelancer':
+            return render(request, 'core/freelancer_home.html')  # New freelancer UI
+        else:
+            return render(request, 'core/client_home.html')  # Existing client UI
+    # GET: Show login page (home.html)
+    return render(request, 'core/home.html')
