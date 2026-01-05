@@ -11,6 +11,12 @@ def home(request):
 def client_home(request):
     return render(request, 'core/client_home.html')
 
+def client_profile(request):
+    return render(request, 'core/client_profile.html')
+
+def client_editProfile(request):
+    return render(request, 'core/client_editProfile.html')
+
 def client_project(request):
     return render(request, 'core/client_project.html')
 

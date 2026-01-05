@@ -1,0 +1,135 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Edit Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_editProfile.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="banner-section">
+        <img src="https://via.placeholder.com/1200x400?text=Profile+Background+Image" alt="Profile Background"
+            class="banner">
+        <div class="profile-image-wrapper">
+            <img src="https://via.placeholder.com/150?text=Profile+Image" alt="Profile Image" class="profile-image">
+        </div>
+    </div>
+    <div class="content">
+        <h1 id="title-display">Edit Profile</h1>
+
+        <form id="profile-form">
+            <!-- Banner and Profile Image Uploads -->
+            <div>
+                <label>Profile Background Image (Banner)</label>
+                <input type="file" accept="image/*" id="background-image-upload">
+            </div>
+            <div>
+                <label>Profile Image</label>
+                <input type="file" accept="image/*" id="profile-image-upload">
+            </div>
+
+            <!-- Basic Info -->
+            <div>
+                <label for="name">Name</label>
+                <input type="text" id="name" placeholder="Company or Person Name" required>
+            </div>
+            <div>
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Tell us about yourself/company..." required></textarea>
+            </div>
+
+            <!-- Contact Info -->
+            <div>
+                <label for="phone">Phone No</label>
+                <input type="tel" id="phone" placeholder="+1 234 567 890">
+            </div>
+            <div>
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="example@domain.com">
+            </div>
+            <div>
+                <label for="address">Address</label>
+                <input type="text" id="address" placeholder="Street, City, Country">
+            </div>
+
+            <!-- Company Specific -->
+            <div>
+                <label for="industry">Industry Type</label>
+                <input type="text" id="industry" placeholder="e.g., Technology, Finance">
+            </div>
+            <div>
+                <label for="company-size">Company Size</label>
+                <select id="company-size">
+                    <option value="">Select...</option>
+                    <option>1-10</option>
+                    <option>11-50</option>
+                    <option>51-200</option>
+                    <option>201-500</option>
+                    <option>500+</option>
+                </select>
+            </div>
+            <div>
+                <label for="year-founded">Year Founded</label>
+                <input type="text" id="year-founded" placeholder="e.g., 2020">
+            </div>
+
+            <!-- Other -->
+            <div>
+                <label for="website">Website URL</label>
+                <input type="url" id="website" placeholder="https://example.com">
+            </div>
+            <div>
+                <label for="achievement">Achievement</label>
+                <textarea id="achievement" placeholder="Key achievements or highlights..."></textarea>
+            </div>
+            <div>
+                <label>Languages</label>
+                <input type="text" id="languages" placeholder="e.g., English, Spanish, French (comma separated)">
+            </div>
+            <div>
+                <label>Tags</label>
+                <input type="text" id="tags" placeholder="e.g., startup, AI, remote (comma separated)">
+            </div>
+
+            <!-- Social Links (example for 3 common ones, can add more) -->
+            <div>
+                <label>Social Links</label>
+                <div class="social-links">
+                    <div class="social-link">
+                        <span>LinkedIn:</span>
+                        <input type="url" placeholder="https://linkedin.com/in/...">
+                    </div>
+                    <div class="social-link">
+                        <span>Twitter/X:</span>
+                        <input type="url" placeholder="https://twitter.com/...">
+                    </div>
+                    <div class="social-link">
+                        <span>Facebook:</span>
+                        <input type="url" placeholder="https://facebook.com/...">
+                    </div>
+                    <!-- Add more as needed -->
+                </div>
+            </div>
+
+            <button type="submit">Save Changes</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Optional: Preview uploaded images
+    document.getElementById('background-image-upload').addEventListener('change', function (e) {
+        if (e.target.files[0]) {
+            document.querySelector('.banner').src = URL.createObjectURL(e.target.files[0]);
+        }
+    });
+    document.getElementById('profile-image-upload').addEventListener('change', function (e) {
+        if (e.target.files[0]) {
+            document.querySelector('.profile-image').src = URL.createObjectURL(e.target.files[0]);
+        }
+    });
+</script>
+
+{% endblock %}

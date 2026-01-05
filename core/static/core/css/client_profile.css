@@ -1,0 +1,102 @@
+.profile-header {
+    position: relative;
+    max-width: 1200px;
+    margin: 20px auto 0;
+    border-radius: 20px;
+    /* overflow: hidden; Removed to allow profile image to extend outside */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+.banner-image {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    display: block;
+    border-radius: 20px;
+    /* Added to maintain rounded corners since overflow is visible */
+}
+
+.profile-image-wrapper {
+    position: absolute;
+    bottom: -75px;
+    /* Half of 150px height + border */
+    left: 50px;
+    width: 150px;
+    height: 150px;
+    border: 6px solid white;
+    border-radius: 50%;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-info {
+    max-width: 1200px;
+    margin: 0 auto 0;
+    padding: 90px 50px 20px;
+}
+
+.profile-info h1 {
+    font-size: 36px;
+    margin: 0 0 10px;
+}
+
+.profile-info h1 .edit {
+    font-size: 18px;
+    text-decoration: none;
+    color: #666;
+    margin-left: 15px;
+}
+
+.tagline {
+    font-size: 18px;
+    color: #666;
+    margin: 0 0 15px;
+}
+
+.rating {
+    font-size: 20px;
+    color: #f5a623;
+}
+
+.content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 40px 40px;
+    display: flex;
+    gap: 40px;
+}
+
+.description,
+.contact {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+    flex: 1;
+}
+
+.description {
+    flex: 3;
+}
+
+h2 {
+    font-size: 24px;
+    margin-top: 0;
+}
+
+.contact p {
+    margin: 15px 0;
+    font-size: 16px;
+}
+
+.contact strong {
+    display: block;
+    margin-bottom: 5px;
+}

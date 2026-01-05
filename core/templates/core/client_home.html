@@ -1,28 +1,25 @@
 {% extends 'core/master.html' %}
-
+{% load static %}
 {% block title %}Home{% endblock %}
 
-{% block content %}
-<!DOCTYPE html>
-<html>
-<head>
-    {% load static %}
-    <title>Home</title>
-    <link rel="stylesheet" href="{% static 'core/css/client_home.css' %}">
-</head>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_home.css' %}">
+{% endblock %}
 
+{% block content %}
 <section class="hero-section">
     <div class="hero-background"></div>
     <div class="hero-content">
         <h1 class="hero-title">Find the Perfect<br>Freelancer Talent</h1>
-        <p class="hero-subtitle">Connect with top freelancers worldwide. Get your projects done by skilled professionals who deliver quality work on time.</p>
+        <p class="hero-subtitle">Connect with top freelancers worldwide. Get your projects done by skilled professionals
+            who deliver quality work on time.</p>
         <div class="search-bar">
             <input type="text" class="search-input" placeholder="Search for freelancers">
             <button class="search-button">Search →</button>
         </div>
     </div>
-    <img src="https://www.flexjobs.com/blog/wp-content/uploads/2025/04/What-Is-Freelancing-A-Complete-Guide-to-Freelance-Jobs.jpg" alt="home_img" class="hero-image">
+    <img src="https://www.flexjobs.com/blog/wp-content/uploads/2025/04/What-Is-Freelancing-A-Complete-Guide-to-Freelance-Jobs.jpg"
+        alt="home_img" class="hero-image">
 </section>
 
-</html>
 {% endblock %}
