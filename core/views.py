@@ -20,6 +20,12 @@ def client_editProfile(request):
 def client_project(request):
     return render(request, 'core/client_project.html')
 
+def client_projectCreate(request):
+    return render(request, 'core/client_projectCreate.html')
+
+def client_projectInfo(request):
+    return render(request, 'core/client_projectInfo.html')
+
 def client_about(request):
     return render(request, 'core/client_about.html')
 

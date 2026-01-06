@@ -1,0 +1,137 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Project{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_project.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>My Projects</h1>
+        <div class="header-actions">
+            <input type="text" class="search-bar" placeholder="Search projects...">
+            <a href="{% url 'client_projectCreate' %}" class="btn-create">
+                New Project
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="cards">
+        <div class="card">
+            <h3>8</h3>
+            <p>Active Projects</p>
+        </div>
+        <div class="card">
+            <h3>23</h3>
+            <p>Completed</p>
+        </div>
+        <div class="card">
+            <h3>5</h3>
+            <p>In Progress</p>
+        </div>
+        <div class="card">
+            <h3>$48,750</h3>
+            <p>Total Spent This Year</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filter-group">
+            <label>Status</label>
+            <select>
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="pending">Pending Review</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Date Range</label>
+            <select>
+                <option value="all">All Time</option>
+                <option value="last30">Last 30 Days</option>
+                <option value="last90">Last 90 Days</option>
+                <option value="this-year">This Year (2026)</option>
+                <option value="custom">Custom Range</option>
+            </select>
+        </div>
+        <div class="filter-group" style="display:none;" id="custom-date">
+            <label>From</label>
+            <input type="date">
+        </div>
+        <div class="filter-group" style="display:none;" id="custom-date-to">
+            <label>To</label>
+            <input type="date">
+        </div>
+        <div class="filter-actions">
+            <button class="btn-apply">Apply Filters</button>
+            <button class="btn-clear">Clear</button>
+        </div>
+    </div>
+
+    <!-- Projects Table -->
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Project Name</th>
+                    <th>Freelancer</th>
+                    <th>Status</th>
+                    <th>Deadline</th>
+                    <th>Budget</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Corporate Website Redesign</td>
+                    <td>Alex Rivera</td>
+                    <td><span class="status active">Active</span></td>
+                    <td>Feb 20, 2026</td>
+                    <td>$12,000</td>
+                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                </tr>
+                <tr>
+                    <td>Mobile App Development</td>
+                    <td>Sarah Chen</td>
+                    <td><span class="status in-progress">In Progress</span></td>
+                    <td>Mar 15, 2026</td>
+                    <td>$18,000</td>
+                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                </tr>
+                <tr>
+                    <td>Brand Identity Package</td>
+                    <td>Mike Johnson</td>
+                    <td><span class="status completed">Completed</span></td>
+                    <td>Dec 10, 2025</td>
+                    <td>$5,500</td>
+                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                </tr>
+                <tr>
+                    <td>SEO & Content Strategy</td>
+                    <td>Emma Watson</td>
+                    <td><span class="status pending">Pending Review</span></td>
+                    <td>Jan 25, 2026</td>
+                    <td>$8,000</td>
+                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                </tr>
+                <!-- More rows... -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // Optional: Show custom date fields when "Custom Range" is selected
+    document.querySelector('select').addEventListener('change', function () {
+        const custom = this.value === 'custom';
+        document.getElementById('custom-date').style.display = custom ? 'block' : 'none';
+        document.getElementById('custom-date-to').style.display = custom ? 'block' : 'none';
+    });
+</script>
+{% endblock %}

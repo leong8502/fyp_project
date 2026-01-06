@@ -9,42 +9,83 @@
 {% block content %}
 <section class="profile-header">
     <!-- Background Banner -->
-    <img src="https://via.placeholder.com/1200x300?text=Company+Banner" alt="Company Banner" class="banner-image">
+    <img src="https://via.placeholder.com/1200x300/0066cc/ffffff?text=TechVision+Company+Banner" alt="Company Banner"
+        class="banner-image">
 
-    <!-- Profile Image (Logo) -->
+    <!-- Company Logo -->
     <div class="profile-image-wrapper">
-        <img src="https://via.placeholder.com/150?text=Logo" alt="Company Logo" class="profile-image">
+        <img src="https://via.placeholder.com/150/0066cc/ffffff?text=TV+Logo" alt="Company Logo" class="profile-image">
     </div>
 </section>
 
 <!-- Company Info -->
 <div class="profile-info">
     <h1>
-        Company Sdn Bhd
+        TechVision Sdn Bhd
         <a href="{% url 'client_editProfile' %}" class="edit">
             <i class="far fa-edit"></i> Edit
         </a>
     </h1>
-    <p class="tagline">Software Development Company</p>
+    <p class="tagline">Innovative Software Solutions for the Modern Enterprise</p>
     <div class="rating">★ 4.8 (127 reviews)</div>
 </div>
 
 <section class="content">
     <div class="description">
         <h2>About Company</h2>
-        <p>Company is a leading software development company specializing in web applications, mobile development, and
-            cloud solutions. With over 8 years of experience, we've helped hundreds of businesses transform their
+        <p>TechVision is a leading software development company specializing in web applications, mobile development,
+            and cloud solutions. With over 8 years of experience, we've helped hundreds of businesses transform their
             digital presence and streamline their operations.</p>
         <p>Our team of expert developers, designers, and project managers work collaboratively to deliver high-quality
             solutions that exceed client expectations. We pride ourselves on our commitment to innovation, quality, and
             customer satisfaction.</p>
+
+        <h2>Achievements & Highlights</h2>
+        <p>
+            • Awarded "Best Tech Startup 2023" by Malaysia Digital Economy Corporation<br>
+            • Successfully delivered 200+ projects with 98% client satisfaction rate<br>
+            • Partnered with Fortune 500 companies in Southeast Asia<br>
+            • Featured in TechCrunch and The Edge Malaysia
+        </p>
     </div>
 
-    <div class="contact">
-        <h2>Contact Information</h2>
-        <p><strong>Email:</strong> contact@gmail.com</p>
-        <p><strong>Phone:</strong> +60 112233445</p>
-        <p><strong>Address:</strong> 123 Tech Street, San Francisco, CA 123</p>
+    <div class="details-grid">
+        <!-- Contact Information -->
+        <div class="contact">
+            <h2>Contact Information</h2>
+            <p><strong>Email:</strong> contact@techvision.com.my</p>
+            <p><strong>Phone:</strong> +60 11-2233 4455</p>
+            <p><strong>Address:</strong> Level 15, Menara Cyberport, Cyberjaya, Selangor, Malaysia</p>
+            <p><strong>Website:</strong> <a href="https://www.techvision.com.my"
+                    target="_blank">www.techvision.com.my</a></p>
+        </div>
+
+        <!-- Company Details -->
+        <div class="company-details">
+            <h2>Company Details</h2>
+            <p><strong>Industry:</strong> Information Technology & Services</p>
+            <p><strong>Company Size:</strong> 51-200 employees</p>
+            <p><strong>Year Founded:</strong> 2017</p>
+            <p><strong>Languages:</strong> English, Bahasa Malaysia, Mandarin</p>
+            <p><strong>Tags:</strong>
+                <span class="tag">Web Development</span>
+                <span class="tag">Mobile Apps</span>
+                <span class="tag">Cloud Solutions</span>
+                <span class="tag">AI & Machine Learning</span>
+                <span class="tag">Startup</span>
+                <span class="tag">Remote Team</span>
+            </p>
+        </div>
+
+        <!-- Social Links -->
+        <div class="social-links">
+            <h2>Social Links</h2>
+            <p><strong>LinkedIn:</strong> <a href="https://linkedin.com/company/techvision" target="_blank">View
+                    Profile</a></p>
+            <p><strong>Twitter/X:</strong> <a href="https://twitter.com/techvision_my" target="_blank">View Profile</a>
+            </p>
+            <p><strong>Facebook:</strong> <a href="https://facebook.com/techvision" target="_blank">View Profile</a></p>
+        </div>
     </div>
 </section>
 

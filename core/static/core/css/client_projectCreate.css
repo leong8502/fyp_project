@@ -1,0 +1,177 @@
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 0 20px;
+}
+
+.card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+}
+
+.header {
+    background: #007bff;
+    color: #fff;
+    padding: 25px 30px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 26px;
+}
+
+.form-body {
+    padding: 30px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #444;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+textarea,
+select {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.skills-input {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #f9f9f9;
+}
+
+.skill-tag {
+    background: #007bff;
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.skill-tag span {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* Milestones Section */
+.milestones-section h3 {
+    margin: 30px 0 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.milestone-item {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 15px;
+    align-items: end;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.milestone-item input {
+    margin: 0;
+}
+
+.remove-milestone {
+    background: #dc3545;
+    color: #fff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.add-milestone {
+    background: none;
+    border: 2px dashed #007bff;
+    color: #007bff;
+    padding: 12px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    margin: 20px 0;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+button[type="submit"],
+.btn-cancel {
+    padding: 14px 30px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button[type="submit"] {
+    background: #28a745;
+    color: #fff;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: #fff;
+    text-decoration: none;
+    padding: 14px 30px;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    .milestone-item {
+        grid-template-columns: 1fr;
+    }
+
+    .remove-milestone {
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .actions {
+        flex-direction: column;
+    }
+
+    button[type="submit"],
+    .btn-cancel {
+        width: 100%;
+    }
+}
