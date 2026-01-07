@@ -1,0 +1,112 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Registration{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/register.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <h1>Register as Client</h1>
+        <p>Create your company account to post projects and hire freelancers</p>
+    </div>
+
+    <div class="form-container">
+        <form id="register-form" method="POST">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="name">Full Name *</label>
+                <input type="text" id="name" name="name" required placeholder="e.g., John Doe"
+                    value="{{ form_data.name|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Company Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="john@company.com"
+                    value="{{ form_data.email|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number *</label>
+                <input type="tel" id="phone" name="phone" required placeholder="+60 12-345 6789"
+                    value="{{ form_data.phone|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="company">Company Name *</label>
+                <input type="text" id="company" name="company" required placeholder="e.g., TechVision Sdn Bhd"
+                    value="{{ form_data.company|default:'' }}">
+            </div>
+
+            <div class="form-group">
+                <label for="industry">Industry Type *</label>
+                <select id="industry" name="industry" required>
+                    <option value="">Select Industry</option>
+                    <option>Technology & IT</option>
+                    <option>Marketing & Advertising</option>
+                    <option>E-commerce</option>
+                    <option>Finance</option>
+                    <option>Healthcare</option>
+                    <option>Education</option>
+                    <option>Real Estate</option>
+                    <option>Manufacturing</option>
+                    <option>Other</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password *</label>
+                <input type="password" id="password" name="password" required minlength="8"
+                    placeholder="At least 8 characters">
+            </div>
+
+            <div class="form-group" id="confirm-password-group">
+                <label for="confirm-password">Confirm Password *</label>
+                <input type="password" id="confirm-password" name="confirm_password" required>
+                <div class="error-message" id="password-error">Passwords do not match</div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submit-btn">Create Client Account</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="{% url 'login' %}">Log in here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Confirm Password Validation
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm-password');
+    const passwordError = document.getElementById('password-error');
+    const confirmGroup = document.getElementById('confirm-password-group');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function validatePassword() {
+        if (password.value !== confirmPassword.value) {
+            confirmGroup.classList.add('error');
+            passwordError.style.display = 'block';
+            submitBtn.disabled = true;
+        } else {
+            confirmGroup.classList.remove('error');
+            passwordError.style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    password.addEventListener('input', validatePassword);
+    confirmPassword.addEventListener('input', validatePassword);
+
+    // Prevent submit if passwords don't match
+    document.getElementById('register-form').addEventListener('submit', function (e) {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert('Please make sure passwords match.');
+        }
+    });
+</script>
+{% endblock %}

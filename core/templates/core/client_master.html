@@ -7,7 +7,7 @@
     {% block extra_css %}{% endblock %}
     <meta charset="UTF-8">
     <!-- CSS -->
-    <link rel="stylesheet" href="{% static 'core/css/master.css' %}">
+    <link rel="stylesheet" href="{% static 'core/css/client_master.css' %}">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.9.0/css/all.css">
 </head>
 
@@ -39,15 +39,6 @@
 
     <!-- Main Content -->
     <main>
-        {% if messages %}
-        <div class="messages-container">
-            {% for message in messages %}
-            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
         {% block content %}
         <!-- Child page content goes here -->
         {% endblock %}

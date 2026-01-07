@@ -124,6 +124,7 @@ img.logo {
 .social-icons a {
     margin-right: 10px;
     color: #eeeded;
+    ;
     font-size: 16px;
 }
 
@@ -138,31 +139,4 @@ img.logo {
     margin-top: 20px;
     color: #666;
     font-size: 12px;
-}
-
-/* Messages/Alerts */
-.messages-container {
-    max-width: 1200px;
-    margin: 20px auto;
-    padding: 0 20px;
-}
-
-.alert {
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-}
-
-.alert-error,
-.alert-danger {
-    color: #721c24;
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-}
-
-.alert-success {
-    color: #155724;
-    background-color: #d4edda;
-    border-color: #c3e6cb;
 }
