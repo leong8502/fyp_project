@@ -3,7 +3,7 @@
 {% block title %}Registration{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/register.css' %}">
+<link rel="stylesheet" href="{% static 'core/css/client_register.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -14,7 +14,7 @@
     </div>
 
     <div class="form-container">
-        <form id="register-form" method="POST">
+        <form id="register-form" method="POST" action="{% url 'register_client' %}">
             {% csrf_token %}
 
             <div class="form-group">

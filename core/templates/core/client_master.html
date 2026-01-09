@@ -27,13 +27,41 @@
                 <a href="{% url 'client_project' %}">Projects</a>
                 <a href="#">About Us</a>
                 <a href="#">Messages</a>
-                <!-- Add more links as needed -->
             </nav>
 
             <!-- Small company/user logo on the right -->
-            <a href="{% url 'client_profile' %}" class="user-logo">
-                <img src="{% static 'core/images/logo.png' %}" alt="Company">
-            </a>
+            <div class="user-menu">
+                <div class="user-logo" onclick="toggleDropdown()">
+                    <img src="{% static 'core/images/logo.png' %}" alt="Company">
+                </div>
+                <div id="userDropdown" class="dropdown-content">
+                    <a href="{% url 'client_profile' %}"><i class="fas fa-user-circle"></i> Profile</a>
+                    <a href="#"><i class="fas fa-wallet"></i> My Wallet</a>
+                    <a href="#"><i class="fas fa-bell"></i> Notifications</a>
+                    <a href="#"><i class="fas fa-headset"></i> Support</a>
+                    <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+
+            <script>
+                function toggleDropdown() {
+                    document.getElementById("userDropdown").classList.toggle("show");
+                }
+
+                // Close the dropdown if the user clicks outside of it
+                window.onclick = function (event) {
+                    if (!event.target.closest('.user-menu')) {
+                        var dropdowns = document.getElementsByClassName("dropdown-content");
+                        var i;
+                        for (i = 0; i < dropdowns.length; i++) {
+                            var openDropdown = dropdowns[i];
+                            if (openDropdown.classList.contains('show')) {
+                                openDropdown.classList.remove('show');
+                            }
+                        }
+                    }
+                }
+            </script>
         </div>
     </header>
 

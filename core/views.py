@@ -5,6 +5,7 @@ from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib import messages
 from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_bytes
@@ -16,8 +17,46 @@ from django.conf import settings
 from django.urls import reverse
 from .models import Client
 from django.db import transaction
+from .decorators import client_required, freelancer_required
 
 # Create your views here.
+def login(request):
+    if request.method == "POST":
+        email = request.POST.get("email")
+        password = request.POST.get("password")
+        role = request.POST.get("role")  # client / freelancer
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            messages.error(request, "Invalid email or password")
+            return redirect("login")
+
+        user = authenticate(request, username=user.username, password=password)
+
+        if user is None:
+            messages.error(request, "Invalid email or password")
+            return redirect("login")
+
+        # ROLE VALIDATION
+        if role == "client" and not hasattr(user, "client"):
+            messages.error(request, "This account is not registered as a Client")
+            return redirect("login")
+
+        if role == "freelancer" and not hasattr(user, "freelancer"):
+            messages.error(request, "This account is not registered as a Freelancer")
+            return redirect("login")
+
+        # SUCCESS
+        auth_login(request, user)
+
+        if role == "client":
+            return redirect("client_home")
+        else:
+            return redirect("freelancer_home") 
+
+    return render(request, "core/login.html")
+
 def register_client(request):
     # GET request: Show form (possibly with preserved data)
     if request.method == 'GET':
@@ -143,9 +182,6 @@ def verify_email(request, uidb64, token):
 
     return redirect('login')
 
-def home(request):
-    return render(request, 'core/home.html')
-
 def client_home(request):
     return render(request, 'core/client_home.html')
 
@@ -226,7 +262,7 @@ def match_jobs(request):
 
     return render(request, 'core/match.html', {'form': form, 'results': results})
 
-def login(request):
+def home(request):
     if request.method == 'POST':
         role = request.POST.get('role')
         # Simulate successful login (no real check)
@@ -236,3 +272,7 @@ def login(request):
             return render(request, 'core/client_home.html')  # Existing client UI
     # GET: Show login page (home.html)
     return render(request, 'core/home.html')
+
+def logout(request):
+    auth_logout(request)
+    return redirect('home')

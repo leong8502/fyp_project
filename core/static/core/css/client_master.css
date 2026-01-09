@@ -57,6 +57,16 @@ img.logo {
 }
 
 /* Right-side small company logo */
+.user-menu {
+    position: relative;
+    display: inline-block;
+}
+
+.user-logo {
+    cursor: pointer;
+    display: block;
+}
+
 .user-logo img {
     height: 60px;
     width: 60px;
@@ -64,6 +74,74 @@ img.logo {
     /* Makes it circular */
     object-fit: cover;
     border: 2px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.user-logo:hover img {
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.2);
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 70px;
+    /* Below the logo */
+    background-color: #ffffff;
+    min-width: 160px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    z-index: 1001;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-content a {
+    color: #333;
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    font-size: 15px;
+    transition: background 0.2s;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.dropdown-content a:last-child {
+    border-bottom: none;
+}
+
+.dropdown-content a:hover {
+    background-color: #f8f9fa;
+    color: #007bff;
+}
+
+.dropdown-content i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+    color: #666;
+}
+
+.dropdown-content a:hover i {
+    color: #007bff;
+}
+
+.show {
+    display: block;
 }
 
 .footer {
@@ -72,7 +150,6 @@ img.logo {
     color: #eeeded;
     font-size: 14px;
     width: 100%;
-    margin-top: 20px;
 }
 
 .footer-container {

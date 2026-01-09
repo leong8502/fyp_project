@@ -1,0 +1,78 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Login{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/login.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="login-card">
+        <div class="role-selector">
+            <button class="role-btn active" data-role="freelancer">I'm a Freelancer</button>
+            <button class="role-btn" data-role="client">I'm a Client</button>
+        </div>
+
+        <div class="form-container">
+            <h1>Welcome Back</h1>
+            <p class="subtitle" id="subtitle-text">Login to find amazing freelance opportunities</p>
+
+            <form id="loginForm" method="POST" action="{% url 'login' %}">
+                {% csrf_token %}
+
+                <!-- Selected role -->
+                <input type="hidden" name="role" id="selectedRole" value="freelancer">
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" placeholder="alex@gmail.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="" required>
+                </div>
+
+                <div class="options">
+                    <label><input type="checkbox"> Remember me</label>
+                    <a href="#">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="btn-login">Login</button>
+            </form>
+
+            <div class="signup-link">
+                Don't have an account? <a href="{% url 'register_client' %}">Sign up</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roleButtons = document.querySelectorAll('.role-btn');
+    const subtitle = document.getElementById('subtitle-text');
+    const roleInput = document.getElementById('selectedRole');
+
+    const texts = {
+        freelancer: "Login to find amazing freelance opportunities",
+        client: "Login to find & hire top freelance talent"
+    };
+
+    roleButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove active from all buttons
+            roleButtons.forEach(b => b.classList.remove('active'));
+
+            // Add active to clicked button
+            btn.classList.add('active');
+
+            // Update subtitle text
+            const role = btn.dataset.role;
+            subtitle.textContent = texts[role];
+            roleInput.value = role;
+        });
+    });
+</script>
+
+{% endblock %}

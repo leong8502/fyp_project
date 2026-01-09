@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 class Client(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client_profile')
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='client')
     company_name = models.CharField(max_length=255)
     profile_image = models.CharField(max_length=500, blank=True, null=True, help_text="core/media/clients/profiles")
     background_image = models.CharField(max_length=500, blank=True, null=True, help_text="core/media/clients/backgrounds")
