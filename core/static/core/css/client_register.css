@@ -1,3 +1,7 @@
+body {
+    background: #fff;
+}
+
 .container {
     background: #fff;
     max-width: 520px;

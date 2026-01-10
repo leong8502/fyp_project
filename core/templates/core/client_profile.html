@@ -9,82 +9,96 @@
 {% block content %}
 <section class="profile-header">
     <!-- Background Banner -->
-    <img src="https://via.placeholder.com/1200x300/0066cc/ffffff?text=TechVision+Company+Banner" alt="Company Banner"
-        class="banner-image">
+    <img src="{% if user.client.background_image %}{{ user.client.background_image.url }}{% else %}https://via.placeholder.com/1200x300?text=Company+Banner{% endif %}"
+        alt="Company Banner" class="banner-image">
 
     <!-- Company Logo -->
     <div class="profile-image-wrapper">
-        <img src="https://via.placeholder.com/150/0066cc/ffffff?text=TV+Logo" alt="Company Logo" class="profile-image">
+        <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}https://via.placeholder.com/150?text=Logo{% endif %}"
+            alt="Company Logo" class="profile-image">
     </div>
 </section>
 
 <!-- Company Info -->
 <div class="profile-info">
-    <h1>
-        TechVision Sdn Bhd
-        <a href="{% url 'client_editProfile' %}" class="edit">
-            <i class="far fa-edit"></i> Edit
-        </a>
-    </h1>
-    <p class="tagline">Innovative Software Solutions for the Modern Enterprise</p>
-    <div class="rating">★ 4.8 (127 reviews)</div>
+    <div class="profile-text">
+        <h1>
+            {{ user.client.company_name|default:user.username }}
+            <a href="{% url 'client_editProfile' %}" class="edit">
+                <i class="far fa-edit"></i> Edit
+            </a>
+        </h1>
+        <p class="tagline">{{ user.client.tagline|default:'' }}</p>
+    </div>
+    <div class="rating">★ {{ user.client.rating }} (127 reviews)</div> <!-- review haven't done -->
 </div>
 
 <section class="content">
     <div class="description">
         <h2>About Company</h2>
-        <p>TechVision is a leading software development company specializing in web applications, mobile development,
-            and cloud solutions. With over 8 years of experience, we've helped hundreds of businesses transform their
-            digital presence and streamline their operations.</p>
-        <p>Our team of expert developers, designers, and project managers work collaboratively to deliver high-quality
-            solutions that exceed client expectations. We pride ourselves on our commitment to innovation, quality, and
-            customer satisfaction.</p>
+        {% if user.client.description %}
+        <p>{{ user.client.description|linebreaksbr }}</p>
+        {% else %}
+        <div class="empty-state">
+            <p>Your company description is currently empty.</p>
+            <a href="{% url 'client_editProfile' %}" class="btn-cta">
+                <i class="fas fa-pen"></i> Write Description
+            </a>
+        </div>
+        {% endif %}
 
+        {% if user.client.achievements %}
         <h2>Achievements & Highlights</h2>
-        <p>
-            • Awarded "Best Tech Startup 2023" by Malaysia Digital Economy Corporation<br>
-            • Successfully delivered 200+ projects with 98% client satisfaction rate<br>
-            • Partnered with Fortune 500 companies in Southeast Asia<br>
-            • Featured in TechCrunch and The Edge Malaysia
-        </p>
+        <p>{{ user.client.achievements|linebreaksbr }}</p>
+        {% endif %}
     </div>
 
     <div class="details-grid">
         <!-- Contact Information -->
         <div class="contact">
             <h2>Contact Information</h2>
-            <p><strong>Email:</strong> contact@techvision.com.my</p>
-            <p><strong>Phone:</strong> +60 11-2233 4455</p>
-            <p><strong>Address:</strong> Level 15, Menara Cyberport, Cyberjaya, Selangor, Malaysia</p>
-            <p><strong>Website:</strong> <a href="https://www.techvision.com.my"
-                    target="_blank">www.techvision.com.my</a></p>
+            <p><strong>Email:</strong> {{ user.email }}</p>
+            <p><strong>Phone:</strong> {{ user.client.phone|default:'-' }}</p>
+            <p><strong>Address:</strong> {{ user.client.address|default:'-' }}</p>
+            <p><strong>Website:</strong> {% if user.client.website_url %}<a href="{{ user.client.website_url }}"
+                    target="_blank">{{ user.client.website_url }}</a>{% else %}-{% endif %}</p>
         </div>
 
         <!-- Company Details -->
         <div class="company-details">
             <h2>Company Details</h2>
-            <p><strong>Industry:</strong> Information Technology & Services</p>
-            <p><strong>Company Size:</strong> 51-200 employees</p>
-            <p><strong>Year Founded:</strong> 2017</p>
-            <p><strong>Languages:</strong> English, Bahasa Malaysia, Mandarin</p>
+            <p><strong>Industry:</strong> {{ user.client.industry_type|default:'-' }}</p>
+            <p><strong>Company Size:</strong> {{ user.client.company_size|default:'-' }}</p>
+            <p><strong>Year Founded:</strong> {{ user.client.year_founded|default:'-' }}</p>
+            <p><strong>Languages:</strong> {{ user.client.languages|default:'-' }}</p>
+
+            {% if not user.client.tags %}
             <p><strong>Tags:</strong>
-                <span class="tag">Web Development</span>
-                <span class="tag">Mobile Apps</span>
-                <span class="tag">Cloud Solutions</span>
-                <span class="tag">AI & Machine Learning</span>
-                <span class="tag">Startup</span>
-                <span class="tag">Remote Team</span>
+                <span>-</span>
             </p>
+            {% endif %}
+
+            {% if user.client.tags %}
+            <p><strong>Tags:</strong>
+                {% for tag in user.client.tags_list %}
+                <span class="tag">{{ tag }}</span>
+                {% empty %}
+                {% comment %} fallback if tags_list logic isn't in view yet, just show raw string {% endcomment %}
+                <span class="tag">{{ user.client.tags }}</span>
+                {% endfor %}
+            </p>
+            {% endif %}
         </div>
 
         <!-- Social Links -->
         <div class="social-links">
             <h2>Social Links</h2>
-            <p><strong>LinkedIn:</strong> <a href="https://linkedin.com/company/techvision" target="_blank">View
-                    Profile</a></p>
-            <p><strong>Twitter/X:</strong> <a href="https://twitter.com/techvision_my" target="_blank">View Profile</a>
-            </p>
-            <p><strong>Facebook:</strong> <a href="https://facebook.com/techvision" target="_blank">View Profile</a></p>
+            <p><strong>LinkedIn:</strong> {% if user.client.linkedIn_url %}<a href="{{ user.client.linkedIn_url }}"
+                    target="_blank">View Profile</a>{% else %}-{% endif %}</p>
+            <p><strong>Instagram:</strong> {% if user.client.instagram_url %}<a href="{{ user.client.instagram_url }}"
+                    target="_blank">View Profile</a>{% else %}-{% endif %}</p>
+            <p><strong>Facebook:</strong> {% if user.client.facebook_url %}<a href="{{ user.client.facebook_url }}"
+                    target="_blank">View Profile</a>{% else %}-{% endif %}</p>
         </div>
     </div>
 </section>

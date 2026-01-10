@@ -40,6 +40,9 @@
     max-width: 1200px;
     margin: 0 auto 0;
     padding: 90px 50px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 }
 
 .profile-info h1 {
@@ -69,7 +72,7 @@
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 40px 40px;
-    display: flex;
+    /* display: flex; */
     gap: 40px;
 }
 
@@ -148,4 +151,36 @@ h2 {
     .content {
         padding: 0 20px 40px;
     }
+}
+
+/* Empty State Styles */
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    background: #f8f9fa;
+    border: 2px dashed #ddd;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.empty-state p {
+    color: #6c757d;
+    font-style: italic;
+    margin-bottom: 20px;
+}
+
+.btn-cta {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white !important;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+
+.btn-cta:hover {
+    background-color: #0056b3;
+    text-decoration: none;
 }

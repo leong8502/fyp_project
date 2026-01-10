@@ -1,0 +1,162 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Join TalentSync{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Force body background for this page */
+    body {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+
+    .selection-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 120px 0;
+        padding: 40px 20px;
+    }
+
+    .selection-container {
+        text-align: center;
+    }
+
+    .main-title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .subtitle {
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 1.1rem;
+        margin-bottom: 3rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .cards-grid {
+        display: flex;
+        gap: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .role-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px 30px;
+        width: 100%;
+        max-width: 320px;
+        text-decoration: none;
+        color: #333;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .role-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    .icon-wrapper {
+        width: 90px;
+        height: 90px;
+        background: #f3f4f6;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 25px;
+        font-size: 36px;
+        color: #4f46e5;
+        transition: all 0.3s ease;
+    }
+
+    .role-card:hover .icon-wrapper {
+        background: #4f46e5;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .role-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 12px;
+    }
+
+    .role-desc {
+        color: #64748b;
+        font-size: 0.95rem;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .arrow-icon {
+        margin-top: 25px;
+        color: #cbd5e1;
+        font-size: 1.2rem;
+        transition: all 0.3s;
+    }
+
+    .role-card:hover .arrow-icon {
+        color: #4f46e5;
+        transform: translateX(5px);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+        .cards-grid {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .main-title {
+            font-size: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="selection-wrapper">
+    <div class="selection-container">
+        <h1 class="main-title">Join TalentSync</h1>
+        <p class="subtitle">Choose your account type to get started. Whether you're looking for work or looking to hire,
+            we have the perfect tools for you.</p>
+
+        <div class="cards-grid">
+            <!-- Freelancer Card -->
+            <a href="register_freelancer.html" class="role-card">
+                <div class="icon-wrapper">
+                    <i class="fas fa-laptop-code"></i>
+                </div>
+                <h2 class="role-title">I'm a Freelancer</h2>
+                <p class="role-desc">Create your profile, showcase your portfolio, and find exciting projects to work
+                    on.</p>
+                <i class="fas fa-arrow-left arrow-icon"></i>
+            </a>
+
+            <!-- Client Card -->
+            <a href="{% url 'register_client' %}" class="role-card">
+                <div class="icon-wrapper">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h2 class="role-title">I'm a Client</h2>
+                <p class="role-desc">Post your projects, discover top talent, and build your dream team today.</p>
+                <i class="fas fa-arrow-right arrow-icon"></i>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

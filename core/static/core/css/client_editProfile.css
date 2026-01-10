@@ -130,3 +130,76 @@ button:hover {
     cursor: pointer;
     color: #007bff;
 }
+
+/* Dynamic Chips & Inputs */
+.chip-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+    min-height: 40px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.chip {
+    background: #e0e7ff;
+    color: #4f46e5;
+    padding: 5px 10px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.chip i {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.chip i:hover {
+    opacity: 1;
+    color: #dc2626;
+}
+
+/* Align social link labels */
+.social-link span {
+    width: 100px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+}
+
+.input-group-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    /* Ensure vertical alignment */
+}
+
+.input-group-row input,
+.input-group-row select {
+    flex: 1;
+    height: 38px;
+    /* Reduced height */
+    padding: 5px 10px;
+    /* Reduced padding */
+}
+
+.btn-add {
+    padding: 0 20px;
+    background: #4f46e5;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    height: 38px;
+    /* Match input height */
+    margin-top: 0;
+    /* Override generic button margin */
+    font-size: 14px;
+}

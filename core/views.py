@@ -62,6 +62,9 @@ def login(request):
 
     return render(request, "core/login.html")
 
+def registerSelection(request):
+    return render(request, "core/registerSelection.html")
+
 def register_client(request):
     # GET request: Show form (possibly with preserved data)
     if request.method == 'GET':
@@ -112,18 +115,13 @@ def register_client(request):
                     is_active=False
                 )
 
-                # Default images
-                default_profile_path = 'core/media/clients/profiles/default_profile.png'
-                default_background_path = 'core/media/clients/backgrounds/default_background.jpg'
-
                 # Create Client profile
                 client = Client.objects.create(
                     user=user,
                     company_name=company_name,
                     phone=phone,
                     industry_type=industry_type,
-                    profile_image=default_profile_path,
-                    background_image=default_background_path,
+                    # profile_image and background_image will use default from model
                 )
 
                 # Generate token
@@ -187,13 +185,52 @@ def verify_email(request, uidb64, token):
 
     return redirect('login')
 
+@client_required
 def client_home(request):
     return render(request, 'core/client_home.html')
 
+@client_required
 def client_profile(request):
     return render(request, 'core/client_profile.html')
 
+@client_required
 def client_editProfile(request):
+    client = request.user.client
+    
+    if request.method == 'POST':
+        # Text Fields
+        client.company_name = request.POST.get('company_name', '')
+        client.tagline = request.POST.get('tagline', '')
+        client.description = request.POST.get('description', '')
+        client.phone = request.POST.get('phone', '')
+        client.address = request.POST.get('address', '')
+        client.industry_type = request.POST.get('industry_type', '')
+        client.company_size = request.POST.get('company_size', '')
+        client.website_url = request.POST.get('website_url', '')
+        client.achievements = request.POST.get('achievements', '')
+        client.languages = request.POST.get('languages', '')
+        client.tags = request.POST.get('tags', '')
+        
+        # Social
+        client.linkedIn_url = request.POST.get('linkedIn_url', '')
+        client.instagram_url = request.POST.get('instagram_url', '')
+        client.facebook_url = request.POST.get('facebook_url', '')
+
+        # Int Fields
+        year = request.POST.get('year_founded')
+        if year:
+            client.year_founded = int(year)
+
+        if request.FILES.get('profile_image'):
+            client.profile_image = request.FILES['profile_image']
+        
+        if request.FILES.get('background_image'):
+            client.background_image = request.FILES['background_image'] 
+             
+        client.save()
+        messages.success(request, "Profile updated successfully!")
+        return redirect('client_profile')
+
     return render(request, 'core/client_editProfile.html')
 
 def client_project(request):

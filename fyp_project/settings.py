@@ -134,3 +134,6 @@ EMAIL_USE_TLS = True                    # Use TLS encryption
 EMAIL_HOST_USER = 'leongcx-wm23@student.tarc.edu.my' 
 EMAIL_HOST_PASSWORD = 'nhqpsmaietycxlfm'
 DEFAULT_FROM_EMAIL = 'leongcx-wm23@student.tarc.edu.my'
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
