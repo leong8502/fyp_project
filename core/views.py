@@ -32,6 +32,11 @@ def login(request):
             messages.error(request, "Invalid email or password")
             return redirect("login")
 
+        # Check if user is inactive but has correct password
+        if not user.is_active and user.check_password(password):
+            messages.error(request, "Please verify your email before login")
+            return redirect("login")
+
         user = authenticate(request, username=user.username, password=password)
 
         if user is None:
