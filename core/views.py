@@ -16,6 +16,7 @@ from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
 from .models import Client
+from .models import Freelancer
 from django.db import transaction
 from .decorators import client_required, freelancer_required
 
@@ -318,3 +319,25 @@ def home(request):
 def logout(request):
     auth_logout(request)
     return redirect('home')
+
+def register_freelancer(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        full_name = request.POST.get('full_name')
+        skills = request.POST.get('skills')
+
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            Freelancer.objects.create(
+                user=user,
+                full_name=full_name,
+                skills=skills
+            )
+            messages.success(request, "Freelancer account created successfully! Please log in.")
+            return redirect('login')
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+    
+    return render(request, 'core/freelancer_register.html')

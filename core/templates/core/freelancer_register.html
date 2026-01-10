@@ -1,0 +1,81 @@
+{% extends 'core/master.html' %}
+{% load static %}
+{% block title %}Join as Freelancer - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_register.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <div class="header">
+            <h1>Become a Freelancer</h1>
+            <p>Showcase your skills and connect with amazing opportunities</p>
+        </div>
+
+        <form method="POST" class="register-form" id="freelancer-form">
+            {% csrf_token %}
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="full_name">Full Name *</label>
+                    <input type="text" id="full_name" name="full_name" required placeholder="e.g., Gun Yu Xing">
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username *</label>
+                    <input type="text" id="username" name="username" required placeholder="e.g., gunyuxing">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" name="email" required placeholder="you@example.com">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="password">Password *</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm_password">Confirm Password *</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="skills">Your Top Skills (comma separated)</label>
+                <textarea id="skills" name="skills" rows="3"
+                    placeholder="Python, Django, React, UI/UX, Machine Learning"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="portfolio_url">Portfolio / GitHub Link (optional)</label>
+                <input type="url" id="portfolio_url" name="portfolio_url" placeholder="https://github.com/yourname">
+            </div>
+
+            <button type="submit" class="btn-register">Create Freelancer Account</button>
+        </form>
+
+        <div class="login-link">
+            Already have an account? <a href="{% url 'login' %}">Login here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple client-side password match check
+    const form = document.getElementById('freelancer-form');
+    form.addEventListener('submit', function (e) {
+        const pw = document.getElementById('password').value;
+        const confirm = document.getElementById('confirm_password').value;
+        if (pw !== confirm) {
+            e.preventDefault();
+            alert("Passwords do not match!");
+        }
+    });
+</script>
+{% endblock %}

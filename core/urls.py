@@ -19,4 +19,5 @@ urlpatterns = [
     path('about-us/', views.client_about, name='client_about'),
     path('client_chat/', views.client_chat, name='client_chat'),
     path('logout/', views.logout, name='logout'),
+    path('register/freelancer/', views.register_freelancer, name='register_freelancer'),
 ]
