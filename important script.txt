@@ -12,6 +12,11 @@ Db migration
 python manage.py makemigrations
 python manage.py migrate
 
+#reset migration history 
+python manage.py migrate --fake core zero
+#rerun migration (but make sure u deleted all new db u created)
+python manage.py migrate core
+
 project name: fyp_project
 db name: fyp_db
 
