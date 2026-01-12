@@ -18,9 +18,10 @@ from django.urls import reverse
 from .models import Client
 from .models import Freelancer
 from django.db import transaction
-from .decorators import client_required, freelancer_required
+from .decorators import client_required, freelancer_required, guest_required
 
 # Create your views here.
+@guest_required
 def login(request):
     if request.method == "POST":
         email = request.POST.get("email")
@@ -63,9 +64,11 @@ def login(request):
 
     return render(request, "core/login.html")
 
+@guest_required
 def registerSelection(request):
     return render(request, "core/registerSelection.html")
 
+@guest_required
 def register_client(request):
     # GET request: Show form (possibly with preserved data)
     if request.method == 'GET':
@@ -313,21 +316,15 @@ def match_jobs(request):
 
     return render(request, 'core/match.html', {'form': form, 'results': results})
 
+@guest_required
 def home(request):
-    if request.method == 'POST':
-        role = request.POST.get('role')
-        # Simulate successful login (no real check)
-        if role == 'freelancer':
-            return render(request, 'core/freelancer_home.html')  # New freelancer UI
-        else:
-            return render(request, 'core/client_home.html')  # Existing client UI
-    # GET: Show login page (home.html)
     return render(request, 'core/home.html')
 
 def logout(request):
     auth_logout(request)
     return redirect('home')
 
+@guest_required
 def register_freelancer(request):
     if request.method == 'POST':
         username = request.POST.get('username')
