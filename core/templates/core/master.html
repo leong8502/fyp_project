@@ -23,17 +23,18 @@
 
             <!-- Navigation in the center -->
             <nav class="main-nav">
-                <a href="{% url 'client_home' %}">Home</a>
-                <a href="{% url 'client_project' %}">Projects</a>
+                <a href="{% url 'home' %}">Home</a>
+                <a href="#">How It Works</a>
+                <a href="#">Find Freelancer</a>
                 <a href="#">About Us</a>
-                <a href="#">Messages</a>
                 <!-- Add more links as needed -->
             </nav>
 
-            <!-- Small company/user logo on the right -->
-            <a href="{% url 'client_profile' %}" class="user-logo">
-                <img src="{% static 'core/images/logo.png' %}" alt="Company">
-            </a>
+            <!-- Auth Buttons -->
+            <div class="auth-buttons">
+                <a href="{% url 'login' %}" class="btn-login-nav">Login</a>
+                <a href="{% url 'registerSelection' %}" class="btn-signup-nav">Sign Up</a>
+            </div>
         </div>
     </header>
 

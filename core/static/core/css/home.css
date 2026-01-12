@@ -1,0 +1,329 @@
+:root {
+    --primary: #0066ff;
+    --primary-dark: #0055d4;
+    --dark: #1a1f36;
+    --gray: #f8f9fc;
+    --light-gray: #e9ecf5;
+    --text: #2d3748;
+    --text-light: #64748b;
+}
+
+.hero {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e6f0ff 100%);
+    padding: 100px 0 80px;
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.hero-content {
+    text-align: center;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+.hero h1 {
+    font-size: 3.6rem;
+    line-height: 1.15;
+    margin-bottom: 1.2rem;
+    color: var(--dark);
+}
+
+.highlight {
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.hero-subtitle {
+    font-size: 1.28rem;
+    color: var(--text-light);
+    margin-bottom: 2.5rem;
+}
+
+/* Search Box */
+.hero-search-box {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 12px;
+    margin: 2rem 0;
+}
+
+.search-tabs {
+    display: flex;
+    margin-bottom: 12px;
+}
+
+.tab {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    background: none;
+    font-weight: 600;
+    color: var(--text-light);
+    cursor: pointer;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.search-form {
+    position: relative;
+}
+
+.search-input-wrapper {
+    display: flex;
+    gap: 12px;
+}
+
+.main-search-input {
+    flex: 1;
+    padding: 18px 24px;
+    font-size: 1.1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+}
+
+.search-btn {
+    padding: 0 36px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+.popular-searches {
+    margin-top: 1.8rem;
+    color: var(--text-light);
+}
+
+.popular-searches a {
+    margin: 0 12px;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+/* Trust Bar */
+.trust-bar {
+    background: white;
+    padding: 50px 0;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.stats-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 40px;
+    text-align: center;
+}
+
+.stat-number {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--primary);
+}
+
+.stat-label {
+    color: var(--text-light);
+    margin-top: 8px;
+}
+
+/* Categories */
+.categories-section {
+    padding: 100px 0;
+    background: var(--gray);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+}
+
+.section-header h2 {
+    font-size: 2.6rem;
+    margin-bottom: 0.8rem;
+}
+
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.category-card {
+    background: white;
+    padding: 40px 28px;
+    border-radius: 16px;
+    text-align: center;
+    transition: all 0.25s ease;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+}
+
+.category-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 40px rgba(0, 102, 255, 0.12);
+}
+
+.category-icon {
+    font-size: 3.2rem;
+    margin-bottom: 1.2rem;
+}
+
+/* How it works */
+.how-it-works {
+    padding: 100px 0;
+    background: white;
+}
+
+.steps-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 32px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.step-card {
+    text-align: center;
+    position: relative;
+}
+
+.step-number {
+    width: 64px;
+    height: 64px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0 auto 1.5rem;
+}
+
+/* Featured Freelancers */
+.featured-freelancers {
+    padding: 100px 0;
+    background: var(--gray);
+}
+
+.freelancers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+.freelancer-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    transition: transform 0.25s;
+}
+
+.freelancer-card:hover {
+    transform: translateY(-8px);
+}
+
+.freelancer-header {
+    height: 160px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    position: relative;
+}
+
+.avatar {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    border: 5px solid white;
+    position: absolute;
+    bottom: -55px;
+    left: 50%;
+    transform: translateX(-50%);
+    object-fit: cover;
+}
+
+.online-status {
+    position: absolute;
+    bottom: -45px;
+    left: 50%;
+    transform: translateX(20px);
+    width: 18px;
+    height: 18px;
+    background: #00d084;
+    border: 3px solid white;
+    border-radius: 50%;
+}
+
+.freelancer-card h4 {
+    margin-top: 70px;
+    margin-bottom: 6px;
+    text-align: center;
+}
+
+.job-title {
+    color: var(--text-light);
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.rating {
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.stars {
+    color: #ffc107;
+    font-size: 1.3rem;
+}
+
+.skills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: 16px 0;
+    padding: 0 20px;
+}
+
+.skills span {
+    background: var(--light-gray);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+.price {
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 20px;
+    border-top: 1px solid #eee;
+    font-size: 1.2rem;
+}
