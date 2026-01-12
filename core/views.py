@@ -234,6 +234,14 @@ def client_editProfile(request):
 
     return render(request, 'core/client_editProfile.html')
 
+@client_required
+def client_wallet(request):
+    return render(request, 'core/client_wallet.html')
+
+@client_required
+def client_transaction(request):
+    return render(request, 'core/client_transaction.html')
+
 def client_project(request):
     return render(request, 'core/client_project.html')
 

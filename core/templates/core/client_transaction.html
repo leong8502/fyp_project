@@ -1,0 +1,126 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}Transaction History{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_wallet.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="transactions-full-page">
+
+    <div class="page-header">
+        <h1>Transaction History</h1>
+        <p>View and manage all your financial activities</p>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="filters-bar">
+        <div class="filter-group">
+            <button class="filter-btn active">All Transactions</button>
+            <button class="filter-btn">Top Up</button>
+            <button class="filter-btn">Withdrawal</button>
+            <button class="filter-btn">Return</button>
+        </div>
+
+        <div class="filter-group">
+            <select class="filter-select">
+                <option>Newest First</option>
+                <option>Oldest First</option>
+                <option>Highest Amount</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="transactions-table-container">
+        <div class="table-header">
+            <div class="col">Description</div>
+            <div class="col">Category</div>
+            <div class="col">Amount</div>
+            <div class="col">Date</div>
+            <div class="col">Status</div>
+        </div>
+
+        <!-- Row 1 -->
+        <div class="table-row">
+            <div class="col">
+                <div class="transaction-title">Project Payment - E-commerce</div>
+                <div class="transaction-subtitle">Ref: #TXN-88291</div>
+            </div>
+            <div class="col">Earnings</div>
+            <div class="col transaction-amount positive">+ RM 4,800.00</div>
+            <div class="col transaction-date">Jan 12, 2026</div>
+            <div class="col">
+                <span class="status-badge status success">Completed</span>
+            </div>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="table-row">
+            <div class="col">
+                <div class="transaction-title">Withdrawal to Maybank</div>
+                <div class="transaction-subtitle">Ref: #WTH-9921</div>
+            </div>
+            <div class="col">Withdrawal</div>
+            <div class="col transaction-amount negative">- RM 2,500.00</div>
+            <div class="col transaction-date">Jan 12, 2026</div>
+            <div class="col">
+                <span class="status-badge status pending">Processing</span>
+            </div>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="table-row">
+            <div class="col">
+                <div class="transaction-title">Milestone Payment</div>
+                <div class="transaction-subtitle">Logo Design Project</div>
+            </div>
+            <div class="col">Earnings</div>
+            <div class="col transaction-amount positive">+ RM 650.00</div>
+            <div class="col transaction-date">Jan 11, 2026</div>
+            <div class="col">
+                <span class="status-badge status success">Completed</span>
+            </div>
+        </div>
+
+        <!-- Row 4 -->
+        <div class="table-row">
+            <div class="col">
+                <div class="transaction-title">Failed Top Up</div>
+                <div class="transaction-subtitle">Credit Card declined</div>
+            </div>
+            <div class="col">Top Up</div>
+            <div class="col transaction-amount negative">RM 0.00</div>
+            <div class="col transaction-date">Jan 10, 2026</div>
+            <div class="col">
+                <span class="status-badge status failed">Failed</span>
+            </div>
+        </div>
+
+        <!-- Row 5 -->
+        <div class="table-row">
+            <div class="col">
+                <div class="transaction-title">Account Top Up</div>
+                <div class="transaction-subtitle">FPX - CIMB Clicks</div>
+            </div>
+            <div class="col">Top Up</div>
+            <div class="col transaction-amount positive">+ RM 3,000.00</div>
+            <div class="col transaction-date">Jan 08, 2026</div>
+            <div class="col">
+                <span class="status-badge status success">Completed</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination">
+        <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
+        <button class="page-btn active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+    </div>
+
+</main>
+{% endblock %}

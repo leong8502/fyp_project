@@ -32,11 +32,12 @@
             <!-- Small company/user logo on the right -->
             <div class="user-menu">
                 <div class="user-logo" onclick="toggleDropdown()">
-                    <img src="{% static 'core/images/logo.png' %}" alt="Company">
+                    <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}https://via.placeholder.com/150?text=Logo{% endif %}"
+                        alt="Company">
                 </div>
                 <div id="userDropdown" class="dropdown-content">
                     <a href="{% url 'client_profile' %}"><i class="fas fa-user-circle"></i> Profile</a>
-                    <a href="#"><i class="fas fa-wallet"></i> My Wallet</a>
+                    <a href="{% url 'client_wallet' %}"><i class="fas fa-wallet"></i> My Wallet</a>
                     <a href="#"><i class="fas fa-bell"></i> Notifications</a>
                     <a href="#"><i class="fas fa-headset"></i> Support</a>
                     <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>

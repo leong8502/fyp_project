@@ -1,0 +1,145 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}My Wallet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_wallet.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="wallet-page">
+
+    <!-- Left Column: Balance & Actions -->
+    <section class="balance-section">
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-header">
+                <h2>Total Balance</h2>
+                <button class="toggle-visibility-btn" onclick="toggleBalance()" aria-label="Toggle balance visibility">
+                    <i class="fas fa-eye" id="eyeIcon"></i>
+                </button>
+            </div>
+
+            <div class="balance-amount" id="balanceAmount">
+                <span class="currency">RM</span>
+                <span class="amount">15,000.00</span>
+            </div>
+
+            <div class="balance-hidden hidden" id="balanceHidden">
+                <span>••••••</span>
+            </div>
+
+            <p class="balance-label">Available for withdrawal</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-section">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+                <button class="btn-large btn-primary">
+                    <i class="fas fa-plus-circle fa-lg"></i>
+                    <span>Top Up</span>
+                </button>
+
+                <button class="btn-large btn-outline">
+                    <i class="fas fa-arrow-circle-down fa-lg"></i>
+                    <span>Withdraw</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Right Column: Recent Transactions -->
+    <section class="transactions-section">
+        <div class="section-header">
+            <h3>Recent Transactions</h3>
+            <a href="{% url 'client_transaction' %}" class="view-all-link">View All Transactions</a>
+        </div>
+
+        <div class="transactions-list">
+            <!-- Item 1 -->
+            <div class="transaction-item success">
+                <div class="transaction-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-title">Project Payment Received</div>
+                    <div class="transaction-subtitle">From: Ahmad Enterprise</div>
+                </div>
+                <div class="transaction-right">
+                    <div class="transaction-amount positive">+ RM 4,800.00</div>
+                    <div class="transaction-date">Today, 2:30 PM</div>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="transaction-item pending">
+                <div class="transaction-icon">
+                    <i class="fas fa-university"></i>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-title">Withdrawal to Maybank</div>
+                    <div class="transaction-subtitle">Ref: 981237123</div>
+                </div>
+                <div class="transaction-right">
+                    <div class="transaction-amount negative">- RM 2,500.00</div>
+                    <div class="transaction-date">Today, 11:15 AM</div>
+                </div>
+            </div>
+
+            <!-- Item 3 -->
+            <div class="transaction-item success">
+                <div class="transaction-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-title">Milestone Released</div>
+                    <div class="transaction-subtitle">From: Sarah Boutique</div>
+                </div>
+                <div class="transaction-right">
+                    <div class="transaction-amount positive">+ RM 650.00</div>
+                    <div class="transaction-date">Yesterday</div>
+                </div>
+            </div>
+
+            <!-- Item 4 -->
+            <div class="transaction-item success">
+                <div class="transaction-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-title">Wallet Top Up</div>
+                    <div class="transaction-subtitle">Via FPX Online Banking</div>
+                </div>
+                <div class="transaction-right">
+                    <div class="transaction-amount positive">+ RM 3,000.00</div>
+                    <div class="transaction-date">Jan 8, 2026</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function toggleBalance() {
+        const balanceAmount = document.getElementById('balanceAmount');
+        const balanceHidden = document.getElementById('balanceHidden');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        if (balanceAmount.classList.contains('hidden')) {
+            balanceAmount.classList.remove('hidden');
+            balanceHidden.classList.add('hidden');
+            eyeIcon.classList.remove('fa-eye-slash');
+            eyeIcon.classList.add('fa-eye');
+        } else {
+            balanceAmount.classList.add('hidden');
+            balanceHidden.classList.remove('hidden');
+            eyeIcon.classList.remove('fa-eye');
+            eyeIcon.classList.add('fa-eye-slash');
+        }
+    }
+</script>
+
+{% endblock %}
