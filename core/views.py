@@ -1,6 +1,7 @@
 import uuid
 from django.shortcuts import render, redirect
-from .forms import SkillsForm  # ← Add this (we'll create forms.py next)
+
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -15,8 +16,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client
-from .models import Freelancer
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
 
@@ -70,102 +70,53 @@ def registerSelection(request):
 
 @guest_required
 def register_client(request):
-    # GET request: Show form (possibly with preserved data)
-    if request.method == 'GET':
-        # Try to get preserved form data from session
-        form_data = request.session.pop('register_form_data', {})
-        return render(request, 'core/client_register.html', {'form_data': form_data})
-
-    # POST request: Process form
     if request.method == 'POST':
-        # Extract data
-        email = request.POST.get('email', '').strip().lower()
-        password = request.POST.get('password', '')
-        full_name = request.POST.get('name', '').strip()
-        company_name = request.POST.get('company', '').strip()
-        phone = request.POST.get('phone', '').strip()
-        industry_type = request.POST.get('industry', '')
+        form = ClientRegistrationForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Save form (creates User and Client)
+                    client = form.save()
+                    
+                    # Send email verification
+                    current_site = get_current_site(request)
+                    verify_url = reverse('verify_email', kwargs={
+                        'uidb64': urlsafe_base64_encode(force_bytes(client.user.pk)),
+                        'token': client.email_verification_token
+                    })
+                    
+                    verify_link = f"http://{current_site.domain}{verify_url}"
+                    email_subject = "Verify Your Email Address"
 
-        # Prepare data to repopulate form on error
-        form_data = {
-            'name': full_name,
-            'email': email,
-            'phone': phone,
-            'company': company_name,
-            'industry': industry_type,
-        }
+                    email_body = render_to_string('emails/verification_email.html', {
+                        'user': client.user,
+                        'verify_link': verify_link,
+                    })
 
-        # Basic validation
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'This email is already registered.')
-            request.session['register_form_data'] = form_data
-            return redirect('register_client')
+                    email = EmailMessage(
+                        email_subject,
+                        email_body,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [client.user.email],
+                    )
+                    email.content_subtype = "html"
+                    email.send(fail_silently=False)
 
-        if not all([email, password, full_name, company_name, phone, industry_type]):
-            messages.error(request, 'Please fill in all required fields.')
-            request.session['register_form_data'] = form_data
-            return redirect('register_client')
+                messages.success(request, "Registration successful! Please check your email to verify your account.")
+                return redirect('login')
 
-        # Atomic transaction for all-or-nothing
-        try:
-            with transaction.atomic():
-                # Create inactive user
-                user = User.objects.create_user(
-                    username=email,
-                    email=email,
-                    password=password,
-                    first_name=full_name.split()[0] if full_name else '',
-                    last_name=' '.join(full_name.split()[1:]) if len(full_name.split()) > 1 else '',
-                    is_active=False
-                )
+            except Exception as e:
+                messages.error(request, f"An error occurred during registration: {str(e)}")
+        else:
+             # Form invalid, errors are in form.errors
+             for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = ClientRegistrationForm()
 
-                # Create Client profile
-                client = Client.objects.create(
-                    user=user,
-                    company_name=company_name,
-                    phone=phone,
-                    industry_type=industry_type,
-                    # profile_image and background_image will use default from model
-                )
+    return render(request, 'core/client_register.html', {'form': form})
 
-                # Generate token
-                token = str(uuid.uuid4())
-                client.email_verification_token = token
-                client.save()
-
-                # Send email
-                current_site = get_current_site(request)
-                verify_url = reverse('verify_email', kwargs={
-                    'uidb64': urlsafe_base64_encode(force_bytes(user.pk)),
-                    'token': token
-                })
-                full_verify_link = f"{request.scheme}://{current_site.domain}{verify_url}"
-
-                mail_subject = 'Activate Your Freelance Platform Account'
-                message = render_to_string('emails/verification_email.html', {
-                    'user': user,
-                    'company_name': company_name,
-                    'verify_link': full_verify_link,
-                })
-
-                email_msg = EmailMessage(
-                    mail_subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [email],
-                )
-                email_msg.content_subtype = "html"
-                email_msg.send()
-
-            # SUCCESS → Clear any session data and redirect
-            messages.success(request, 'Registration successful! Please check your email to verify your account.')
-            return redirect('login')
-
-        except Exception as e:
-            messages.error(request, 'Registration failed. Please try again later.')
-            print(f"Registration error: {e}")
-            request.session['register_form_data'] = form_data  # ← Preserve on exception
-            return redirect('register_client')
 
 def verify_email(request, uidb64, token):
     try:
@@ -202,40 +153,20 @@ def client_editProfile(request):
     client = request.user.client
     
     if request.method == 'POST':
-        # Text Fields
-        client.company_name = request.POST.get('company_name', '')
-        client.tagline = request.POST.get('tagline', '')
-        client.description = request.POST.get('description', '')
-        client.phone = request.POST.get('phone', '')
-        client.address = request.POST.get('address', '')
-        client.industry_type = request.POST.get('industry_type', '')
-        client.company_size = request.POST.get('company_size', '')
-        client.website_url = request.POST.get('website_url', '')
-        client.achievements = request.POST.get('achievements', '')
-        client.languages = request.POST.get('languages', '')
-        client.tags = request.POST.get('tags', '')
-        
-        # Social
-        client.linkedIn_url = request.POST.get('linkedIn_url', '')
-        client.instagram_url = request.POST.get('instagram_url', '')
-        client.facebook_url = request.POST.get('facebook_url', '')
+        form = ClientProfileForm(request.POST, request.FILES, instance=client)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile updated successfully!")
+            return redirect('client_profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                     messages.error(request, f"{field}: {error}")
+    else:
+        form = ClientProfileForm(instance=client)
 
-        # Int Fields
-        year = request.POST.get('year_founded')
-        if year:
-            client.year_founded = int(year)
-
-        if request.FILES.get('profile_image'):
-            client.profile_image = request.FILES['profile_image']
-        
-        if request.FILES.get('background_image'):
-            client.background_image = request.FILES['background_image'] 
-             
-        client.save()
-        messages.success(request, "Profile updated successfully!")
-        return redirect('client_profile')
-
-    return render(request, 'core/client_editProfile.html')
+    return render(request, 'core/client_editProfile.html', {'form': form})
 
 @client_required
 def client_wallet(request):
@@ -245,11 +176,58 @@ def client_wallet(request):
 def client_transaction(request):
     return render(request, 'core/client_transaction.html')
 
+@client_required
 def client_project(request):
-    return render(request, 'core/client_project.html')
+    projects = Project.objects.filter(client=request.user.client).order_by('-created_at')
+    return render(request, 'core/client_project.html', {'projects': projects})
 
+@client_required
 def client_projectCreate(request):
-    return render(request, 'core/client_projectCreate.html')
+    categories = ProjectCategory.objects.all()
+    
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # 1. Create Project
+                    project = form.save(commit=False)
+                    project.client = request.user.client
+                    project.status = 'draft'
+                    
+                    # 2. Get Milestones Data
+                    m_titles = request.POST.getlist('milestone_title[]')
+                    m_descriptions = request.POST.getlist('milestone_description[]')
+                    m_amounts = request.POST.getlist('milestone_amount[]')
+                    m_deadlines = request.POST.getlist('milestone_deadline[]')
+
+                    project.save()
+                    
+                    # Create Milestones
+                    for i in range(len(m_titles)):
+                        if m_titles[i] and m_amounts[i] and m_deadlines[i]:
+                            Milestone.objects.create(
+                                project=project,
+                                title=m_titles[i],
+                                description=m_descriptions[i] if i < len(m_descriptions) else '',
+                                amount=m_amounts[i],
+                                deadline=m_deadlines[i],
+                                order=i+1
+                            )
+
+                messages.success(request, "Project created successfully! You can publish it once you are ready.")
+                return redirect('client_project')
+            except Exception as e:
+                messages.error(request, f"Error creating project: {str(e)}")
+        else:
+            messages.error(request, "Something run error, please try again later")
+    else:
+        form = ProjectForm()
+
+    return render(request, 'core/client_projectCreate.html', {
+        'form': form,
+        'categories': categories # Still passed for reference or manual iteration if needed, though form handles it
+    })
 
 def client_projectInfo(request):
     return render(request, 'core/client_projectInfo.html')

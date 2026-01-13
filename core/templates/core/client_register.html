@@ -19,42 +19,31 @@
 
             <div class="form-group">
                 <label for="name">Full Name *</label>
-                <input type="text" id="name" name="name" required placeholder="e.g., John Doe"
-                    value="{{ form_data.name|default:'' }}">
+                <input type="text" id="name" name="full_name" required placeholder="e.g., John Doe"
+                    value="{{ form.full_name.value|default:'' }}">
             </div>
 
             <div class="form-group">
                 <label for="email">Company Email Address *</label>
                 <input type="email" id="email" name="email" required placeholder="john@company.com"
-                    value="{{ form_data.email|default:'' }}">
+                    value="{{ form.email.value|default:'' }}">
             </div>
 
             <div class="form-group">
                 <label for="phone">Phone Number *</label>
                 <input type="tel" id="phone" name="phone" required placeholder="+60 12-345 6789"
-                    value="{{ form_data.phone|default:'' }}">
+                    value="{{ form.phone.value|default:'' }}">
             </div>
 
             <div class="form-group">
                 <label for="company">Company Name *</label>
-                <input type="text" id="company" name="company" required placeholder="e.g., TechVision Sdn Bhd"
-                    value="{{ form_data.company|default:'' }}">
+                <input type="text" id="company" name="company_name" required placeholder="e.g., TechVision Sdn Bhd"
+                    value="{{ form.company_name.value|default:'' }}">
             </div>
 
             <div class="form-group">
                 <label for="industry">Industry Type *</label>
-                <select id="industry" name="industry" required>
-                    <option value="">Select Industry</option>
-                    <option>Technology & IT</option>
-                    <option>Marketing & Advertising</option>
-                    <option>E-commerce</option>
-                    <option>Finance</option>
-                    <option>Healthcare</option>
-                    <option>Education</option>
-                    <option>Real Estate</option>
-                    <option>Manufacturing</option>
-                    <option>Other</option>
-                </select>
+                {{ form.industry_type }}
             </div>
 
             <div class="form-group">

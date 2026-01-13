@@ -169,7 +169,7 @@ td {
     font-weight: 500;
 }
 
-.active {
+.open {
     background: #d4edda;
     color: #155724;
 }
@@ -184,9 +184,14 @@ td {
     color: #41464b;
 }
 
-.pending {
+.draft {
     background: #fff3cd;
     color: #856404;
+}
+
+.delete {
+    background: #f8d7da;
+    color: #721c24;
 }
 
 .actions a {

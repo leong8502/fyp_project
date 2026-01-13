@@ -25,26 +25,25 @@
             <!-- Banner and Profile Image Uploads -->
             <div>
                 <label>Profile Background Image (Banner)</label>
-                <input type="file" accept="image/*" id="background-image-upload" name="background_image">
+                {{ form.background_image }}
             </div>
             <div>
                 <label>Profile Image</label>
-                <input type="file" accept="image/*" id="profile-image-upload" name="profile_image">
+                {{ form.profile_image }}
             </div>
 
             <!-- Basic Info -->
             <div>
                 <label for="name">Company Name</label>
-                <input type="text" id="name" name="company_name" value="{{ user.client.company_name }}">
+                {{ form.company_name }}
             </div>
             <div>
                 <label for="tagline">Tagline</label>
-                <input type="text" id="tagline" name="tagline" value="{{ user.client.tagline }}"
-                    placeholder="e.g. Innovative Software Solutions for the Modern Enterprise">
+                {{ form.tagline }}
             </div>
             <div>
                 <label for="description">Description</label>
-                <textarea id="description" name="description">{{ user.client.description }}</textarea>
+                {{ form.description }}
             </div>
 
             <!-- Contact Info -->
@@ -54,49 +53,35 @@
             </div>
             <div>
                 <label for="phone">Phone No</label>
-                <input type="tel" id="phone" name="phone" value="{{ user.client.phone }}" placeholder="+1 234 567 890">
+                {{ form.phone }}
             </div>
             <div>
                 <label for="address">Address</label>
-                <input type="text" id="address" name="address" value="{{ user.client.address }}"
-                    placeholder="Street, City, Country">
+                {{ form.address }}
             </div>
 
             <!-- Company Specific -->
             <div>
                 <label for="industry">Industry Type</label>
-                <input type="text" id="industry" name="industry_type" value="{{ user.client.industry_type }}"
-                    placeholder="e.g., Technology, Finance">
+                {{ form.industry_type }}
             </div>
             <div>
                 <label for="company-size">Company Size</label>
-                <select id="company-size" name="company_size">
-                    <option value="">Select...</option>
-                    <option value="1-10" {% if user.client.company_size == "1-10" %}selected{% endif %}>1-10</option>
-                    <option value="11-50" {% if user.client.company_size == "11-50" %}selected{% endif %}>11-50</option>
-                    <option value="51-200" {% if user.client.company_size == "51-200" %}selected{% endif %}>51-200
-                    </option>
-                    <option value="201-500" {% if user.client.company_size == "201-500" %}selected{% endif %}>201-500
-                    </option>
-                    <option value="500+" {% if user.client.company_size == "500+" %}selected{% endif %}>500+</option>
-                </select>
+                {{ form.company_size }}
             </div>
             <div>
                 <label for="year-founded">Year Founded</label>
-                <input type="text" id="year-founded" name="year_founded"
-                    value="{{ user.client.year_founded|default:'' }}" placeholder="e.g., 2020">
+                {{ form.year_founded }}
             </div>
 
             <!-- Other -->
             <div>
                 <label for="website">Website URL</label>
-                <input type="url" id="website" name="website_url" value="{{ user.client.website_url }}"
-                    placeholder="https://example.com">
+                {{ form.website_url }}
             </div>
             <div>
                 <label for="achievements">Achievements</label>
-                <textarea id="achievements" name="achievements"
-                    placeholder="Key achievements or highlights...">{{ user.client.achievements }}</textarea>
+                {{ form.achievements }}
             </div>
 
             <!-- Dynamic Languages -->
@@ -118,7 +103,7 @@
                     </select>
                     <button type="button" class="btn-add" onclick="addLanguage()">Add</button>
                 </div>
-                <input type="hidden" name="languages" id="languages-hidden" value="{{ user.client.languages }}">
+                {{ form.languages }}
             </div>
 
             <!-- Dynamic Tags -->
@@ -129,7 +114,7 @@
                     <input type="text" id="tag-input" placeholder="Type a tag and press Enter">
                     <button type="button" class="btn-add" onclick="addTag()">Add</button>
                 </div>
-                <input type="hidden" name="tags" id="tags-hidden" value="{{ user.client.tags }}">
+                {{ form.tags }}
             </div>
 
             <!-- Social Links -->
@@ -138,18 +123,15 @@
                 <div class="social-links">
                     <div class="social-link">
                         <span>LinkedIn:</span>
-                        <input type="url" name="linkedIn_url" value="{{ user.client.linkedIn_url|default:'' }}"
-                            placeholder="https://linkedin.com/in/...">
+                        {{ form.linkedIn_url }}
                     </div>
                     <div class="social-link">
                         <span>Instagram:</span>
-                        <input type="url" name="instagram_url" value="{{ user.client.instagram_url|default:'' }}"
-                            placeholder="https://instagram.com/...">
+                        {{ form.instagram_url }}
                     </div>
                     <div class="social-link">
                         <span>Facebook:</span>
-                        <input type="url" name="facebook_url" value="{{ user.client.facebook_url|default:'' }}"
-                            placeholder="https://facebook.com/...">
+                        {{ form.facebook_url }}
                     </div>
                 </div>
             </div>

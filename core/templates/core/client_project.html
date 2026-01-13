@@ -88,39 +88,33 @@
                 </tr>
             </thead>
             <tbody>
+            <tbody>
+                {% for project in projects %}
                 <tr>
-                    <td>Corporate Website Redesign</td>
-                    <td>Alex Rivera</td>
-                    <td><span class="status active">Active</span></td>
-                    <td>Feb 20, 2026</td>
-                    <td>$12,000</td>
-                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                    <td>{{ project.title }}</td>
+                    <td>
+                        {% if project.assigned_freelancer %}
+                        {{ project.assigned_freelancer.full_name|default:project.assigned_freelancer.user.username }}
+                        {% else %}
+                        <span style="color: #666;">Not Assigned</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status {{ project.status }}">
+                            {{ project.get_status_display }}
+                        </span>
+                    </td>
+                    <td>{{ project.deadline|date:"M d, Y" }}</td>
+                    <td>${{ project.budget|floatformat:0 }}</td>
+                    <td class="actions">
+                        <a href="{% url 'client_projectInfo' %}">View Details</a>
+                    </td>
                 </tr>
+                {% empty %}
                 <tr>
-                    <td>Mobile App Development</td>
-                    <td>Sarah Chen</td>
-                    <td><span class="status in-progress">In Progress</span></td>
-                    <td>Mar 15, 2026</td>
-                    <td>$18,000</td>
-                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
+                    <td colspan="6" style="text-align: center; padding: 40px 0 250px 0;">No projects found.</td>
                 </tr>
-                <tr>
-                    <td>Brand Identity Package</td>
-                    <td>Mike Johnson</td>
-                    <td><span class="status completed">Completed</span></td>
-                    <td>Dec 10, 2025</td>
-                    <td>$5,500</td>
-                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
-                </tr>
-                <tr>
-                    <td>SEO & Content Strategy</td>
-                    <td>Emma Watson</td>
-                    <td><span class="status pending">Pending Review</span></td>
-                    <td>Jan 25, 2026</td>
-                    <td>$8,000</td>
-                    <td class="actions"><a href="{% url 'client_projectInfo' %}">View Details</a></td>
-                </tr>
-                <!-- More rows... -->
+                {% endfor %}
             </tbody>
         </table>
     </div>

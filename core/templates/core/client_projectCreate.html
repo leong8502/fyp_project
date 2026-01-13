@@ -12,10 +12,21 @@
         <div class="header">
             <h1>Create New Project</h1>
         </div>
-        <form class="form-body">
+        <form class="form-body" method="POST" id="create-project-form">
+            {% csrf_token %}
             <div class="form-group">
                 <label for="title">Project Title</label>
                 <input type="text" id="title" name="title" placeholder="e.g., Corporate Website Redesign" required>
+            </div>
+
+            <div class="form-group">
+                <label for="category">Category</label>
+                <select id="category" name="category" required>
+                    <option value="">Select Category...</option>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="form-group">
@@ -28,43 +39,94 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="form-group">
                     <label for="budget">Budget ($)</label>
-                    <input type="number" id="budget" name="budget" placeholder="e.g., 12000" min="1">
+                    <input type="number" id="budget" name="budget" placeholder="e.g., 12000" min="1" step="1" required>
                 </div>
                 <div class="form-group">
                     <label for="deadline">Expected Completion Date</label>
-                    <input type="date" id="deadline" name="deadline">
+                    <input type="date" id="deadline" name="deadline" required>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label for="experience_level">Experience Level</label>
+                    <select id="experience_level" name="experience_level">
+                        <option value="entry">Entry Level</option>
+                        <option value="intermediate" selected>Intermediate</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="year_of_experience">Years of Exp.</label>
+                    <select id="year_of_experience" name="year_of_experience">
+                        <option value="0">Less than 1 year</option>
+                        <option value="1">1 Year</option>
+                        <option value="2">2 Years</option>
+                        <option value="3">3 Years</option>
+                        <option value="4">4 Years</option>
+                        <option value="5">5+ Years</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Preferred Language</label>
+                    <div style="display:flex; gap:5px;">
+                        <select id="language-select" style="flex:1;">
+                            <option value="">Select...</option>
+                            <option value="English">English</option>
+                            <option value="Mandarin">Mandarin</option>
+                            <option value="Spanish">Spanish</option>
+                            <option value="French">French</option>
+                            <option value="German">German</option>
+                            <option value="Japanese">Japanese</option>
+                            <option value="Korean">Korean</option>
+                            <option value="Malay">Malay</option>
+                            <option value="Hindi">Hindi</option>
+                        </select>
+                        <button type="button" onclick="addLanguage()"
+                            style="width:40px; border:1px solid #ddd; background:#f8f9fa; cursor:pointer;">+</button>
+                    </div>
+                    <div class="skills-input-container" id="languages-visual-container"
+                        style="margin-top:5px; min-height:30px;"></div>
+                    <input type="hidden" id="preferred_language" name="preferred_language">
                 </div>
             </div>
 
             <div class="form-group">
                 <label>Skills Required</label>
-                <div class="skills-input" id="skills-container">
-                    <!-- Example tags (can be added via JS) -->
-                    <div class="skill-tag">UI/UX Design <span onclick="this.parentElement.remove()">×</span></div>
-                    <div class="skill-tag">React.js <span onclick="this.parentElement.remove()">×</span></div>
-                    <input type="text" placeholder="Type a skill and press Enter..."
-                        style="border:none; outline:none; flex:1; background:transparent; font-size:16px;"
-                        onkeydown="addSkill(event)">
+                <div class="skills-input-container" id="skills-visual-container">
+                    <!-- Dynamic chips will go here -->
+                    <input type="text" id="skill-input" placeholder="Type a skill and press Enter..."
+                        style="border:none; outline:none; flex-grow: 1; min-width: 150px; background:transparent;">
                 </div>
+                <input type="hidden" id="required_skills" name="required_skills">
             </div>
 
             <div class="milestones-section">
-                <h3>Milestones (Optional but Recommended)</h3>
+                <h3>Milestones (Recommended)</h3>
                 <p style="color:#666; font-size:14px;">Break down payment into phases for better management.</p>
 
                 <div id="milestones-list">
-                    <!-- Dynamic milestones will be added here -->
+                    <!-- Initial Milestone Item -->
                     <div class="milestone-item">
-                        <div>
+                        <div style="grid-column: span 3;">
                             <label>Milestone Title</label>
-                            <input type="text" placeholder="e.g., Wireframes & Design Mockups">
+                            <input type="text" name="milestone_title[]" placeholder="e.g., Wireframes & Design Mockups"
+                                required>
+                        </div>
+                        <div style="grid-column: span 3;">
+                            <label>Description (Optional)</label>
+                            <input type="text" name="milestone_description[]"
+                                placeholder="e.g., Deliver high-fidelity mockups for all pages">
                         </div>
                         <div>
                             <label>Amount ($)</label>
-                            <input type="number" placeholder="e.g., 4000" min="1">
+                            <input type="number" name="milestone_amount[]" placeholder="e.g., 4000" min="1" required>
                         </div>
-                        <button type="button" class="remove-milestone"
-                            onclick="this.parentElement.remove()">Remove</button>
+                        <div>
+                            <label>Deadline</label>
+                            <input type="date" name="milestone_deadline[]" required>
+                        </div>
+                        <button type="button" class="remove-milestone" onclick="removeMilestone(this)">Remove</button>
                     </div>
                 </div>
 
@@ -81,7 +143,7 @@
             </div>
 
             <div class="actions">
-                <a href="#" class="btn-cancel">Cancel</a>
+                <a href="{% url 'client_project' %}" class="btn-cancel">Cancel</a>
                 <button type="submit">Create Project</button>
             </div>
         </form>
@@ -89,33 +151,178 @@
 </div>
 
 <script>
+    // --- Prevent Scientific Notation in Number Inputs ---
+    document.addEventListener('keydown', function (e) {
+        if (e.target.type === 'number') {
+            if (['e', 'E', '+', '-'].includes(e.key)) {
+                e.preventDefault();
+            }
+        }
+    });
+
+    // --- Language Handling ---
+    const langContainer = document.getElementById('languages-visual-container');
+    const langSelect = document.getElementById('language-select');
+    const langHidden = document.getElementById('preferred_language');
+    let languages = [];
+
+    function renderLanguages() {
+        const chips = langContainer.querySelectorAll('.skill-chip');
+        chips.forEach(chip => chip.remove());
+
+        languages.forEach((lang, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'skill-chip';
+            chip.innerHTML = `${lang} <span onclick="removeLanguage(${index})">×</span>`;
+            langContainer.appendChild(chip);
+        });
+        langHidden.value = languages.join(',');
+    }
+
+    function addLanguage() {
+        const val = langSelect.value;
+        if (val && !languages.includes(val)) {
+            languages.push(val);
+            renderLanguages();
+            langSelect.value = '';
+        }
+    }
+
+    window.removeLanguage = function (index) {
+        languages.splice(index, 1);
+        renderLanguages();
+    }
+
+    // --- Skills Handling ---
+    const skillsContainer = document.getElementById('skills-visual-container');
+    const skillInput = document.getElementById('skill-input');
+    const skillsHidden = document.getElementById('required_skills');
+    let skills = [];
+
+    function renderSkills() {
+        // Clear all except the input
+        const chips = skillsContainer.querySelectorAll('.skill-chip');
+        chips.forEach(chip => chip.remove());
+
+        skills.forEach((skill, index) => {
+            const chip = document.createElement('div');
+            chip.className = 'skill-chip';
+            chip.innerHTML = `${skill} <span onclick="removeSkill(${index})">×</span>`;
+            skillsContainer.insertBefore(chip, skillInput);
+        });
+        skillsHidden.value = skills.join(',');
+    }
+
+    function addSkill(val) {
+        val = val.trim();
+        if (val && !skills.includes(val)) {
+            skills.push(val);
+            renderSkills();
+        }
+    }
+
+    window.removeSkill = function (index) {
+        skills.splice(index, 1);
+        renderSkills();
+    }
+
+    skillInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addSkill(this.value);
+            this.value = '';
+        }
+    });
+
+    // Handle form submit with validation
+    document.getElementById('create-project-form').addEventListener('submit', function (e) {
+        skillsHidden.value = skills.join(',');
+        langHidden.value = languages.join(',');
+
+        // 1. Budget Validation
+        const projectBudget = parseFloat(document.getElementById('budget').value) || 0;
+        const milestoneAmounts = document.getElementsByName('milestone_amount[]');
+        let totalMilestones = 0;
+        for (let i = 0; i < milestoneAmounts.length; i++) {
+            totalMilestones += parseFloat(milestoneAmounts[i].value) || 0;
+        }
+
+        if (milestoneAmounts.length > 0 && Math.abs(projectBudget - totalMilestones) > 0.01) {
+            e.preventDefault();
+            alert(`Total milestone budget ($${totalMilestones}) must equal project budget ($${projectBudget}).`);
+            return;
+        }
+
+        // 2. Date Validation
+        const projectDeadline = new Date(document.getElementById('deadline').value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (projectDeadline < today) {
+            e.preventDefault();
+            alert("Project deadline cannot be in the past.");
+            return;
+        }
+
+        const milestoneDeadlines = document.getElementsByName('milestone_deadline[]');
+        let previousDeadline = null;
+
+        for (let i = 0; i < milestoneDeadlines.length; i++) {
+            const currentDeadline = new Date(milestoneDeadlines[i].value);
+
+            if (currentDeadline > projectDeadline) {
+                e.preventDefault();
+                alert(`Milestone ${i + 1} deadline cannot be after the project deadline.`);
+                return;
+            }
+
+            if (currentDeadline < today) {
+                e.preventDefault();
+                alert(`Milestone ${i + 1} deadline cannot be in the past.`);
+                return;
+            }
+
+            if (previousDeadline && currentDeadline <= previousDeadline) {
+                e.preventDefault();
+                alert(`Milestone ${i + 1} deadline must be after the previous milestone deadline.`);
+                return;
+            }
+            previousDeadline = currentDeadline;
+        }
+    });
+
+    // --- Milestone Handling ---
     function addMilestone() {
         const list = document.getElementById('milestones-list');
         const item = document.createElement('div');
         item.className = 'milestone-item';
         item.innerHTML = `
-            <div>
+            <div style="grid-column: span 3;">
                 <label>Milestone Title</label>
-                <input type="text" placeholder="e.g., Frontend Development">
+                <input type="text" name="milestone_title[]" placeholder="e.g., Wireframes & Design Mockups" required>
+            </div>
+            <div style="grid-column: span 3;">
+                <label>Description (Optional)</label>
+                <input type="text" name="milestone_description[]" placeholder="e.g., Deliver high-fidelity mockups for all pages">
             </div>
             <div>
                 <label>Amount ($)</label>
-                <input type="number" placeholder="e.g., 5000" min="1">
+                <input type="number" name="milestone_amount[]" placeholder="e.g., 4000" min="1" required>
             </div>
-            <button type="button" class="remove-milestone" onclick="this.parentElement.remove()">Remove</button>
+            <div>
+                <label>Deadline</label>
+                <input type="date" name="milestone_deadline[]" required>
+            </div>
+            <button type="button" class="remove-milestone" onclick="removeMilestone(this)">Remove</button>
         `;
         list.appendChild(item);
     }
 
-    function addSkill(event) {
-        if (event.key === 'Enter' && event.target.value.trim()) {
-            const container = document.getElementById('skills-container');
-            const tag = document.createElement('div');
-            tag.className = 'skill-tag';
-            tag.innerHTML = event.target.value.trim() + ' <span onclick="this.parentElement.remove()">×</span>';
-            container.insertBefore(tag, event.target);
-            event.target.value = '';
-        }
+    window.removeMilestone = function (btn) {
+        // Ensure at least one milestone remains if required, or allow empty?
+        // Let's allow removing all but logic might require at least 1 or 0.
+        // User said milestones are optional, so removing is fine.
+        btn.closest('.milestone-item').remove();
     }
 </script>
 {% endblock %}
