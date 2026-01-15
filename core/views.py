@@ -220,7 +220,10 @@ def client_projectCreate(request):
             except Exception as e:
                 messages.error(request, f"Error creating project: {str(e)}")
         else:
-            messages.error(request, "Something run error, please try again later")
+            # Show specific form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = ProjectForm()
 
@@ -233,6 +236,91 @@ def client_projectCreate(request):
 def client_projectInfo(request, project_id):
     project = Project.objects.get(id=project_id, client=request.user.client)
     return render(request, 'core/client_projectInfo.html', {'project': project})
+
+@client_required
+def client_projectEdit(request, project_id):
+    project = Project.objects.get(id=project_id, client=request.user.client)
+
+    experience_5_plus = project.year_of_experience >= 5
+    
+    # Only allow editing draft projects
+    if project.status != 'draft':
+        messages.error(request, "Only draft projects can be edited.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    categories = ProjectCategory.objects.all()
+    
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, request.FILES, instance=project)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    # Update Project
+                    project = form.save(commit=False)
+                    project.client = request.user.client
+                    project.status = 'draft'
+                    
+                    # Get Milestones Data
+                    m_titles = request.POST.getlist('milestone_title[]')
+                    m_descriptions = request.POST.getlist('milestone_description[]')
+                    m_amounts = request.POST.getlist('milestone_amount[]')
+                    m_deadlines = request.POST.getlist('milestone_deadline[]')
+
+                    project.save()
+                    
+                    # Delete existing milestones and create new ones
+                    project.milestones.all().delete()
+                    
+                    # Create new Milestones
+                    for i in range(len(m_titles)):
+                        if m_titles[i] and m_amounts[i] and m_deadlines[i]:
+                            Milestone.objects.create(
+                                project=project,
+                                title=m_titles[i],
+                                description=m_descriptions[i] if i < len(m_descriptions) else '',
+                                amount=m_amounts[i],
+                                deadline=m_deadlines[i],
+                                order=i+1
+                            )
+
+                messages.success(request, "Project updated successfully!")
+                return redirect('client_projectInfo', project_id=project.id)
+            except Exception as e:
+                messages.error(request, f"Error updating project: {str(e)}")
+        else:
+            # Show specific form errors
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = ProjectForm(instance=project)
+
+    return render(request, 'core/client_projectEdit.html', {
+        'form': form,
+        'project': project,
+        'categories': categories,
+        'experience_5_plus': experience_5_plus
+    })
+
+@client_required
+def client_projectDelete(request, project_id):
+    project = Project.objects.get(id=project_id, client=request.user.client)
+    
+    # Check if project is draft
+    if project.status != 'draft':
+        messages.error(request, "Only draft projects can be deleted.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    if request.method == 'POST':
+        try:
+            project.delete()
+            messages.success(request, "Project deleted successfully.")
+            return redirect('client_project')
+        except Exception as e:
+            messages.error(request, f"Error deleting project: {str(e)}")
+            return redirect('client_projectInfo', project_id=project.id)
+            
+    return redirect('client_projectInfo', project_id=project.id)
 
 def client_about(request):
     return render(request, 'core/client_about.html')
