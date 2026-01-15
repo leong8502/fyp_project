@@ -25,6 +25,27 @@
     font-size: 16px;
 }
 
+/* Status Colors */
+.status-draft {
+    color: #6c757d;
+}
+
+.status-open {
+    color: #007bff;
+}
+
+.status-in_progress {
+    color: #28a745;
+}
+
+.status-completed {
+    color: #17a2b8;
+}
+
+.status-cancelled {
+    color: #dc3545;
+}
+
 .sections {
     display: grid;
     grid-template-columns: 2fr 1fr;
@@ -61,16 +82,108 @@
     border-radius: 6px;
 }
 
-.milestones li {
-    padding: 15px;
-    margin: 12px 0;
+/* Milestones */
+.milestones {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.milestone-item {
     background: #f8f9fa;
     border-radius: 8px;
     border-left: 4px solid #007bff;
+    /* Default Primary Color */
+    padding: 20px;
+    margin-bottom: 20px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.milestone-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
 .milestone-paid {
     border-left-color: #28a745;
+    background: #f0fff4;
+}
+
+.ms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ms-title {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #333;
+}
+
+.ms-amount {
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #2c3e50;
+}
+
+.ms-desc {
+    font-size: 0.95em;
+    color: #666;
+    margin: 8px 0 16px 0;
+    line-height: 1.5;
+}
+
+.ms-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.9em;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    padding-top: 12px;
+}
+
+.ms-status {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background-color: currentColor;
+}
+
+/* Status specific colors for the text and dot */
+.status-pending {
+    color: #6c757d;
+}
+
+.status-in_progress {
+    color: #007bff;
+}
+
+.status-completed {
+    color: #17a2b8;
+}
+
+.status-approved,
+.status-paid {
+    color: #28a745;
+}
+
+.status-cancelled {
+    color: #dc3545;
+}
+
+
+.ms-deadline {
+    color: #888;
 }
 
 .sidebar-actions button {

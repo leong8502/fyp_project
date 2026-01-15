@@ -107,7 +107,7 @@
                     <td>{{ project.deadline|date:"M d, Y" }}</td>
                     <td>${{ project.budget|floatformat:0 }}</td>
                     <td class="actions">
-                        <a href="{% url 'client_projectInfo' %}">View Details</a>
+                        <a href="{% url 'client_projectInfo' project.id %}">View Details</a>
                     </td>
                 </tr>
                 {% empty %}

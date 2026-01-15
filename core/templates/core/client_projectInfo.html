@@ -1,6 +1,6 @@
 {% extends 'core/client_master.html' %}
 {% load static %}
-{% block title %}Project Info{% endblock %}
+{% block title %}Project Info - {{ project.title }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'core/css/client_projectInfo.css' %}">
@@ -10,53 +10,124 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1>Corporate Website Redesign</h1>
-            <p>Freelancer: Alex Rivera | Status: <strong style="color:#28a745;">Active</strong></p>
+            <h1>{{ project.title }}</h1>
+            <p>
+                {% if project.assigned_freelancer %}
+                Freelancer: {{ project.assigned_freelancer.full_name|default:project.assigned_freelancer.user.username
+                }}
+                {% else %}
+                Freelancer: <span style="color: #999;">Not Assigned</span>
+                {% endif %}
+                | Status:
+                <strong class="status-{{ project.status }}" style="text-transform: capitalize;">
+                    {{ project.get_status_display }}
+                </strong>
+            </p>
         </div>
         <div class="header-info">
-            <p><strong>Budget:</strong> $12,000</p>
-            <p><strong>Deadline:</strong> Feb 20, 2026</p>
+            <p><strong>Budget:</strong> ${{ project.budget|floatformat:2 }}</p>
+            <p><strong>Deadline:</strong> {{ project.deadline|date:"M d, Y" }}</p>
         </div>
     </div>
 
     <div class="sections">
         <div class="section">
             <h2>Project Description</h2>
-            <p>Complete redesign of our corporate website including modern UI/UX, responsive layout, integration with
-                our CRM, and improved performance. The new site should reflect our updated brand guidelines and include
-                a blog section.</p>
+            <p>{{ project.description|linebreaks }}</p>
 
+            {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Progress</h2>
             <div class="progress">
-                <div class="progress-bar"></div>
+                <!-- Placeholder progress bar logic, can be made dynamic later based on milestones completed -->
+                <div class="progress-bar" style="width: 50%;"></div>
             </div>
-            <p><strong>65% Complete</strong></p>
+            <p><strong>In Progress</strong></p>
+            {% endif %}
 
             <h2>Milestones</h2>
+            {% if project.milestones.exists %}
             <ul class="milestones">
-                <li class="milestone-paid">Discovery & Wireframes – <strong>Paid $3,000</strong></li>
-                <li class="milestone-paid">Design Mockups – <strong>Paid $4,000</strong></li>
-                <li>Frontend Development – In Progress</li>
-                <li>Backend Integration & Testing – Pending</li>
-                <li>Launch & Training – Pending</li>
-            </ul>
+                {% for milestone in project.milestones.all %}
+                <li
+                    class="milestone-item {% if milestone.status == 'approved' or milestone.status == 'paid' %}milestone-paid{% endif %}">
+                    <div class="ms-header">
+                        <span class="ms-title">{{ milestone.title }}</span>
+                        <span class="ms-amount">${{ milestone.amount|floatformat:0 }}</span>
+                    </div>
 
+                    {% if milestone.description %}
+                    <p class="ms-desc">{{ milestone.description }}</p>
+                    {% endif %}
+
+                    <div class="ms-footer">
+                        <span class="ms-status status-{{ milestone.status }}">
+                            <span class="status-dot"></span> {{ milestone.get_status_display }}
+                        </span>
+                        <span class="ms-deadline">
+                            <i class="fas fa-calendar-alt"></i> Due: {{ milestone.deadline|date:"M d, Y" }}
+                        </span>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: #888; font-style: italic;">No milestones defined.</p>
+            {% endif %}
+
+            {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Recent Activity / Messages</h2>
-            <p>(Integrate your chat or comment system here)</p>
+            <p style="color: #888; font-style: italic;">No recent activity.</p>
+            {% endif %}
         </div>
 
         <div class="section sidebar-actions">
             <h2>Quick Actions</h2>
-            <button class="btn-primary">Message Freelancer</button>
+
+            {% if project.status == 'draft' %}
+            <!-- Draft: Edit, Delete, Publish -->
+            <button class="btn-primary" onclick="alert('Edit functionality pending implementation')">Edit
+                Project</button>
+            <button class="btn-success" onclick="alert('Publish logic pending implementation')">Publish Project</button>
+            <button class="btn-secondary" style="background-color: #dc3545; color: white;"
+                onclick="confirm('Are you sure?')">Delete Project</button>
+
+            {% elif project.status == 'open' %}
+            <!-- Open: Apply AI Matching, Cancel, Manage Proposals -->
+            <button class="btn-primary">AI Matching</button>
+            <button class="btn-secondary">Manage Proposals</button>
+            <button class="btn-secondary" style="background-color: #dc3545; color: white;">Cancel Project</button>
+
+            {% elif project.status == 'in_progress' %}
+            <!-- In Progress: Message, Release Payment, Revision, Download -->
+            <button class="btn-primary"><a href="{% url 'client_chat' %}"
+                    style="text-decoration:none; color:white;">Message Freelancer</a></button>
             <button class="btn-success">Release Milestone Payment</button>
             <button class="btn-secondary">Request Revision</button>
             <button class="btn-secondary">Download All Files</button>
 
-            <h2 style="margin-top:30px;">Project Info</h2>
-            <p><strong>Posted:</strong> Nov 15, 2025</p>
-            <p><strong>Contract Started:</strong> Dec 1, 2025</p>
-            <p><strong>Amount Paid:</strong> $7,000</p>
-            <p><strong>Remaining:</strong> $5,000</p>
+            {% elif project.status == 'completed' %}
+            <!-- Completed: Rate -->
+            <button class="btn-primary">Rate Freelancer</button>
+            <button class="btn-secondary">View Invoice</button>
+
+            {% elif project.status == 'cancelled' %}
+            <!-- Cancelled: Disabled actions -->
+            <button class="btn-secondary" disabled style="opacity: 0.6; cursor: not-allowed;">Project Cancelled</button>
+
+            {% endif %}
+
+            <div style="margin-top: 30px;">
+                <h2>Project Info</h2>
+                <p><strong>Posted:</strong> {{ project.created_at|date:"M d, Y" }}</p>
+                {% if project.published_at %}
+                <p><strong>Published:</strong> {{ project.published_at|date:"M d, Y" }}</p>
+                {% endif %}
+                <p><strong>Category:</strong> {{ project.category.name|default:"General" }}</p>
+                <p><strong>Experience Level:</strong> {{ project.get_experience_level_display }}</p>
+                <p><strong>Contract Started:</strong> -</p>
+                <p><strong>Amount Paid:</strong> -</p>
+                <p><strong>Remaining:</strong> -</p>
+            </div>
         </div>
     </div>
 </div>

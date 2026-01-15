@@ -229,8 +229,10 @@ def client_projectCreate(request):
         'categories': categories # Still passed for reference or manual iteration if needed, though form handles it
     })
 
-def client_projectInfo(request):
-    return render(request, 'core/client_projectInfo.html')
+@client_required
+def client_projectInfo(request, project_id):
+    project = Project.objects.get(id=project_id, client=request.user.client)
+    return render(request, 'core/client_projectInfo.html', {'project': project})
 
 def client_about(request):
     return render(request, 'core/client_about.html')

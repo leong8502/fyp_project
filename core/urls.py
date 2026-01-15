@@ -23,7 +23,7 @@ urlpatterns = [
     path('client/wallet/transaction/', views.client_transaction, name='client_transaction'),
     path('client/project/', views.client_project, name='client_project'),
     path('client/project/create/', views.client_projectCreate, name='client_projectCreate'),
-    path('client/project/info/', views.client_projectInfo, name='client_projectInfo'),
+    path('client/project/info/<int:project_id>/', views.client_projectInfo, name='client_projectInfo'),
     path('client/about-us/', views.client_about, name='client_about'),
     path('client/chat/', views.client_chat, name='client_chat'),
     # freelancer part
