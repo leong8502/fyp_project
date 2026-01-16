@@ -210,3 +210,75 @@ class Freelancer(models.Model):
         verbose_name = "Freelancer"
         verbose_name_plural = "Freelancers"
         ordering = ['-created_at']
+
+class Wallet(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('frozen', 'Frozen'),
+        ('closed', 'Closed'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='wallet')
+    wallet_number = models.CharField(max_length=30, unique=True, help_text="Public wallet identifier")
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    currency = models.CharField(max_length=10, default='RM')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Wallet ({self.currency} {self.balance})"
+
+class PaymentMethod(models.Model):
+    METHOD_TYPES = [
+        ('credit_card', 'Credit Card'),
+        ('bank', 'Online Banking'),
+        ('e_wallet', 'E-wallet'),
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='payment_methods')
+    method_name = models.CharField(max_length=100, help_text="e.g. Visa") # Common display name
+    method_type = models.CharField(max_length=20, choices=METHOD_TYPES)
+    provider_id = models.CharField(max_length=255, blank=True, help_text="Token ID from payment provider (Stripe, PayPal, etc.)")
+    provider_reference = models.CharField(max_length=255, blank=True, help_text="Token or reference ID from provider")
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.method_name} ({self.get_method_type_display()})"
+
+class Transaction(models.Model):
+    TRANSACTION_TYPES = [
+        ('top_up', 'Top Up'),
+        ('withdrawal', 'Withdrawal'),
+        ('payment', 'Payment'), # Payment for a project/milestone
+        ('refund', 'Refund'),
+        ('payout', 'Payout'), # Freelancer receive money
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    DIRECTION_CHOICES = [
+        ('credit', 'Credit'), # money goes in
+        ('debit', 'Debit'), # money goes out
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES)
+    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
+    description = models.TextField(blank=True)
+    reference_id = models.CharField(max_length=255, blank=True, unique=True, help_text="External Transaction ID")
+    related_project = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', help_text="Link to Project if applicable")
+    related_milestone = models.ForeignKey('Milestone', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', help_text="Link to Milestone if applicable")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.transaction_type} - {self.amount} ({self.status})"

@@ -16,7 +16,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
 
@@ -77,6 +77,16 @@ def register_client(request):
                 with transaction.atomic():
                     # Save form (creates User and Client)
                     client = form.save()
+
+                    # Create Wallet for the new client
+                    wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper() # Generate unique ID
+                    Wallet.objects.create(
+                        user=client.user,
+                        wallet_number=wallet_number,
+                        balance=0.00,
+                        currency='RM',
+                        status='active'
+                    )
                     
                     # Send email verification
                     current_site = get_current_site(request)
@@ -170,7 +180,8 @@ def client_editProfile(request):
 
 @client_required
 def client_wallet(request):
-    return render(request, 'core/client_wallet.html')
+    wallet = getattr(request.user, 'wallet', None)
+    return render(request, 'core/client_wallet.html', {'wallet': wallet})
 
 @client_required
 def client_transaction(request):
