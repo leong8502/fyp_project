@@ -198,7 +198,6 @@ class Freelancer(models.Model):
 
     @property
     def skills_list(self):
-        """Return skills as a clean list"""
         if self.skills:
             return [skill.strip() for skill in self.skills.split(',') if skill.strip()]
         return []

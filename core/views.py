@@ -464,12 +464,14 @@ def register_freelancer(request):
 
         try:
             user = User.objects.create_user(username=username, email=email, password=password)
-            Freelancer.objects.create(
+            freelancer = Freelancer.objects.create(
                 user=user,
                 full_name=full_name,
                 skills=skills
             )
-            messages.success(request, "Freelancer account created successfully! Please log in.")
+            # Auto-create wallet as per friend's comment
+            Wallet.objects.create(user=user, balance=0.00)  # Assuming Wallet has user and balance fields
+            messages.success(request, "Freelancer account and wallet created successfully! Please log in.")
             return redirect('login')
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
