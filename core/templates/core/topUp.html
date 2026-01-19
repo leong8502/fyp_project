@@ -1,0 +1,267 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Top Up Wallet{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/topUp.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="topup-container">
+    <h1 class="text-center mb-4">Top Up Wallet</h1>
+
+    <div class="display-amount">
+        Total: RM <span id="total-amount">0.00</span>
+    </div>
+
+    <form method="POST" action="{% url 'topUp' %}" id="topup-form">
+        {% csrf_token %}
+        <input type="hidden" name="amount" id="final-amount">
+        <input type="hidden" name="payment_method" id="selected-method">
+
+        <!-- 1. Amount Selection -->
+        <h2 class="section-title">Select Amount</h2>
+        <div class="custom-amount-container">
+            <label style="margin-bottom: 8px; display: block; color: #666;">Top Up Amount must be at least RM 20</label>
+            <div class="input-group">
+                <span class="currency-symbol">RM</span>
+                <input type="number" class="custom-amount-input" id="custom-amount" placeholder="0.00" min="20"
+                    step="1">
+            </div>
+            <div class="error-msg" id="amount-error">Amount must be at least RM 20</div>
+        </div>
+
+        <div class="amount-grid">
+            <div class="amount-btn" data-value="20">RM 20</div>
+            <div class="amount-btn" data-value="50">RM 50</div>
+            <div class="amount-btn" data-value="100">RM 100</div>
+            <div class="amount-btn" data-value="200">RM 200</div>
+        </div>
+
+        <!-- 2. Payment Method -->
+        <h2 class="section-title">Select Payment Method</h2>
+        <div class="payment-methods">
+            <div class="payment-method-card" data-method="e_wallet">
+                <i class="fas fa-qrcode method-icon"></i>
+                <div>E-Wallet</div>
+            </div>
+            <div class="payment-method-card" data-method="credit_card">
+                <i class="fas fa-credit-card method-icon"></i>
+                <div>Credit/Debit Card</div>
+            </div>
+            <div class="payment-method-card" data-method="online_banking">
+                <i class="fas fa-university method-icon"></i>
+                <div>Online Banking</div>
+            </div>
+        </div>
+
+        <!-- Payment Details Sections -->
+
+        <!-- E-Wallet -->
+        <div id="e_wallet-details" class="payment-details">
+            <h3 class="text-center">Scan DuitNow QR</h3>
+            <div class="qr-placeholder">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=TalentSyncTopUp" alt="QR Code">
+            </div>
+            <p class="text-center text-muted">Scan with any supported e-wallet app</p>
+        </div>
+
+        <!-- Credit Card -->
+        <div id="credit_card-details" class="payment-details">
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" class="form-control" id="card-number" placeholder="0000 0000 0000 0000"
+                    maxlength="19">
+            </div>
+            <div style="gap: 15px;">
+                <div class="form-group">
+                    <label>Expiry Date</label>
+                    <input type="text" class="form-control" id="card-expiry" placeholder="MM/YY" maxlength="5">
+                </div>
+                <div class="form-group">
+                    <label>CVV</label>
+                    <input type="text" class="form-control" id="card-cvv" placeholder="123" maxlength="3">
+                </div>
+            </div>
+        </div>
+
+        <!-- Online Banking -->
+        <div id="online_banking-details" class="payment-details">
+            <label class="mb-2 d-block">Choose Bank:</label>
+            <div class="bank-list">
+                <div class="bank-item"><span>Maybank2u</span> <i class="fas fa-chevron-right"></i></div>
+                <div class="bank-item"><span>CIMB Clicks</span> <i class="fas fa-chevron-right"></i></div>
+                <div class="bank-item"><span>Public Bank</span> <i class="fas fa-chevron-right"></i></div>
+                <div class="bank-item"><span>RHB Now</span> <i class="fas fa-chevron-right"></i></div>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>Confirm Top Up</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const amountBtns = document.querySelectorAll('.amount-btn');
+        const customInput = document.getElementById('custom-amount');
+        const totalDisplay = document.getElementById('total-amount');
+        const finalAmountInput = document.getElementById('final-amount');
+        const amountError = document.getElementById('amount-error');
+
+        const methodCards = document.querySelectorAll('.payment-method-card');
+        const methodInput = document.getElementById('selected-method');
+        const submitBtn = document.getElementById('submit-btn');
+
+        // Card Inputs
+        const cardNumber = document.getElementById('card-number');
+        const cardExpiry = document.getElementById('card-expiry');
+        const cardCvv = document.getElementById('card-cvv');
+
+        let currentAmount = 0;
+        let currentMethod = '';
+
+        // Amount Selection Logic
+        amountBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                customInput.value = '';
+                amountBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentAmount = parseFloat(this.dataset.value);
+                updateDisplay();
+            });
+        });
+
+        customInput.addEventListener('input', function () {
+            amountBtns.forEach(b => b.classList.remove('active'));
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                currentAmount = val;
+            } else {
+                currentAmount = 0;
+            }
+            updateDisplay();
+        });
+
+        function updateDisplay() {
+            totalDisplay.textContent = currentAmount.toFixed(2);
+            finalAmountInput.value = currentAmount;
+            validateForm();
+        }
+
+        // Payment Method Logic
+        methodCards.forEach(card => {
+            card.addEventListener('click', function () {
+                methodCards.forEach(c => c.classList.remove('active'));
+                this.classList.add('active');
+
+                document.querySelectorAll('.payment-details').forEach(el => el.classList.remove('active'));
+
+                const method = this.dataset.method;
+                currentMethod = method;
+                methodInput.value = method;
+
+                const detailSection = document.getElementById(method + '-details');
+                if (detailSection) {
+                    detailSection.classList.add('active');
+                }
+
+                validateForm();
+            });
+        });
+
+        // Bank Selection Logic
+        document.querySelectorAll('.bank-item').forEach(item => {
+            item.addEventListener('click', function () {
+                document.querySelectorAll('.bank-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+                validateForm(); // Bank selection usually enables submission
+            });
+        });
+
+        // --- Card Input Formatting ---
+
+        // Card Number: 1234 1234 1234 1234
+        cardNumber.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            value = value.substring(0, 16); // Limit to 16 digits
+            let formattedValue = '';
+            for (let i = 0; i < value.length; i++) {
+                if (i > 0 && i % 4 === 0) {
+                    formattedValue += ' ';
+                }
+                formattedValue += value[i];
+            }
+            e.target.value = formattedValue;
+            validateForm();
+        });
+
+        // Expiry Date: MM/YY
+        cardExpiry.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+            if (value.length > 4) value = value.substring(0, 4); // Limit to 4 digits
+
+            if (value.length > 2) {
+                e.target.value = value.substring(0, 2) + '/' + value.substring(2);
+            } else {
+                e.target.value = value;
+            }
+            validateForm();
+        });
+
+        // CVV: 123
+        cardCvv.addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\D/g, '');
+            e.target.value = value.substring(0, 3);
+            validateForm();
+        });
+
+        function validateForm() {
+            let isValid = true;
+            let btnText = "Confirm Top Up";
+
+            // 1. Validate Amount
+            if (currentAmount < 20) {
+                if (currentAmount > 0) amountError.style.display = 'block';
+                isValid = false;
+            } else {
+                amountError.style.display = 'none';
+            }
+
+            // 2. Validate Method
+            if (!currentMethod) {
+                isValid = false;
+            } else if (currentMethod === 'e_wallet') {
+                // Requirement: Don't allow to confirm top up for e-wallet (mock)
+                isValid = false;
+                btnText = "Scan QR to Pay"; // Feedback to user
+            } else if (currentMethod === 'credit_card') {
+                // Validate card fields length
+                // Card: 19 chars (16 digits + 3 spaces)
+                // Expiry: 5 chars (MM/YY)
+                // CVV: 3 chars
+                if (cardNumber.value.length < 19 || cardExpiry.value.length < 5 || cardCvv.value.length < 3) {
+                    isValid = false;
+                }
+            } else if (currentMethod === 'online_banking') {
+                // Check if bank selected
+                const selectedBank = document.querySelector('.bank-item.selected');
+                if (!selectedBank) {
+                    isValid = false;
+                }
+            }
+
+            // Enable/Disable Submit
+            if (isValid) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.innerText = "Confirm Top Up RM " + currentAmount.toFixed(2);
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.innerText = btnText === "Confirm Top Up" ? "Confirm Top Up" : btnText;
+            }
+        }
+    });
+</script>
+{% endblock %}

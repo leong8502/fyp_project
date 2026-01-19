@@ -1,5 +1,6 @@
 {% extends 'core/client_master.html' %}
 {% load static %}
+{% load custom_filters %}
 {% block title %}Transaction History{% endblock %}
 
 {% block extra_css %}
@@ -17,17 +18,23 @@
     <!-- Filter Toolbar -->
     <div class="filters-bar">
         <div class="filter-group">
-            <button class="filter-btn active">All Transactions</button>
-            <button class="filter-btn">Top Up</button>
-            <button class="filter-btn">Withdrawal</button>
-            <button class="filter-btn">Return</button>
+            <a href="?type=&sort={{ current_sort }}" class="filter-btn {% if not current_type %}active{% endif %}">All
+                Transactions</a>
+            <a href="?type=top_up&sort={{ current_sort }}"
+                class="filter-btn {% if current_type == 'top_up' %}active{% endif %}">Top Up</a>
+            <a href="?type=withdrawal&sort={{ current_sort }}"
+                class="filter-btn {% if current_type == 'withdrawal' %}active{% endif %}">Withdrawal</a>
+            <a href="?type=payment&sort={{ current_sort }}"
+                class="filter-btn {% if current_type == 'payment' %}active{% endif %}">Payment</a>
+            <a href="?type=refund&sort={{ current_sort }}"
+                class="filter-btn {% if current_type == 'refund' %}active{% endif %}">Refund</a>
         </div>
 
         <div class="filter-group">
-            <select class="filter-select">
-                <option>Newest First</option>
-                <option>Oldest First</option>
-                <option>Highest Amount</option>
+            <select class="filter-select" onchange="window.location.href='?type={{ current_type }}&sort=' + this.value">
+                <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                <option value="highest" {% if current_sort == 'highest' %}selected{% endif %}>Highest Amount</option>
             </select>
         </div>
     </div>
@@ -42,85 +49,57 @@
             <div class="col">Status</div>
         </div>
 
-        <!-- Row 1 -->
+        {% for transaction in transactions %}
         <div class="table-row">
             <div class="col">
-                <div class="transaction-title">Project Payment - E-commerce</div>
-                <div class="transaction-subtitle">Ref: #TXN-88291</div>
+                <div class="transaction-title">{{ transaction.description|mask_account_in_description }}</div>
+                <div class="transaction-subtitle">Ref: #{{ transaction.reference_id }}</div>
             </div>
-            <div class="col">Earnings</div>
-            <div class="col transaction-amount positive">+ RM 4,800.00</div>
-            <div class="col transaction-date">Jan 12, 2026</div>
+            <div class="col">{{ transaction.get_transaction_type_display }}</div>
+            <div
+                class="col transaction-amount {% if transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} RM {{ transaction.amount }}
+            </div>
+            <div class="col transaction-date">{{ transaction.created_at|date:"M d, Y" }}</div>
             <div class="col">
-                <span class="status-badge status success">Completed</span>
+                <span class="status-badge status {{ transaction.status }}">{{ transaction.get_status_display }}</span>
             </div>
         </div>
-
-        <!-- Row 2 -->
+        {% empty %}
         <div class="table-row">
-            <div class="col">
-                <div class="transaction-title">Withdrawal to Maybank</div>
-                <div class="transaction-subtitle">Ref: #WTH-9921</div>
-            </div>
-            <div class="col">Withdrawal</div>
-            <div class="col transaction-amount negative">- RM 2,500.00</div>
-            <div class="col transaction-date">Jan 12, 2026</div>
-            <div class="col">
-                <span class="status-badge status pending">Processing</span>
+            <div class="col" style="grid-column: span 5; text-align: center; color: #666; padding: 2rem;">
+                No transactions found.
             </div>
         </div>
-
-        <!-- Row 3 -->
-        <div class="table-row">
-            <div class="col">
-                <div class="transaction-title">Milestone Payment</div>
-                <div class="transaction-subtitle">Logo Design Project</div>
-            </div>
-            <div class="col">Earnings</div>
-            <div class="col transaction-amount positive">+ RM 650.00</div>
-            <div class="col transaction-date">Jan 11, 2026</div>
-            <div class="col">
-                <span class="status-badge status success">Completed</span>
-            </div>
-        </div>
-
-        <!-- Row 4 -->
-        <div class="table-row">
-            <div class="col">
-                <div class="transaction-title">Failed Top Up</div>
-                <div class="transaction-subtitle">Credit Card declined</div>
-            </div>
-            <div class="col">Top Up</div>
-            <div class="col transaction-amount negative">RM 0.00</div>
-            <div class="col transaction-date">Jan 10, 2026</div>
-            <div class="col">
-                <span class="status-badge status failed">Failed</span>
-            </div>
-        </div>
-
-        <!-- Row 5 -->
-        <div class="table-row">
-            <div class="col">
-                <div class="transaction-title">Account Top Up</div>
-                <div class="transaction-subtitle">FPX - CIMB Clicks</div>
-            </div>
-            <div class="col">Top Up</div>
-            <div class="col transaction-amount positive">+ RM 3,000.00</div>
-            <div class="col transaction-date">Jan 08, 2026</div>
-            <div class="col">
-                <span class="status-badge status success">Completed</span>
-            </div>
-        </div>
+        {% endfor %}
     </div>
 
     <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
     <div class="pagination">
-        <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn">2</button>
-        <button class="page-btn">3</button>
-        <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&type={{ current_type }}&sort={{ current_sort }}"
+            class="page-btn"><i class="fas fa-chevron-left"></i></a>
+        {% else %}
+        <button class="page-btn" disabled><i class="fas fa-chevron-left"></i></button>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+        <button class="page-btn active">{{ num }}</button>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %} <a
+            href="?page={{ num }}&type={{ current_type }}&sort={{ current_sort }}" class="page-btn">{{ num }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&type={{ current_type }}&sort={{ current_sort }}"
+                class="page-btn"><i class="fas fa-chevron-right"></i></a>
+            {% else %}
+            <button class="page-btn" disabled><i class="fas fa-chevron-right"></i></button>
+            {% endif %}
     </div>
+    {% endif %}
 
 </main>
 {% endblock %}

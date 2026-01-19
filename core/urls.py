@@ -8,6 +8,9 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('login/', views.login, name='login'),
     path('logout/', views.logout, name='logout'),
+    path('top-up/', views.topUp, name='topUp'),
+    path('withdraw/', views.withdraw, name='withdraw'),
+    path('wallet/toggle-privacy/', views.toggle_balance_privacy, name='toggle_balance_privacy'),
     # register part
     path('register/selection/', views.registerSelection, name='registerSelection'),
     path('register/freelancer/', views.register_freelancer, name='register_freelancer'),

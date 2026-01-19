@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.models import User
 from .models import Client, Project, Industry
+from django.core.validators import RegexValidator
+from django.utils import timezone
+from datetime import datetime
 
 class SkillsForm(forms.Form):
     skills = forms.CharField(
@@ -152,8 +155,6 @@ class ProjectForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        from django.utils import timezone
-        from datetime import datetime
         
         # 1. Project Deadline Validation
         deadline = cleaned_data.get('deadline')
@@ -194,3 +195,37 @@ class ProjectForm(forms.ModelForm):
                 continue # Skip invalid dates (handled by frontend or basic type checks)
 
         return cleaned_data
+
+class TopUpForm(forms.Form):
+    amount = forms.DecimalField(
+        min_value=20,
+        decimal_places=2,
+        required=True,
+        error_messages={'min_value': "Minimum top up amount is RM 20."}
+    )
+    payment_method = forms.CharField(required=True)
+
+class WithdrawForm(forms.Form):
+    amount = forms.DecimalField(
+        decimal_places=2,
+        required=True,
+        min_value=20,
+        error_messages={'min_value': "Minimum withdrawal amount is RM 20."}
+    )
+    bank_name = forms.CharField(required=True, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Select Bank'}))
+    
+    account_number = forms.CharField(
+        required=True, 
+        validators=[RegexValidator(r'^\d+$', 'Only numbers are allowed.')],
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Account Number'})
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.user_wallet = kwargs.pop('wallet', None)
+        super(WithdrawForm, self).__init__(*args, **kwargs)
+
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        if self.user_wallet and amount > self.user_wallet.balance:
+            raise forms.ValidationError(f"Insufficient balance. Your current balance is RM {self.user_wallet.balance}.")
+        return amount

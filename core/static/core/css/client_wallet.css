@@ -181,6 +181,14 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
+    width: 100%;
+    /* Ensure button fills the grid cell */
+}
+
+.action-buttons a {
+    text-decoration: none;
+    display: block;
+    width: 100%;
 }
 
 .btn-primary {
@@ -354,6 +362,7 @@ body {
     cursor: pointer;
     transition: all 0.2s;
     box-shadow: var(--shadow-sm);
+    text-decoration: none;
 }
 
 .filter-btn:hover {
@@ -456,6 +465,7 @@ body {
     cursor: pointer;
     font-weight: 600;
     transition: all 0.2s;
+    text-decoration: none;
 }
 
 .page-btn:hover {

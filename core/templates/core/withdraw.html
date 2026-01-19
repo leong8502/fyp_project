@@ -1,0 +1,175 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Withdraw Funds{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/withdraw.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="withdraw-container">
+    <h1 class="text-center mb-4">Withdraw Funds</h1>
+
+    <div class="display-amount">
+        Total: RM <span id="total-amount">0.00</span>
+    </div>
+
+    <!-- Balance Info -->
+    <div class="balance-info text-center mb-4" style="color: #666; font-size: 1.1rem;">
+        Available Balance: RM {{ wallet.balance }}
+    </div>
+
+    <form method="POST" action="{% url 'withdraw' %}" id="withdraw-form">
+        {% csrf_token %}
+        <input type="hidden" name="amount" id="final-amount">
+        <input type="hidden" name="bank_name" id="selected-bank">
+
+        <!-- 1. Amount Selection -->
+        <h2 class="section-title">Select Amount</h2>
+        <div class="custom-amount-container">
+            <label style="margin-bottom: 8px; display: block; color: #666;">Minimum withdrawal is RM 20</label>
+            <div class="input-group">
+                <span class="currency-symbol">RM</span>
+                <input type="number" class="custom-amount-input" id="custom-amount" placeholder="0.00" min="20"
+                    step="1">
+            </div>
+            <div class="error-msg" id="amount-error">Amount cannot exceed balance</div>
+        </div>
+
+        <div class="amount-grid">
+            <div class="amount-btn" data-value="50">RM 50</div>
+            <div class="amount-btn" data-value="100">RM 100</div>
+            <div class="amount-btn" data-value="200">RM 200</div>
+            <div class="amount-btn" data-value="500">RM 500</div>
+            <div class="amount-btn" data-value="all">Max</div>
+        </div>
+
+        <!-- 2. Bank Details -->
+        <h2 class="section-title">Bank Details</h2>
+        <div class="payment-details active" style="display: block; border-top: none;">
+            <label class="mb-2 d-block">Choose Bank:</label>
+            <div class="bank-list mb-3">
+                <div class="bank-item" data-bank="Maybank"><span>Maybank</span> <i class="fas fa-check"></i></div>
+                <div class="bank-item" data-bank="CIMB Bank"><span>CIMB Bank</span> <i class="fas fa-check"></i></div>
+                <div class="bank-item" data-bank="Public Bank"><span>Public Bank</span> <i class="fas fa-check"></i>
+                </div>
+                <div class="bank-item" data-bank="RHB Bank"><span>RHB Bank</span> <i class="fas fa-check"></i></div>
+                <div class="bank-item" data-bank="Hong Leong Bank"><span>Hong Leong Bank</span> <i
+                        class="fas fa-check"></i></div>
+                <div class="bank-item" data-bank="AmBank"><span>AmBank</span> <i class="fas fa-check"></i></div>
+            </div>
+
+            <div class="form-group">
+                <label>Account Number</label>
+                <input type="text" name="account_number" class="form-control" id="account-number"
+                    placeholder="Enter account number" oninput="this.value = this.value.replace(/[^0-9]/g, '')"
+                    required>
+            </div>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>Confirm Withdrawal</button>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const amountBtns = document.querySelectorAll('.amount-btn');
+        const customInput = document.getElementById('custom-amount');
+        const totalDisplay = document.getElementById('total-amount');
+        const finalAmountInput = document.getElementById('final-amount');
+        const bankInput = document.getElementById('selected-bank');
+        const accountInput = document.getElementById('account-number');
+        const submitBtn = document.getElementById('submit-btn');
+        const amountError = document.getElementById('amount-error');
+
+        let currentAmount = 0;
+        let selectedBank = '';
+        const maxBalance = parseFloat("{{ wallet.balance|default:'0' }}");
+
+        // Amount Logic
+        amountBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                customInput.value = '';
+                amountBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                if (this.dataset.value === 'all') {
+                    currentAmount = maxBalance;
+                    customInput.value = currentAmount.toFixed(2);
+                } else {
+                    currentAmount = parseFloat(this.dataset.value);
+                }
+                updateDisplay();
+            });
+        });
+
+        customInput.addEventListener('input', function () {
+            amountBtns.forEach(b => b.classList.remove('active'));
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                currentAmount = val;
+            } else {
+                currentAmount = 0;
+            }
+            updateDisplay();
+        });
+
+        function updateDisplay() {
+            totalDisplay.textContent = currentAmount.toFixed(2);
+            finalAmountInput.value = currentAmount;
+            validateForm();
+        }
+
+        // Bank Selection
+        document.querySelectorAll('.bank-item').forEach(item => {
+            item.addEventListener('click', function () {
+                document.querySelectorAll('.bank-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedBank = this.dataset.bank;
+                bankInput.value = selectedBank;
+                validateForm();
+            });
+        });
+
+        accountInput.addEventListener('input', validateForm);
+
+        function validateForm() {
+            let isValid = true;
+            let errorMsg = '';
+
+            // Amount Validation
+            if (currentAmount < 1) {
+                isValid = false;
+            } else if (currentAmount > maxBalance) {
+                isValid = false;
+                errorMsg = 'Insufficient balance';
+            }
+
+            if (errorMsg) {
+                amountError.style.display = 'block';
+                amountError.textContent = errorMsg;
+            } else {
+                amountError.style.display = 'none';
+            }
+
+            // Bank Validation
+            if (!selectedBank) isValid = false;
+
+            // Account Number Validation
+            if (accountInput.value.trim().length < 6) isValid = false;
+
+            // Submit Button
+            if (isValid) {
+                submitBtn.disabled = false;
+                submitBtn.style.opacity = '1';
+                submitBtn.innerText = "Confirm Withdraw RM " + currentAmount.toFixed(2);
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.style.opacity = '0.6';
+                submitBtn.innerText = errorMsg ? errorMsg : "Confirm Withdraw";
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -222,6 +222,7 @@ class Wallet(models.Model):
     wallet_number = models.CharField(max_length=30, unique=True, help_text="Public wallet identifier")
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     currency = models.CharField(max_length=10, default='RM')
+    is_hidden = models.BooleanField(default=False, help_text="Hide balance in UI")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,5 +1,6 @@
 {% extends 'core/client_master.html' %}
 {% load static %}
+{% load custom_filters %}
 {% block title %}My Wallet{% endblock %}
 
 {% block extra_css %}
@@ -16,16 +17,16 @@
             <div class="balance-header">
                 <h2>Total Balance</h2>
                 <button class="toggle-visibility-btn" onclick="toggleBalance()" aria-label="Toggle balance visibility">
-                    <i class="fas fa-eye" id="eyeIcon"></i>
+                    <i class="fas {% if wallet.is_hidden %}fa-eye-slash{% else %}fa-eye{% endif %}" id="eyeIcon"></i>
                 </button>
             </div>
 
-            <div class="balance-amount" id="balanceAmount">
+            <div class="balance-amount {% if wallet.is_hidden %}hidden{% endif %}" id="balanceAmount">
                 <span class="currency">{{ wallet.currency }}</span>
                 <span class="amount">{{ wallet.balance|default:"0.00" }}</span>
             </div>
 
-            <div class="balance-hidden hidden" id="balanceHidden">
+            <div class="balance-hidden {% if not wallet.is_hidden %}hidden{% endif %}" id="balanceHidden">
                 <span>••••••</span>
             </div>
 
@@ -36,15 +37,18 @@
         <div class="quick-actions-section">
             <h3>Quick Actions</h3>
             <div class="action-buttons">
-                <button class="btn-large btn-primary">
-                    <i class="fas fa-plus-circle fa-lg"></i>
-                    <span>Top Up</span>
-                </button>
-
-                <button class="btn-large btn-outline">
-                    <i class="fas fa-arrow-circle-down fa-lg"></i>
-                    <span>Withdraw</span>
-                </button>
+                <a href="{% url 'topUp' %}">
+                    <button class="btn-large btn-primary">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                        <span>Top Up</span>
+                    </button>
+                </a>
+                <a href="{% url 'withdraw' %}">
+                    <button class="btn-large btn-outline">
+                        <i class="fas fa-arrow-circle-down fa-lg"></i>
+                        <span>Withdraw</span>
+                    </button>
+                </a>
             </div>
         </div>
     </section>
@@ -58,65 +62,37 @@
         </div>
 
         <div class="transactions-list">
-            <!-- Item 1 -->
-            <div class="transaction-item success">
+            {% for transaction in recent_transactions %}
+            <div
+                class="transaction-item {% if transaction.status == 'completed' %}success{% elif transaction.status == 'pending' %}pending{% else %}failed{% endif %}">
                 <div class="transaction-icon">
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="transaction-details">
-                    <div class="transaction-title">Project Payment Received</div>
-                    <div class="transaction-subtitle">From: Ahmad Enterprise</div>
-                </div>
-                <div class="transaction-right">
-                    <div class="transaction-amount positive">+ RM 4,800.00</div>
-                    <div class="transaction-date">Today, 2:30 PM</div>
-                </div>
-            </div>
-
-            <!-- Item 2 -->
-            <div class="transaction-item pending">
-                <div class="transaction-icon">
-                    <i class="fas fa-university"></i>
-                </div>
-                <div class="transaction-details">
-                    <div class="transaction-title">Withdrawal to Maybank</div>
-                    <div class="transaction-subtitle">Ref: 981237123</div>
-                </div>
-                <div class="transaction-right">
-                    <div class="transaction-amount negative">- RM 2,500.00</div>
-                    <div class="transaction-date">Today, 11:15 AM</div>
-                </div>
-            </div>
-
-            <!-- Item 3 -->
-            <div class="transaction-item success">
-                <div class="transaction-icon">
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="transaction-details">
-                    <div class="transaction-title">Milestone Released</div>
-                    <div class="transaction-subtitle">From: Sarah Boutique</div>
-                </div>
-                <div class="transaction-right">
-                    <div class="transaction-amount positive">+ RM 650.00</div>
-                    <div class="transaction-date">Yesterday</div>
-                </div>
-            </div>
-
-            <!-- Item 4 -->
-            <div class="transaction-item success">
-                <div class="transaction-icon">
+                    {% if transaction.transaction_type == 'top_up' %}
                     <i class="fas fa-plus"></i>
+                    {% elif transaction.transaction_type == 'withdrawal' %}
+                    <i class="fas fa-university"></i>
+                    {% else %}
+                    <i class="fas fa-exchange-alt"></i>
+                    {% endif %}
                 </div>
                 <div class="transaction-details">
-                    <div class="transaction-title">Wallet Top Up</div>
-                    <div class="transaction-subtitle">Via FPX Online Banking</div>
+                    <div class="transaction-title">{{ transaction.get_transaction_type_display }}</div>
+                    <div class="transaction-subtitle">{{ transaction.description|mask_account_in_description }}</div>
                 </div>
                 <div class="transaction-right">
-                    <div class="transaction-amount positive">+ RM 3,000.00</div>
-                    <div class="transaction-date">Jan 8, 2026</div>
+                    <div
+                        class="transaction-amount {% if transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                        {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} {{ wallet.currency }} {{ transaction.amount }}
+                    </div>
+                    <div class="transaction-date">{{ transaction.created_at|date:"M d, Y, h:i A" }}</div>
                 </div>
             </div>
+            {% empty %}
+            <div class="transaction-item">
+                <div class="transaction-details" style="text-align: center; color: #666;">
+                    No transactions yet.
+                </div>
+            </div>
+            {% endfor %}
         </div>
     </section>
 
@@ -128,17 +104,30 @@
         const balanceHidden = document.getElementById('balanceHidden');
         const eyeIcon = document.getElementById('eyeIcon');
 
-        if (balanceAmount.classList.contains('hidden')) {
-            balanceAmount.classList.remove('hidden');
-            balanceHidden.classList.add('hidden');
-            eyeIcon.classList.remove('fa-eye-slash');
-            eyeIcon.classList.add('fa-eye');
-        } else {
-            balanceAmount.classList.add('hidden');
-            balanceHidden.classList.remove('hidden');
-            eyeIcon.classList.remove('fa-eye');
-            eyeIcon.classList.add('fa-eye-slash');
-        }
+        fetch("{% url 'toggle_balance_privacy' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.is_hidden) {
+                        balanceAmount.classList.add('hidden');
+                        balanceHidden.classList.remove('hidden');
+                        eyeIcon.classList.remove('fa-eye');
+                        eyeIcon.classList.add('fa-eye-slash');
+                    } else {
+                        balanceAmount.classList.remove('hidden');
+                        balanceHidden.classList.add('hidden');
+                        eyeIcon.classList.remove('fa-eye-slash');
+                        eyeIcon.classList.add('fa-eye');
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
     }
 </script>
 

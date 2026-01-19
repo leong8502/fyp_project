@@ -1,7 +1,10 @@
 import uuid
+import decimal
 from django.shortcuts import render, redirect
-
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -16,7 +19,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
 
@@ -181,11 +184,58 @@ def client_editProfile(request):
 @client_required
 def client_wallet(request):
     wallet = getattr(request.user, 'wallet', None)
-    return render(request, 'core/client_wallet.html', {'wallet': wallet})
+    recent_transactions = []
+    if wallet:
+        recent_transactions = Transaction.objects.filter(wallet=wallet).order_by('-created_at')[:5]
+    
+    return render(request, 'core/client_wallet.html', {
+        'wallet': wallet,
+        'recent_transactions': recent_transactions
+    })
 
 @client_required
 def client_transaction(request):
-    return render(request, 'core/client_transaction.html')
+    wallet = getattr(request.user, 'wallet', None)
+    transactions = []
+    
+    # 1. Base Query
+    if wallet:
+        transactions_qs = Transaction.objects.filter(wallet=wallet)
+        
+        # 2. Filtering
+        filter_type = request.GET.get('type')
+        if filter_type:
+             # Map URL param to model value if different, or use direct if same
+             # Frontend uses human readable or matching keys: 'top_up', 'withdrawal', 'payment', 'refund'
+             valid_types = ['top_up', 'withdrawal', 'payment', 'refund']
+             if filter_type in valid_types:
+                 transactions_qs = transactions_qs.filter(transaction_type=filter_type)
+        
+        # 3. Sorting
+        sort_by = request.GET.get('sort', 'newest') # default newest
+        if sort_by == 'oldest':
+            transactions_qs = transactions_qs.order_by('created_at')
+        elif sort_by == 'highest':
+            transactions_qs = transactions_qs.order_by('-amount')
+        else:
+            transactions_qs = transactions_qs.order_by('-created_at') # Newest default
+            
+        # 4. Pagination
+        paginator = Paginator(transactions_qs, 8) # 8 records per page
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        transactions = page_obj
+    else:
+        page_obj = None
+
+    return render(request, 'core/client_transaction.html', {
+        'wallet': wallet,
+        'transactions': transactions, # This is actually page_obj
+        'page_obj': page_obj,
+        'current_type': request.GET.get('type', ''),
+        'current_sort': request.GET.get('sort', 'newest'),
+    })
 
 @client_required
 def client_project(request):
@@ -425,3 +475,128 @@ def register_freelancer(request):
             messages.error(request, f"Error: {str(e)}")
     
     return render(request, 'core/freelancer_register.html')
+
+@login_required
+def topUp(request):
+    # Determine user role and base template
+    if hasattr(request.user, 'client'):
+        base_template = 'core/client_master.html'
+    elif hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    else:
+        messages.error(request, "User role not identified.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = TopUpForm(request.POST)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            payment_method_str = form.cleaned_data['payment_method']
+            
+            try:
+                with transaction.atomic():
+                    # Get or Create Wallet
+                    wallet, created = Wallet.objects.get_or_create(user=request.user)
+                    if created:
+                        wallet.wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper()
+                        wallet.save()
+
+                    # Create Transaction
+                    method_display = payment_method_str.replace('_', ' ').title()
+                    
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        direction='credit',
+                        transaction_type='top_up',
+                        status='completed',
+                        description=f"Top up via {method_display}",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
+                    )
+
+                    # Update Balance
+                    wallet.balance += decimal.Decimal(amount)
+                    wallet.save()
+
+                messages.success(request, f"Successfully topped up RM {amount:.2f} via {method_display}!")
+                
+                if hasattr(request.user, 'client'):
+                    return redirect('client_wallet')
+                else:
+                    return redirect('freelancer_home')
+
+            except Exception as e:
+                messages.error(request, f"An error occurred: {str(e)}")
+        else:
+             for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+            
+    return render(request, 'core/topUp.html', {'base_template': base_template})
+
+@login_required
+def withdraw(request):
+    # Determine user role and base template
+    if hasattr(request.user, 'client'):
+        base_template = 'core/client_master.html'
+    elif hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    else:
+        messages.error(request, "User role not identified.")
+        return redirect('home')
+        
+    wallet = getattr(request.user, 'wallet', None)
+
+    if request.method == 'POST':
+        form = WithdrawForm(request.POST, wallet=wallet)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            bank_name = form.cleaned_data['bank_name']
+            account_number = form.cleaned_data['account_number']
+            
+            try:
+                with transaction.atomic():
+                    if not wallet:
+                         # Should be caught by validation, but double check
+                         raise ValueError("Wallet does not exist")
+
+                    # Deduct Balance
+                    wallet.balance -= decimal.Decimal(amount)
+                    wallet.save()
+
+                    # Create Transaction
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        direction='debit',
+                        transaction_type='withdrawal',
+                        status='pending', # Withdrawals usually require processing
+                        description=f"Withdrawal to {bank_name} ({account_number})",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
+                    )
+
+                messages.success(request, f"Withdrawal request for RM {amount:.2f} submitted successfully!")
+                
+                if hasattr(request.user, 'client'):
+                    return redirect('client_wallet')
+                else:
+                    return redirect('freelancer_home')
+
+            except Exception as e:
+                messages.error(request, f"An error occurred: {str(e)}")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{error}")
+    
+    return render(request, 'core/withdraw.html', {'base_template': base_template, 'wallet': wallet})
+
+@login_required
+def toggle_balance_privacy(request):
+    if request.method == "POST":
+        wallet = getattr(request.user, 'wallet', None)
+        if wallet:
+            wallet.is_hidden = not wallet.is_hidden
+            wallet.save()
+            return JsonResponse({'status': 'success', 'is_hidden': wallet.is_hidden})
+    return JsonResponse({'status': 'error'}, status=400)
