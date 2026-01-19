@@ -32,4 +32,5 @@ urlpatterns = [
     path('client/about-us/', views.client_about, name='client_about'),
     path('client/chat/', views.client_chat, name='client_chat'),
     # freelancer part
+    path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
 ]
