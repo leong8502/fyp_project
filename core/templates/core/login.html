@@ -35,8 +35,8 @@
                 </div>
 
                 <div class="options">
-                    <label><input type="checkbox"> Remember me</label>
-                    <a href="#">Forgot password?</a>
+                    <label><input type="checkbox" name="remember_me"> Remember me</label>
+                    <a href="{% url 'password_reset' %}">Forgot password?</a>
                 </div>
 
                 <button type="submit" class="btn-login">Login</button>

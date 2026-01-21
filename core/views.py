@@ -60,6 +60,12 @@ def login(request):
         # SUCCESS
         auth_login(request, user)
 
+        # Remember Me Logic
+        if request.POST.get('remember_me'):
+            request.session.set_expiry(1209600) # 2 weeks (for tick then login)
+        else:
+            request.session.set_expiry(0) # Expires when browser closes (for untick then login)
+
         if role == "client":
             return redirect("client_home")
         else:
