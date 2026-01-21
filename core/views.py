@@ -21,9 +21,10 @@ from django.conf import settings
 from django.urls import reverse
 from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction
 from django.db import transaction
-from .decorators import client_required, freelancer_required
+from .decorators import client_required, freelancer_required，guest_required
 
 # Create your views here.
+@guest_required
 def login(request):
     if request.method == "POST":
         email = request.POST.get("email")
@@ -66,9 +67,11 @@ def login(request):
 
     return render(request, "core/login.html")
 
+@guest_required
 def registerSelection(request):
     return render(request, "core/registerSelection.html")
 
+@guest_required
 def register_client(request):
     if request.method == 'POST':
         form = ClientRegistrationForm(request.POST)
@@ -446,6 +449,7 @@ def match_jobs(request):
 def freelancer_home(request):
     return render(request, 'core/freelancer_home.html')
 
+@guest_required
 def home(request):
     return render(request, 'core/home.html')
 
@@ -453,6 +457,7 @@ def logout(request):
     auth_logout(request)
     return redirect('home')
 
+@guest_required
 def register_freelancer(request):
     if request.method == 'POST':
         username = request.POST.get('username')
