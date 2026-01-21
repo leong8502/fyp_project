@@ -21,7 +21,7 @@ from django.conf import settings
 from django.urls import reverse
 from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction
 from django.db import transaction
-from .decorators import client_required, freelancer_required，guest_required
+from .decorators import client_required, freelancer_required, guest_required
 
 # Create your views here.
 @guest_required
@@ -453,6 +453,7 @@ def freelancer_home(request):
 def home(request):
     return render(request, 'core/home.html')
 
+@login_required
 def logout(request):
     auth_logout(request)
     return redirect('home')
