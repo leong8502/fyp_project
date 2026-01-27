@@ -435,12 +435,22 @@ body {
     color: var(--success);
 }
 
+.status.completed {
+    background-color: rgba(0, 208, 132, 0.15);
+    color: var(--success);
+}
+
 .status.pending {
     background-color: rgba(255, 159, 67, 0.15);
     color: var(--warning);
 }
 
 .status.failed {
+    background-color: rgba(238, 82, 83, 0.15);
+    color: var(--danger);
+}
+
+.status.cancelled {
     background-color: rgba(238, 82, 83, 0.15);
     color: var(--danger);
 }

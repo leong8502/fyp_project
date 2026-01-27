@@ -246,7 +246,23 @@ def client_transaction(request):
 @client_required
 def client_project(request):
     projects = Project.objects.filter(client=request.user.client).order_by('-created_at')
-    return render(request, 'core/client_project.html', {'projects': projects})
+    
+    # Calculate summary statistics
+    active_count = projects.filter(status='open').count()
+    completed_count = projects.filter(status='completed').count()
+    in_progress_count = projects.filter(status='in_progress').count()
+    
+    # Calculate total spent (exclude draft projects)
+    from django.db.models import Sum
+    total_spent = projects.exclude(status='draft').aggregate(Sum('budget'))['budget__sum'] or 0
+    
+    return render(request, 'core/client_project.html', {
+        'projects': projects,
+        'active_count': active_count,
+        'completed_count': completed_count,
+        'in_progress_count': in_progress_count,
+        'total_spent': total_spent,
+    })
 
 @client_required
 def client_projectCreate(request):

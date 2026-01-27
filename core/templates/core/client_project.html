@@ -11,7 +11,7 @@
     <div class="header">
         <h1>My Projects</h1>
         <div class="header-actions">
-            <input type="text" class="search-bar" placeholder="Search projects...">
+            <input type="text" id="searchBar" class="search-bar" placeholder="Search projects...">
             <a href="{% url 'client_projectCreate' %}" class="btn-create">
                 New Project
             </a>
@@ -21,20 +21,20 @@
     <!-- Summary Cards -->
     <div class="cards">
         <div class="card">
-            <h3>8</h3>
+            <h3>{{ active_count }}</h3>
             <p>Active Projects</p>
         </div>
         <div class="card">
-            <h3>23</h3>
+            <h3>{{ completed_count }}</h3>
             <p>Completed</p>
         </div>
         <div class="card">
-            <h3>5</h3>
+            <h3>{{ in_progress_count }}</h3>
             <p>In Progress</p>
         </div>
         <div class="card">
-            <h3>$48,750</h3>
-            <p>Total Spent This Year</p>
+            <h3>${{ total_spent|floatformat:0 }}</h3>
+            <p>Total Spent</p>
         </div>
     </div>
 
@@ -42,35 +42,34 @@
     <div class="filters">
         <div class="filter-group">
             <label>Status</label>
-            <select>
+            <select id="statusFilter">
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="in-progress">In Progress</option>
+                <option value="open">Open</option>
+                <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="pending">Pending Review</option>
+                <option value="draft">Draft</option>
             </select>
         </div>
         <div class="filter-group">
             <label>Date Range</label>
-            <select>
+            <select id="dateFilter">
                 <option value="all">All Time</option>
                 <option value="last30">Last 30 Days</option>
                 <option value="last90">Last 90 Days</option>
-                <option value="this-year">This Year (2026)</option>
-                <option value="custom">Custom Range</option>
+                <option value="this-year">This Year</option>
             </select>
         </div>
         <div class="filter-group" style="display:none;" id="custom-date">
             <label>From</label>
-            <input type="date">
+            <input type="date" id="dateFrom">
         </div>
         <div class="filter-group" style="display:none;" id="custom-date-to">
             <label>To</label>
-            <input type="date">
+            <input type="date" id="dateTo">
         </div>
         <div class="filter-actions">
-            <button class="btn-apply">Apply Filters</button>
-            <button class="btn-clear">Clear</button>
+            <button class="btn-apply" id="applyFilters">Apply Filters</button>
+            <button class="btn-clear" id="clearFilters">Clear</button>
         </div>
     </div>
 
@@ -87,10 +86,10 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-            <tbody>
+            <tbody id="projectTableBody">
                 {% for project in projects %}
-                <tr>
+                <tr class="project-row" data-status="{{ project.status }}"
+                    data-created="{{ project.created_at|date:'Y-m-d' }}" data-title="{{ project.title|lower }}">
                     <td>{{ project.title }}</td>
                     <td>
                         {% if project.assigned_freelancer %}
@@ -111,8 +110,8 @@
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" style="text-align: center; padding: 40px 0 250px 0;">No projects found.</td>
+                <tr id="noProjectsRow">
+                    <td colspan="6" style="text-align: center; padding: 40px 0 40px 0;">No projects found.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -121,11 +120,101 @@
 </div>
 
 <script>
-    // Optional: Show custom date fields when "Custom Range" is selected
-    document.querySelector('select').addEventListener('change', function () {
-        const custom = this.value === 'custom';
-        document.getElementById('custom-date').style.display = custom ? 'block' : 'none';
-        document.getElementById('custom-date-to').style.display = custom ? 'block' : 'none';
+    // Search functionality
+    const searchBar = document.getElementById('searchBar');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const applyBtn = document.getElementById('applyFilters');
+    const clearBtn = document.getElementById('clearFilters');
+    const projectRows = document.querySelectorAll('.project-row');
+    const noProjectsRow = document.getElementById('noProjectsRow');
+
+    // Real-time search
+    searchBar.addEventListener('input', function () {
+        const searchTerm = this.value.toLowerCase().trim();
+        filterProjects();
     });
+
+    // Apply filters button
+    applyBtn.addEventListener('click', function () {
+        filterProjects();
+    });
+
+    // Clear filters button
+    clearBtn.addEventListener('click', function () {
+        searchBar.value = '';
+        statusFilter.value = 'all';
+        dateFilter.value = 'all';
+        filterProjects();
+    });
+
+    // Main filter function
+    function filterProjects() {
+        const searchTerm = searchBar.value.toLowerCase().trim();
+        const selectedStatus = statusFilter.value;
+        const selectedDateRange = dateFilter.value;
+        let visibleCount = 0;
+
+        projectRows.forEach(row => {
+            const title = row.getAttribute('data-title');
+            const status = row.getAttribute('data-status');
+            const createdDate = new Date(row.getAttribute('data-created'));
+
+            // Search filter - check if any word in the project title matches
+            let matchesSearch = true;
+            if (searchTerm) {
+                matchesSearch = title.includes(searchTerm);
+            }
+
+            // Status filter
+            let matchesStatus = true;
+            if (selectedStatus !== 'all') {
+                matchesStatus = status === selectedStatus;
+            }
+
+            // Date range filter
+            let matchesDate = true;
+            if (selectedDateRange !== 'all') {
+                const now = new Date();
+                const diffTime = now - createdDate;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                if (selectedDateRange === 'last30') {
+                    matchesDate = diffDays <= 30;
+                } else if (selectedDateRange === 'last90') {
+                    matchesDate = diffDays <= 90;
+                } else if (selectedDateRange === 'this-year') {
+                    matchesDate = createdDate.getFullYear() === now.getFullYear();
+                }
+            }
+
+            // Show/hide row based on all filters
+            if (matchesSearch && matchesStatus && matchesDate) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Handle "no results" message
+        let noResultsRow = document.getElementById('noResultsRow');
+
+        if (visibleCount === 0 && projectRows.length > 0) {
+            // No matches found - show "no results" message
+            if (!noResultsRow) {
+                noResultsRow = document.createElement('tr');
+                noResultsRow.id = 'noResultsRow';
+                noResultsRow.innerHTML = '<td colspan="6" style="text-align: center; padding: 40px 0 40px 0;">No projects match your search criteria.</td>';
+                document.getElementById('projectTableBody').appendChild(noResultsRow);
+            }
+            noResultsRow.style.display = '';
+        } else {
+            // Matches found - hide "no results" message
+            if (noResultsRow) {
+                noResultsRow.style.display = 'none';
+            }
+        }
+    }
 </script>
 {% endblock %}
