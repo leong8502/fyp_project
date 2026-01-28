@@ -45,8 +45,11 @@ urlpatterns = [
     path('client/project/edit/<int:project_id>/', views.client_projectEdit, name='client_projectEdit'),
     path('client/project/delete/<int:project_id>/', views.client_projectDelete, name='client_projectDelete'),
     path('client/project/info/<int:project_id>/', views.client_projectInfo, name='client_projectInfo'),
+    path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
+    path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/about-us/', views.client_about, name='client_about'),
     path('client/chat/', views.client_chat, name='client_chat'),
+    path('client/settings/', views.client_settings, name='client_settings'),
     # freelancer part
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
 ]

@@ -1,0 +1,204 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}Publish Project - Payment Confirmation{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_projectPublish.css' %}">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+    <div class="payment-header">
+        <h1><i class="fas fa-rocket"></i> Publish Project</h1>
+        <p>Review payment details and confirm to publish your project</p>
+    </div>
+
+    <!-- Combined Payment Summary Card -->
+    <div class="payment-summary-card">
+        <div class="summary-section">
+            <h2>Payment Summary</h2>
+
+            <!-- Project Info -->
+            <div class="info-row">
+                <div class="info-item">
+                    <span class="label"><i class="fas fa-project-diagram"></i> Project</span>
+                    <span class="value">{{ project.title }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="label"><i class="fas fa-calendar"></i> Deadline</span>
+                    <span class="value">{{ project.deadline|date:"M d, Y" }}</span>
+                </div>
+            </div>
+
+            <!-- Milestones -->
+            <div class="milestones-compact">
+                <h3><i class="fas fa-tasks"></i> Milestones ({{ milestones.count }})</h3>
+                <div class="milestone-list">
+                    {% for milestone in milestones %}
+                    <div class="milestone-item">
+                        <span class="milestone-number">{{ forloop.counter }}</span>
+                        <span class="milestone-title">{{ milestone.title }}</span>
+                        <span class="milestone-amount">RM {{ milestone.amount|floatformat:2 }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Wallet Balance -->
+            <div class="balance-section">
+                <div class="balance-row">
+                    <span class="label"><i class="fas fa-wallet"></i> Available Balance</span>
+                    <span class="value">RM {{ wallet.balance|floatformat:2 }}</span>
+                </div>
+                <div class="balance-row total">
+                    <span class="label"><i class="fas fa-money-bill-wave"></i> Total Payment</span>
+                    <span class="value">RM {{ project.budget|floatformat:2 }}</span>
+                </div>
+                <div class="balance-row remaining {% if not has_sufficient_balance %}insufficient{% endif %}">
+                    <span class="label"><i class="fas fa-coins"></i> After Payment</span>
+                    <span class="value">RM {{ balance_after_payment|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            {% if not has_sufficient_balance %}
+            <div class="insufficient-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Insufficient balance. You need <strong>RM {{ amount_needed|floatformat:2 }}</strong> more.</p>
+                <a href="{% url 'topUp' %}" class="btn-topup">
+                    <i class="fas fa-plus-circle"></i> Top Up Wallet
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Escrow Info -->
+        <div class="escrow-info">
+            <h3><i class="fas fa-shield-alt"></i> Escrow Protection</h3>
+            <ul>
+                <li><i class="fas fa-lock"></i> Funds held securely in escrow</li>
+                <li><i class="fas fa-hand-holding-usd"></i> Released per milestone completion</li>
+                <li><i class="fas fa-undo"></i> Refund protection available</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <a href="{% url 'client_projectInfo' project.id %}" class="btn-cancel">
+            <i class="fas fa-times"></i> Cancel
+        </a>
+        {% if has_sufficient_balance %}
+        <button type="button" class="btn-confirm" id="show-pin-modal">
+            <i class="fas fa-check-circle"></i> Confirm Payment
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- PIN Modal -->
+{% if has_sufficient_balance %}
+<div id="pin-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-lock"></i> Enter Secure PIN</h2>
+            <button type="button" class="modal-close" id="close-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <p class="modal-instruction">Enter your 6-digit Secure PIN to authorize this payment</p>
+
+            <form method="post" action="{% url 'client_confirmPayment' project.id %}" id="payment-form">
+                {% csrf_token %}
+
+                <div class="pin-input-container">
+                    <input type="password" name="secure_pin" id="pin-input" class="pin-input" maxlength="6"
+                        placeholder="••••••" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+                </div>
+
+                <div class="payment-details">
+                    <div class="detail-row">
+                        <span>Project:</span>
+                        <span>{{ project.title }}</span>
+                    </div>
+                    <div class="detail-row total">
+                        <span>Amount:</span>
+                        <span>RM {{ project.budget|floatformat:2 }}</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-payment">
+                    <i class="fas fa-check-circle"></i> Confirm & Pay
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+    // Modal functionality
+    const modal = document.getElementById('pin-modal');
+    const showModalBtn = document.getElementById('show-pin-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const modalOverlay = document.querySelector('.modal-overlay');
+    const pinInput = document.getElementById('pin-input');
+    const paymentForm = document.getElementById('payment-form');
+    const submitBtn = document.getElementById('submit-payment');
+
+    // Show modal
+    if (showModalBtn) {
+        showModalBtn.addEventListener('click', function () {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => pinInput.focus(), 100);
+        });
+    }
+
+    // Close modal
+    function closeModal() {
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+        pinInput.value = '';
+    }
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeModal);
+    }
+
+    if (modalOverlay) {
+        modalOverlay.addEventListener('click', closeModal);
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    // Only allow numbers in PIN input
+    if (pinInput) {
+        pinInput.addEventListener('input', function (e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+    }
+
+    // Form submission
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', function (e) {
+            if (pinInput.value.length !== 6) {
+                e.preventDefault();
+                alert('Please enter a 6-digit PIN');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
+    }
+</script>
+{% endblock %}

@@ -70,7 +70,8 @@
             <p><strong>Industry:</strong> {{ user.client.industry_type|default:'-' }}</p>
             <p><strong>Company Size:</strong> {{ user.client.company_size|default:'-' }}</p>
             <p><strong>Year Founded:</strong> {{ user.client.year_founded|default:'-' }}</p>
-            <p><strong>Languages:</strong> {{ user.client.languages|default:'-' }}</p>
+            <p><strong>Languages:</strong> <span id="languages-display">{{ user.client.languages|default:'-' }}</span>
+            </p>
 
             {% if not user.client.tags %}
             <p><strong>Tags:</strong>
@@ -102,5 +103,15 @@
         </div>
     </div>
 </section>
+
+<script>
+    // Format languages display to add space after commas
+    document.addEventListener('DOMContentLoaded', function () {
+        const languagesDisplay = document.getElementById('languages-display');
+        if (languagesDisplay && languagesDisplay.textContent !== '-') {
+            languagesDisplay.textContent = languagesDisplay.textContent.replace(/,/g, ', ');
+        }
+    });
+</script>
 
 {% endblock %}

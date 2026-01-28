@@ -282,3 +282,34 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} - {self.amount} ({self.status})"
+
+class UserSecurity(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='security')
+    secure_pin = models.CharField(max_length=128, blank=True, null=True, help_text="Hashed secure PIN")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Security Settings"
+
+class Escrow(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Active'),       # Funds held
+        ('released', 'Released'),   # All funds released
+        ('refunded', 'Refunded'),   # Funds returned to client
+    ]
+    
+    project = models.OneToOneField('Project', on_delete=models.CASCADE, related_name='escrow')
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total amount held in escrow")
+    released_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Amount released to freelancer")
+    remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Amount still in escrow")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Escrow for {self.project.title} - {self.status}"
+
+    class Meta:
+        verbose_name = "Escrow Account"
+        verbose_name_plural = "Escrow Accounts"

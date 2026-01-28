@@ -110,7 +110,9 @@
             <!-- Draft: Edit, Delete, Publish -->
             <a href="{% url 'client_projectEdit' project.id %}" style="text-decoration: none; color: white;"><button
                     class="btn-primary">Edit Project</button></a>
-            <button class="btn-success" onclick="alert('Publish logic pending implementation')">Publish Project</button>
+            <a href="{% url 'client_projectPublish' project.id %}" style="text-decoration: none;">
+                <button class="btn-success">Publish Project</button>
+            </a>
             <form action="{% url 'client_projectDelete' project.id %}" method="post" style="display:inline;"
                 onsubmit="return confirm('Are you sure you want to delete this project? This action cannot be undone.');">
                 {% csrf_token %}

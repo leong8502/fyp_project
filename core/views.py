@@ -1,10 +1,10 @@
 import uuid
 import decimal
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -19,9 +19,11 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow
+from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
+from django.utils import timezone
 
 # Create your views here.
 @guest_required
@@ -629,3 +631,148 @@ def toggle_balance_privacy(request):
             wallet.save()
             return JsonResponse({'status': 'success', 'is_hidden': wallet.is_hidden})
     return JsonResponse({'status': 'error'}, status=400)
+
+@client_required
+def client_settings(request):
+    user_security, created = UserSecurity.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = SecurePinForm(request.POST, user_security=user_security)
+        if form.is_valid():
+            new_pin = form.cleaned_data['new_pin']
+            user_security.secure_pin = make_password(new_pin)
+            user_security.save()
+            messages.success(request, "Secure PIN updated successfully.")
+            return redirect('client_settings')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SecurePinForm(user_security=user_security)
+
+    return render(request, 'core/client_settings.html', {'form': form})
+
+@client_required
+def client_projectPublish(request, project_id):
+    """Display payment confirmation page for publishing a project"""
+    project = get_object_or_404(Project, id=project_id, client=request.user.client)
+    
+    # Only allow publishing draft projects
+    if project.status != 'draft':
+        messages.error(request, "Only draft projects can be published.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    # Check if user has set up secure PIN
+    user_security = getattr(request.user, 'security', None)
+    if not user_security or not user_security.secure_pin:
+        messages.warning(request, "Please set up your Secure PIN before publishing a project.")
+        return redirect('client_settings')
+    
+    # Get wallet and check balance
+    wallet = getattr(request.user, 'wallet', None)
+    if not wallet:
+        messages.error(request, "Wallet not found. Please contact support.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    # Get milestones
+    milestones = project.milestones.all().order_by('order')
+    
+    # Check if sufficient balance
+    has_sufficient_balance = wallet.balance >= project.budget
+    
+    # Calculate balance after payment and amount needed
+    balance_after_payment = wallet.balance - project.budget
+    amount_needed = project.budget - wallet.balance if not has_sufficient_balance else decimal.Decimal('0.00')
+    
+    context = {
+        'project': project,
+        'milestones': milestones,
+        'wallet': wallet,
+        'has_sufficient_balance': has_sufficient_balance,
+        'balance_after_payment': balance_after_payment,
+        'amount_needed': amount_needed,
+        'form': PaymentPinForm()
+    }
+    
+    return render(request, 'core/client_projectPublish.html', context)
+
+
+@client_required
+def client_confirmPayment(request, project_id):
+    """Process payment and publish project"""
+    if request.method != 'POST':
+        return redirect('client_projectPublish', project_id=project_id)
+    
+    project = get_object_or_404(Project, id=project_id, client=request.user.client)
+    
+    # Only allow publishing draft projects
+    if project.status != 'draft':
+        messages.error(request, "Only draft projects can be published.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    # Get user security
+    user_security = getattr(request.user, 'security', None)
+    if not user_security or not user_security.secure_pin:
+        messages.error(request, "Secure PIN not set up.")
+        return redirect('client_settings')
+    
+    # Validate PIN
+    form = PaymentPinForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please enter a valid 6-digit PIN.")
+        return redirect('client_projectPublish', project_id=project_id)
+    
+    entered_pin = form.cleaned_data['secure_pin']
+    if not check_password(entered_pin, user_security.secure_pin):
+        messages.error(request, "Incorrect Secure PIN. Please try again.")
+        return redirect('client_projectPublish', project_id=project_id)
+    
+    # Get wallet
+    wallet = getattr(request.user, 'wallet', None)
+    if not wallet:
+        messages.error(request, "Wallet not found.")
+        return redirect('client_projectInfo', project_id=project.id)
+    
+    # Check balance
+    if wallet.balance < project.budget:
+        messages.error(request, f"Insufficient balance. You need RM {project.budget - wallet.balance:.2f} more.")
+        return redirect('client_projectPublish', project_id=project_id)
+    
+    # Process payment with database transaction
+    try:
+        with transaction.atomic():
+            # Deduct from wallet
+            wallet.balance -= project.budget
+            wallet.save()
+            
+            # Create transaction record
+            Transaction.objects.create(
+                wallet=wallet,
+                amount=project.budget,
+                direction='debit',
+                transaction_type='payment',
+                status='completed',
+                description=f"Payment for project: {project.title}",
+                reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                related_project=project
+            )
+            
+            # Create escrow
+            Escrow.objects.create(
+                project=project,
+                total_amount=project.budget,
+                released_amount=decimal.Decimal('0.00'),
+                remaining_amount=project.budget,
+                status='active'
+            )
+            
+            # Update project status
+            project.status = 'open'
+            project.published_at = timezone.now()
+            project.save()
+        
+        messages.success(request, f"Project '{project.title}' published successfully! RM {project.budget:.2f} has been placed in escrow.")
+        return redirect('client_projectInfo', project_id=project.id)
+        
+    except Exception as e:
+        messages.error(request, f"An error occurred while processing payment: {str(e)}")
+        return redirect('client_projectPublish', project_id=project_id)

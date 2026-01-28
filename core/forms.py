@@ -229,3 +229,61 @@ class WithdrawForm(forms.Form):
         if self.user_wallet and amount > self.user_wallet.balance:
             raise forms.ValidationError(f"Insufficient balance. Your current balance is RM {self.user_wallet.balance}.")
         return amount
+
+class SecurePinForm(forms.Form):
+    current_pin = forms.CharField(
+        required=False, 
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter current PIN', 'maxlength': '6'}),
+        label="Current PIN"
+    )
+    new_pin = forms.CharField(
+        required=True, 
+        validators=[RegexValidator(r'^\d{6}$', 'PIN must be exactly 6 digits.')],
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter new 6-digit PIN', 'maxlength': '6'}),
+        label="New PIN"
+    )
+    confirm_pin = forms.CharField(
+        required=True, 
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new PIN', 'maxlength': '6'}),
+        label="Confirm New PIN"
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user_security = kwargs.pop('user_security', None)
+        super(SecurePinForm, self).__init__(*args, **kwargs)
+        
+        # If user has no PIN yet, hide current_pin field
+        if not self.user_security or not self.user_security.secure_pin:
+            self.fields['current_pin'].widget = forms.HiddenInput()
+        else:
+            self.fields['current_pin'].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        new_pin = cleaned_data.get("new_pin")
+        confirm_pin = cleaned_data.get("confirm_pin")
+        current_pin = cleaned_data.get("current_pin")
+
+        if new_pin and confirm_pin and new_pin != confirm_pin:
+            self.add_error('confirm_pin', "PINs do not match.")
+
+        # If user already has a PIN, validate current PIN
+        if self.user_security and self.user_security.secure_pin:
+            from django.contrib.auth.hashers import check_password
+            if current_pin and not check_password(current_pin, self.user_security.secure_pin):
+                 self.add_error('current_pin', "Incorrect current PIN.")
+        
+        return cleaned_data
+
+class PaymentPinForm(forms.Form):
+    secure_pin = forms.CharField(
+        required=True,
+        validators=[RegexValidator(r'^\d{6}$', 'PIN must be exactly 6 digits.')],
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your 6-digit PIN',
+            'maxlength': '6',
+            'autocomplete': 'off'
+        }),
+        label="Secure PIN"
+    )
