@@ -193,6 +193,11 @@ class Freelancer(models.Model):
     # Verification & timestamps
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True)
+    # AI Matching
+    freelancer_embedding = models.JSONField(null=True, blank=True)
+    extracted_keywords = models.JSONField(null=True, blank=True)
+    last_active = models.DateTimeField(default=timezone.now)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -313,3 +318,18 @@ class Escrow(models.Model):
     class Meta:
         verbose_name = "Escrow Account"
         verbose_name_plural = "Escrow Accounts"
+
+class ProjectMatch(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='matches')
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='project_matches')
+    similarity_score = models.FloatField(help_text="Raw Cosine Similarity Score")
+    final_score = models.FloatField(help_text="Weighted Hybrid Score")
+    score_breakdown = models.JSONField(help_text="Detailed breakdown of scoring components")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-final_score']
+        unique_together = ('project', 'freelancer')
+
+    def __str__(self):
+        return f"{self.project.title} - {self.freelancer.user.username} ({self.final_score:.2f})"

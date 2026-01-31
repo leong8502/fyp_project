@@ -1,0 +1,73 @@
+<div class="match-card"
+    style="border: 1px solid #eee; padding: 20px; border-radius: 12px; margin-bottom: 20px; background: white; display: flex; gap: 20px; align-items: flex-start;">
+    <div class="match-avatar" style="flex-shrink: 0;">
+        {% if match.freelancer.profile_image %}
+        <img src="{{ match.freelancer.profile_image.url }}" alt="{{ match.freelancer.full_name }}"
+            style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover;">
+        {% else %}
+        <div
+            style="width: 80px; height: 80px; border-radius: 50%; background: #ddd; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+            {{ match.freelancer.full_name|slice:":1"|default:"F" }}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="match-content" style="flex-grow: 1;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+                <h3 style="margin: 0 0 5px 0;">{{ match.freelancer.full_name|default:match.freelancer.user.username }}
+                </h3>
+                <p style="margin: 0; color: #666; font-size: 14px;">{{ match.freelancer.tagline }}</p>
+                <div style="margin-top: 5px;">
+                    <span
+                        style="font-size: 13px; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 10px;">
+                        Active: {{ match.freelancer.last_active|timesince }} ago
+                    </span>
+                    <span
+                        style="font-size: 13px; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 10px; margin-left: 5px;">
+                        Exp: {{ match.freelancer.experience_years }} yrs
+                    </span>
+                    <span
+                        style="font-size: 13px; background: #fff8e1; color: #f57f17; padding: 2px 8px; border-radius: 10px; margin-left: 5px;">
+                        {{ match.freelancer.average_rating|default:"0.0" }} ★
+                    </span>
+                </div>
+            </div>
+            <div class="match-score" style="text-align: right;">
+                <div
+                    style="font-size: 24px; font-weight: bold; color: {% if match.final_score > 0.7 %}#2e7d32{% elif match.final_score > 0.5 %}#ef6c00{% else %}#c62828{% endif %};">
+                    {% widthratio match.final_score 1 100 %}%
+                </div>
+                <div style="font-size: 12px; color: #888;">Match Score</div>
+            </div>
+        </div>
+
+        <div style="margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 8px;">
+            <p style="margin: 0 0 5px 0; font-weight: 500; font-size: 13px;">Why we picked this freelancer:</p>
+            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #555;">
+                {% if match.score_breakdown.reasons %}
+                {% for reason in match.score_breakdown.reasons %}
+                <li>{{ reason }}</li>
+                {% endfor %}
+                {% else %}
+                <!-- Fallback if no specific reasons found -->
+                <li>Good overall match based on profile.</li>
+                {% endif %}
+            </ul>
+        </div>
+
+        <div style="margin-top: 15px; display: flex; gap: 10px;">
+            <a href="#" class="btn btn-outline-primary"
+                style="padding: 6px 15px; border-radius: 6px; text-decoration: none; border: 1px solid #007bff; color: #007bff; font-size: 14px; background: white;"
+                onmouseover="this.style.background='#007bff'; this.style.color='white';"
+                onmouseout="this.style.background='white'; this.style.color='#007bff';">
+                View Profile
+            </a>
+            <a href="#" class="btn btn-primary"
+                style="padding: 6px 15px; border-radius: 6px; text-decoration: none; background: #007bff; color: white; border: 1px solid #007bff; font-size: 14px;"
+                onmouseover="this.style.background='#0056b3';" onmouseout="this.style.background='#007bff';">
+                Invite to Job
+            </a>
+        </div>
+    </div>
+</div>

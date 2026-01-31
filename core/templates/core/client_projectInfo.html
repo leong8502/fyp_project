@@ -40,7 +40,8 @@
                 {% if project.required_skills %}
                 {% for skill in project.required_skills|split:',' %}
                 <span
-                    style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 500; display: inline-block; margin: 4px 4px 4px 0;">{{ skill }}</span>
+                    style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 500; display: inline-block; margin: 4px 4px 4px 0;">{{ skill }}
+                </span>
                 {% endfor %}
                 {% else %}
                 No skills specified
@@ -97,6 +98,11 @@
             <p style="color: #888; font-style: italic;">No milestones defined.</p>
             {% endif %}
 
+            {% if project.status == 'open' %}
+            <h2>Manage Proposal</h2>
+            <p style="color: #888; font-style: italic;">No proposals received.</p>
+            {% endif %}
+
             {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Recent Activity / Messages</h2>
             <p style="color: #888; font-style: italic;">No recent activity.</p>
@@ -122,8 +128,9 @@
 
             {% elif project.status == 'open' %}
             <!-- Open: Apply AI Matching, Cancel, Manage Proposals -->
-            <button class="btn-primary">AI Matching</button>
-            <button class="btn-secondary">Manage Proposals</button>
+            <a href="{% url 'client_projectMatches' project.id %}" style="text-decoration: none;">
+                <button class="btn-primary">Find Matches (AI)</button>
+            </a>
             <button class="btn-secondary" style="background-color: #dc3545; color: white;">Cancel Project</button>
 
             {% elif project.status == 'in_progress' %}

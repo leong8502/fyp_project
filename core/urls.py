@@ -45,6 +45,7 @@ urlpatterns = [
     path('client/project/edit/<int:project_id>/', views.client_projectEdit, name='client_projectEdit'),
     path('client/project/delete/<int:project_id>/', views.client_projectDelete, name='client_projectDelete'),
     path('client/project/info/<int:project_id>/', views.client_projectInfo, name='client_projectInfo'),
+    path('client/project/matches/<int:project_id>/', views.client_projectMatches, name='client_projectMatches'),
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/about-us/', views.client_about, name='client_about'),

@@ -20,4 +20,6 @@ python manage.py migrate core
 project name: fyp_project
 db name: fyp_db
 
+python manage.py rebuild_embeddings (to update all embeddings)
+
 You’re seeing this error because you have DEBUG = True in your Django settings file. Change that to False, and Django will display a standard 404 page.

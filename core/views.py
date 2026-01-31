@@ -19,7 +19,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
@@ -321,6 +321,31 @@ def client_projectCreate(request):
 def client_projectInfo(request, project_id):
     project = Project.objects.get(id=project_id, client=request.user.client)
     return render(request, 'core/client_projectInfo.html', {'project': project})
+
+@client_required
+def client_projectMatches(request, project_id):
+    project = get_object_or_404(Project, id=project_id, client=request.user.client)
+    
+    if request.GET.get('refresh'):
+         from .ai_matching import MatchEngine
+         engine = MatchEngine()
+         engine.compute_matches(project.id)
+         # Redirect to base path to clean url
+         return redirect('client_projectMatches', project_id=project.id)
+
+    matches = project.matches.select_related('freelancer').all()
+    
+    # If no matches exist and status is open, try running once automatically
+    if not matches.exists() and project.status == 'open':
+         from .ai_matching import MatchEngine
+         engine = MatchEngine()
+         engine.compute_matches(project.id)
+         matches = project.matches.select_related('freelancer').all()
+
+    return render(request, 'core/client_projectMatches.html', {
+        'project': project,
+        'matches': matches
+    })
 
 @client_required
 def client_projectEdit(request, project_id):
