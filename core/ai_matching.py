@@ -87,7 +87,7 @@ class MatchEngine:
         # Sort by final score descending
         matches.sort(key=lambda x: x.final_score, reverse=True)
         
-        # Keep top 8
+        # Keep top 5
         matches = matches[:5]
 
         # Bulk create/update

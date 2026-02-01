@@ -1,0 +1,114 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}{{ freelancer.full_name|default:freelancer.user.username }} - Expert Freelancer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_freelancerProfile.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <!-- Hero Section -->
+    <section class="profile-hero">
+        <div class="hero-banner">
+            <img src="{% if freelancer.background_image %}{{ freelancer.background_image.url }}{% else %}{% static 'core/images/default_background.jpg' %}{% endif %}"
+                alt="Profile Banner">
+        </div>
+        <div class="hero-content">
+            <div class="hero-profile-img">
+                <img src="{% if freelancer.profile_image %}{{ freelancer.profile_image.url }}{% else %}{% static 'core/images/default_profile.png' %}{% endif %}"
+                    alt="{{ freelancer.full_name }}">
+            </div>
+            <div class="hero-text">
+                <h1>{{ freelancer.full_name|default:freelancer.user.username }}</h1>
+                <p class="tagline">{{ freelancer.tagline|default:"Professional Freelancer" }}</p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <span class="stat-value rating">★ {{ freelancer.average_rating|default:"0.0" }}</span>
+                        <span class="stat-label">Rating</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ freelancer.total_jobs_completed }}</span>
+                        <span class="stat-label">Project Done</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Grid -->
+    <div class="profile-main-grid">
+        <!-- Left Content -->
+        <div class="profile-left-col">
+            <div class="profile-card">
+                <h2>About the Freelancer</h2>
+                <div class="bio-content">
+                    {% if freelancer.bio %}
+                    <p>{{ freelancer.bio|linebreaksbr }}</p>
+                    {% else %}
+                    <p style="color: #888; font-style: italic;">No detailed bio provided yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="profile-card">
+                <h2>Expertise & Skills</h2>
+                <div class="skills-wrapper">
+                    {% for skill in freelancer.skills_list %}
+                    <span class="skill-tag">{{ skill }}</span>
+                    {% empty %}
+                    <p style="color: #888;">No skills specified.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar -->
+        <div class="profile-right-col">
+            <div class="sidebar-sticky">
+                <div class="action-card">
+                    <a href="#" class="btn btn-primary">Invite to My Project</a>
+                    <a href="{% url 'client_chat' %}?user={{ freelancer.user.id }}" class="btn btn-secondary">Contact
+                        Now</a>
+                    <ul class="info-list">
+                        <li>
+                            <span class="info-label">Availability</span>
+                            <span class="info-value">{{ freelancer.get_availability_status_display }}</span>
+                        </li>
+                        <li>
+                            <span class="info-label">Location</span>
+                            <span class="info-value">{{ freelancer.location|default:'Remote' }}</span>
+                        </li>
+                        <li>
+                            <span class="info-label">Success Rate</span>
+                            <span class="info-value">{% if freelancer.total_jobs_completed > 5 %}98%{% else %}New{% endif %}</span>
+                        </li>
+                        <li>
+                            <span class="info-label">Member Since</span>
+                            <span class="info-value">{{ freelancer.user.date_joined|date:"M d, Y" }}</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="action-card">
+                    <h2>Professional Links</h2>
+                    <ul class="info-list">
+                        <li>
+                            <span class="info-label">Portfolio</span>
+                            <span class="info-value">{% if freelancer.portfolio_url %}<a
+                                    href="{{ freelancer.portfolio_url }}" target="_blank"
+                                    style="color:var(--primary-color)">Link</a>{% else %}-{% endif %}</span>
+                        </li>
+                        <li>
+                            <span class="info-label">LinkedIn</span>
+                            <span class="info-value">{% if freelancer.linkedin_url %}<a
+                                    href="{{ freelancer.linkedin_url }}" target="_blank"
+                                    style="color:var(--primary-color)">Profile</a>{% else %}-{% endif %}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

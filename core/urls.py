@@ -50,6 +50,8 @@ urlpatterns = [
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/about-us/', views.client_about, name='client_about'),
     path('client/chat/', views.client_chat, name='client_chat'),
+    path('client/search/', views.client_search, name='client_search'),
+    path('client/freelancerProfile/<int:freelancer_id>/', views.client_freelancerProfile, name='client_freelancerProfile'),
     path('client/settings/', views.client_settings, name='client_settings'),
     # freelancer part
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),

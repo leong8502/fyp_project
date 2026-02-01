@@ -9,12 +9,12 @@
 {% block content %}
 <section class="profile-header">
     <!-- Background Banner -->
-    <img src="{% if user.client.background_image %}{{ user.client.background_image.url }}{% else %}https://via.placeholder.com/1200x300?text=Company+Banner{% endif %}"
+    <img src="{% if user.client.background_image %}{{ user.client.background_image.url }}{% else %}{% static 'core/images/default_background.jpg' %}{% endif %}"
         alt="Company Banner" class="banner-image">
 
     <!-- Company Logo -->
     <div class="profile-image-wrapper">
-        <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}https://via.placeholder.com/150?text=Logo{% endif %}"
+        <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}{% static 'core/images/default_profile.png' %}{% endif %}"
             alt="Company Logo" class="profile-image">
     </div>
 </section>

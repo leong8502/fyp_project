@@ -197,6 +197,7 @@ def home(request):
     return render(request, 'core/home.html')
 
 # Client part 
+
 @client_required
 def client_home(request):
     return render(request, 'core/client_home.html')
@@ -249,6 +250,11 @@ def client_search(request):
     
     return render(request, 'core/client_search.html', context)
 
+@client_required
+def client_freelancerProfile(request, freelancer_id):
+    freelancer = get_object_or_404(Freelancer, id=freelancer_id)
+    return render(request, 'core/client_freelancerProfile.html', {'freelancer': freelancer})
+
 def client_about(request):
     return render(request, 'core/client_about.html')
 
@@ -275,6 +281,7 @@ def client_settings(request):
     return render(request, 'core/client_settings.html', {'form': form})
 
 # Client part (profile)
+
 @client_required
 def client_profile(request):
     return render(request, 'core/client_profile.html')

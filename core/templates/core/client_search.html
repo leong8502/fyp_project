@@ -1,0 +1,172 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}Search Freelancers{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-page-container">
+    <!-- Filter Sidebar -->
+    <aside class="filter-sidebar">
+        <form method="GET" action="{% url 'client_search' %}" id="filter-form">
+            <!-- Maintain search query when filtering -->
+            <input type="hidden" name="q" value="{{ query }}">
+
+            <div class="filter-header">
+                <h3>Filters</h3>
+                {% if has_filter %}
+                <a href="{% url 'client_search' %}?q={{ query }}" class="clear-btn">Clear all</a>
+                {% endif %}
+            </div>
+
+            <!-- Rating Filter -->
+            <div class="filter-group">
+                <h4>Rating</h4>
+                <div class="filter-option">
+                    <input type="radio" name="rating" value="4.5" id="rating-4.5" {% if current_rating == '4.5' %}checked{% endif %}>
+                    <label for="rating-4.5">
+                        <span style="color: #f5a623;">★</span>
+                        <span>4.5 and above</span>
+                    </label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" name="rating" value="4.0" id="rating-4.0" {% if current_rating == '4.0' %}checked{% endif %}>
+                    <label for="rating-4.0">
+                        <span style="color: #f5a623;">★</span>
+                        <span>4.0 and above</span>
+                    </label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" name="rating" value="3.0" id="rating-3.0" {% if current_rating == '3.0' %}checked{% endif %}>
+                    <label for="rating-3.0">
+                        <span style="color: #f5a623;">★</span>
+                        <span>3.0 and above</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Availability Filter -->
+            <div class="filter-group">
+                <h4>Availability</h4>
+                <div class="filter-option">
+                    <input type="radio" name="availability" value="full_time" id="avail-full" {% if current_avail == 'full_time' %}checked{% endif %}>
+                    <label for="avail-full"><span>Full-Time</span></label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" name="availability" value="part_time" id="avail-part" {% if current_avail == 'part_time' %}checked{% endif %}>
+                    <label for="avail-part"><span>Part-Time</span></label>
+                </div>
+                <div class="filter-option">
+                    <input type="radio" name="availability" value="contract" id="avail-contract" {% if current_avail == 'contract' %}checked{% endif %}>
+                    <label for="avail-contract"><span>Contract</span></label>
+                </div>
+            </div>
+
+            <button type="submit" class="apply-btn">Apply Filters</button>
+        </form>
+    </aside>
+
+    <!-- Main Results Area -->
+    <main class="search-results-area">
+        <!-- Search Header -->
+        <div class="search-header-container">
+            <form class="main-search-form" action="{% url 'client_search' %}" method="GET">
+                <div class="search-input-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" name="q" class="main-search-input" placeholder="Search for skills (e.g., Python, React) or names..." value="{{ query }}">
+                </div>
+                <button type="submit" class="search-btn">Search</button>
+            </form>
+        </div>
+
+        <!-- Results Count -->
+        <p class="results-info">
+            Found <span>{{ freelancers.paginator.count }}</span> freelancers
+            {% if query %}for "<span>{{ query }}</span>"{% endif %}
+        </p>
+
+        <!-- Freelancer List -->
+        <div class="freelancer-list">
+            {% for freelancer in freelancers %}
+            <article class="freelancer-card">
+                <!-- Left: Profile Image & Rating -->
+                <div class="card-profile">
+                    <div class="profile-img-wrapper">
+                        <img src="{% if freelancer.profile_image %}{{ freelancer.profile_image.url }}{% else %}{% static 'core/images/default_profile.png' %}{% endif %}" alt="{{ freelancer.full_name }}" class="profile-img">
+                        <!-- Mock online status logic or real if available -->
+                        <div class="online-status" title="Online"></div>
+                    </div>
+                    <div class="card-rating">
+                        ★ {{ freelancer.average_rating|default:"0.0" }}
+                        <span class="rating-count">({{ freelancer.total_jobs_completed }} jobs)</span>
+                    </div>
+                </div>
+
+                <!-- Middle: Info -->
+                <div class="card-info">
+                    <div class="freelancer-name-row">
+                        <h3 class="freelancer-name">{{ freelancer.full_name|default:freelancer.user.username }}</h3>
+                    </div>
+
+                    <span class="freelancer-tagline">{{ freelancer.tagline|default:"Top Rated Freelancer" }}</span>
+                    <p class="freelancer-description">
+                        {{ freelancer.bio|truncatechars:150|default:"No bio available." }}
+                    </p>
+
+                    <div class="skills-tags">
+                        {% for skill in freelancer.skills_list %}
+                        {% if forloop.counter <= 5 %} <span class="skill-tag">{{ skill }}</span>
+                            {% endif %}
+                            {% empty %}
+                            <span class="skill-tag" style="background:#f5f5f5; color:#999;">No skills listed</span>
+                            {% endfor %}
+                            {% if freelancer.skills_list|length > 5 %}
+                            <span class="skill-tag">+{{ freelancer.skills_list|length|add:"-5" }} more</span>
+                            {% endif %}
+                    </div>
+                </div>
+
+                <!-- Right: Actions -->
+                <div class="card-actions">
+                    <a href="{% url 'client_freelancerProfile' freelancer.id %}" class="view-profile-btn">View
+                        Profile</a>
+                </div>
+            </article>
+            {% empty %}
+            <div class="no-results">
+                <span class="no-results-icon">😕</span>
+                <h3>No freelancers found</h3>
+                <p>Try adjusting your search terms or filters.</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if freelancers.has_other_pages %}
+        <div class="pagination">
+            <span class="step-links">
+                {% if freelancers.has_previous %}
+                <a href="?page=1{% if query %}&q={{ query }}{% endif %}{% if current_rating %}&rating={{ current_rating }}{% endif %}{% if current_avail %}&availability={{ current_avail }}{% endif %}"
+                    class="page-link">&laquo; First</a>
+                <a href="?page={{ freelancers.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_rating %}&rating={{ current_rating }}{% endif %}{% if current_avail %}&availability={{ current_avail }}{% endif %}"
+                    class="page-link">Previous</a>
+                {% endif %}
+
+                <span class="current-page">
+                    Page {{ freelancers.number }} of {{ freelancers.paginator.num_pages }}
+                </span>
+
+                {% if freelancers.has_next %}
+                <a href="?page={{ freelancers.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if current_rating %}&rating={{ current_rating }}{% endif %}{% if current_avail %}&availability={{ current_avail }}{% endif %}"
+                    class="page-link">Next</a>
+                <a href="?page={{ freelancers.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}{% if current_rating %}&rating={{ current_rating }}{% endif %}{% if current_avail %}&availability={{ current_avail }}{% endif %}"
+                    class="page-link">Last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </main>
+</div>
+{% endblock %}

@@ -13,10 +13,10 @@
         <h1 class="hero-title">Find the Perfect<br>Freelancer Talent</h1>
         <p class="hero-subtitle">Connect with top freelancers worldwide. Get your projects done by skilled professionals
             who deliver quality work on time.</p>
-        <div class="search-bar">
-            <input type="text" class="search-input" placeholder="Search for freelancers">
-            <button class="search-button">Search →</button>
-        </div>
+        <form class="search-bar" action="{% url 'client_search' %}" method="GET">
+            <input type="text" name="q" class="search-input" placeholder="Search for freelancers">
+            <button type="submit" class="search-button">Search →</button>
+        </form>
     </div>
     <img src="https://www.flexjobs.com/blog/wp-content/uploads/2025/04/What-Is-Freelancing-A-Complete-Guide-to-Freelance-Jobs.jpg"
         alt="home_img" class="hero-image">
