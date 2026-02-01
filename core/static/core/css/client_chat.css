@@ -1,0 +1,453 @@
+:root {
+    --chat-bg: #ffffff;
+    --sidebar-bg: #ffffff;
+    --active-contact-bg: #e6f7ff;
+    /* Light blue from mockup */
+    --hover-contact-bg: #f9f9f9;
+    --border-color: #eee;
+    --primary-color: #6c5ce7;
+    /* Adjust to match project primary if needed, using a placeholder for now */
+    --green-btn: #76c05d;
+    /* Green send button from mockup */
+    --green-btn-hover: #5da348;
+    --text-main: #333;
+    --text-sub: #666;
+    --msg-received-bg: #f0f2f5;
+    --msg-sent-bg: #e6f7ff;
+    /* Or primary color depending on preference, mockup looks like light gray for received */
+}
+
+/* Main Container */
+.chat-container {
+    display: flex;
+    height: calc(100vh - 100px);
+    /* Adjust based on master template navbar height */
+    max-width: 1400px;
+    margin: 1rem auto;
+    background: var(--chat-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+/* --- Sidebar --- */
+.chat-sidebar {
+    width: 350px;
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    background: var(--sidebar-bg);
+}
+
+.sidebar-header {
+    padding: 1.5rem;
+}
+
+.sidebar-header h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.search-bar {
+    position: relative;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 0.8rem 1rem 0.8rem 2.5rem;
+    border: none;
+    background: #f0f2f5;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    font-style: normal;
+}
+
+.contact-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 1rem 1rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-bottom: 0.5rem;
+}
+
+.contact-item:hover {
+    background-color: var(--hover-contact-bg);
+}
+
+.contact-item.active {
+    background-color: var(--active-contact-bg);
+}
+
+.contact-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    margin-right: 15px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.status-dot {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.status-dot.online {
+    background: #31a24c;
+}
+
+.status-dot.offline {
+    background: #ccc;
+}
+
+.contact-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    background: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+}
+
+.contact-info {
+    flex: 1;
+    min-width: 0;
+    /* Text truncation fix */
+}
+
+.contact-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    /* Align top since meta has column */
+    margin-bottom: 2px;
+}
+
+.contact-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.contact-time {
+    font-size: 0.75rem;
+    color: #999;
+}
+
+.mute-icon-large {
+    font-size: 1rem;
+    /* Bigger */
+    color: #999;
+    opacity: 0.8;
+}
+
+.contact-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 4px;
+}
+
+.contact-preview {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-sub);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Fix width to allow ellipsis work with flex sibling */
+    flex: 1;
+    margin-right: 10px;
+}
+
+/* --- Main Chat --- */
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    position: relative;
+}
+
+/* Header */
+.chat-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-profile {
+    display: flex;
+    align-items: center;
+}
+
+.contact-avatar.large {
+    width: 56px;
+    height: 56px;
+    margin-right: 15px;
+}
+
+.header-info h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.header-role {
+    font-size: 0.9rem;
+    color: var(--text-sub);
+}
+
+/* Messages Area */
+.messages-area {
+    flex: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.message-row {
+    display: flex;
+    align-items: flex-end;
+    max-width: 70%;
+}
+
+.message-row.received {
+    align-self: flex-start;
+}
+
+.message-row.sent {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    overflow: hidden;
+    margin: 0 10px;
+}
+
+.message-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.message-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.message-bubble {
+    padding: 0.8rem 1.2rem;
+    border-radius: 18px;
+    font-size: 1rem;
+    line-height: 1.5;
+    position: relative;
+}
+
+.received .message-bubble {
+    background-color: var(--msg-received-bg);
+    color: var(--text-main);
+    border-bottom-left-radius: 4px;
+}
+
+.sent .message-bubble {
+    background-color: var(--msg-received-bg);
+    /* Mockup shows gray for sender too? usually sender is colored. Let's stick to gray or maybe light blue for sender to distinguish? Mockup actually shows the active contact's bubble as unique. Let's make received gray and sent... wait, in the mockup 'Hi, I am Alex' is received and is gray. The user hasn't sent anything in the mockup. I will make sent messages slightly different for better UX, or stick to a neutral look. */
+    background-color: #f0f7ff;
+    /* Light blue for sent */
+    color: var(--text-main);
+    border-bottom-right-radius: 4px;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 4px;
+    align-self: flex-start;
+}
+
+.sent .message-time {
+    align-self: flex-end;
+}
+
+/* Input Area */
+.chat-input-area {
+    padding: 1.5rem 2rem;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.btn-attach {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    cursor: pointer;
+    color: #333;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.btn-attach:hover {
+    transform: scale(1.1);
+}
+
+.input-wrapper {
+    flex: 1;
+}
+
+.chat-input-field {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    /* Slightly squared corners as per mockup */
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.chat-input-field:focus {
+    border-color: var(--green-btn);
+}
+
+.btn-send {
+    background-color: var(--green-btn);
+    color: white;
+    border: none;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-send:hover {
+    background-color: var(--green-btn-hover);
+    transform: translateY(-1px);
+}
+
+
+
+.btn-more-options {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-more-options:hover {
+    background: #f0f2f5;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    width: 180px;
+    display: none;
+    /* Hidden by default, toggle with JS or hover */
+    z-index: 10;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.header-actions:hover .dropdown-menu {
+    display: block;
+    /* Simple hover toggle for prototype */
+}
+
+.dropdown-item {
+    display: block;
+    padding: 0.8rem 1rem;
+    text-decoration: none;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: background 0.1s;
+}
+
+.dropdown-item:hover {
+    background: #f9f9f9;
+}
+
+.dropdown-item.text-danger {
+    color: #dc3545;
+}
+
+/* Responsiveness */
+@media (max-width: 768px) {
+    .chat-container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .chat-sidebar {
+        width: 100%;
+        height: 300px;
+        /* Collapsed height */
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .chat-main {
+        height: 600px;
+    }
+}

@@ -1,0 +1,147 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}Messages{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Sidebar: Contact List -->
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <h2>Message</h2>
+            <div class="search-bar">
+                <input type="text" placeholder="Search...">
+                <i class="search-icon">🔍</i>
+            </div>
+        </div>
+
+        <div class="contact-list">
+            <!-- Active Contact Example -->
+            <div class="contact-item active">
+                <div class="contact-avatar">
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Alex">
+                    <span class="status-dot online"></span>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-top">
+                        <span class="contact-name">Alex</span>
+                        <span class="contact-time">10:32 PM</span>
+                    </div>
+                    <div class="contact-bottom">
+                        <p class="contact-preview">Hi, I am Alex.</p>
+                        <i class="mute-icon-large fas fa-bell-slash"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other Contact Example -->
+            <div class="contact-item">
+                <div class="contact-avatar">
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Sarah">
+                    <span class="status-dot offline"></span>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-top">
+                        <span class="contact-name">Sarah</span>
+                        <span class="contact-time">Yesterday</span>
+                    </div>
+                    <p class="contact-preview">This is my portfolio.</p>
+                </div>
+            </div>
+            <!-- Other Contact Example -->
+            <div class="contact-item">
+                <div class="contact-avatar">
+                    <div class="avatar-placeholder">MJ</div>
+                    <span class="status-dot online"></span>
+                </div>
+                <div class="contact-info">
+                    <div class="contact-top">
+                        <span class="contact-name">Michael Jordan</span>
+                        <span class="contact-time">Last week</span>
+                    </div>
+                    <p class="contact-preview">Can we schedule a call?</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-main">
+        <!-- Chat Header -->
+        <header class="chat-header">
+            <div class="header-profile">
+                <div class="contact-avatar large">
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Alex">
+                </div>
+                <div class="header-info">
+                    <h3>Alex <span class="mute-status"
+                            style="display:none; font-size: 0.8rem; color: #999;">(Muted)</span></h3>
+                    <span class="header-role">Frontend Developer</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-more-options">
+                    <span>⋮</span> <!-- 3 Dots -->
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item">Mute Notifications</a>
+                    <a href="#" class="dropdown-item">Block User</a>
+                    <a href="#" class="dropdown-item text-danger">Report</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages List -->
+        <div class="messages-area">
+            <!-- Received Message -->
+            <div class="message-row received">
+                <div class="message-avatar">
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Alex">
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">
+                        Hi, I am Alex.
+                    </div>
+                    <span class="message-time">10:32 PM</span>
+                </div>
+            </div>
+
+            <!-- Sent Message -->
+            <div class="message-row sent">
+                <div class="message-content">
+                    <div class="message-bubble">
+                        Hi Alex, thanks for reaching out! I reviewed your portfolio.
+                    </div>
+                    <span class="message-time">10:33 PM</span>
+                </div>
+            </div>
+            <!-- Received Message -->
+            <div class="message-row received">
+                <div class="message-avatar">
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Alex">
+                </div>
+                <div class="message-content">
+                    <div class="message-bubble">
+                        Great! Let me know if you have any questions.
+                    </div>
+                    <span class="message-time">10:34 PM</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <footer class="chat-input-area">
+            <button class="btn-attach" title="Add Attachment">
+                <span class="plus-icon">+</span>
+            </button>
+            <div class="input-wrapper">
+                <input type="text" placeholder="Type a message..." class="chat-input-field">
+            </div>
+            <button class="btn-send">Send</button>
+        </footer>
+    </main>
+</div>
+{% endblock %}
