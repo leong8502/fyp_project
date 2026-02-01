@@ -34,8 +34,8 @@
                 </div>
             </div>
             <div class="match-score" style="text-align: right;">
-                <div
-                    style="font-size: 24px; font-weight: bold; color: {% if match.final_score > 0.7 %}#2e7d32{% elif match.final_score > 0.5 %}#ef6c00{% else %}#c62828{% endif %};">
+                <div class="{% if match.final_score > 0.7 %}text-score-high{% elif match.final_score > 0.5 %}text-score-medium{% else %}text-score-low{% endif %}"
+                    style="font-size: 24px; font-weight: bold;">
                     {% widthratio match.final_score 1 100 %}%
                 </div>
                 <div style="font-size: 12px; color: #888;">Match Score</div>
@@ -57,7 +57,7 @@
         </div>
 
         <div style="margin-top: 15px; display: flex; gap: 10px;">
-            <a href="#" class="btn btn-outline-primary"
+            <a href="{% url 'client_freelancerProfile' match.freelancer.id %}" class="btn btn-outline-primary"
                 style="padding: 6px 15px; border-radius: 6px; text-decoration: none; border: 1px solid #007bff; color: #007bff; font-size: 14px; background: white;"
                 onmouseover="this.style.background='#007bff'; this.style.color='white';"
                 onmouseout="this.style.background='white'; this.style.color='#007bff';">

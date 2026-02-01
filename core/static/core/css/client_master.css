@@ -257,3 +257,16 @@ img.logo {
     background-color: #d1ecf1 !important;
     border-color: #bee5eb !important;
 }
+
+/* Match Card Scores */
+.text-score-high {
+    color: #2e7d32 !important;
+}
+
+.text-score-medium {
+    color: #ef6c00 !important;
+}
+
+.text-score-low {
+    color: #c62828 !important;
+}
