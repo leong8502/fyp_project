@@ -26,6 +26,7 @@ from .decorators import client_required, freelancer_required, guest_required
 from django.utils import timezone
 
 # Create your views here.
+# Auth part
 @guest_required
 def login(request):
     if request.method == "POST":
@@ -74,6 +75,11 @@ def login(request):
             return redirect("freelancer_home") 
 
     return render(request, "core/login.html")
+
+@login_required
+def logout(request):
+    auth_logout(request)
+    return redirect('home')
 
 @guest_required
 def registerSelection(request):
@@ -138,6 +144,30 @@ def register_client(request):
 
     return render(request, 'core/client_register.html', {'form': form})
 
+@guest_required
+def register_freelancer(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        full_name = request.POST.get('full_name')
+        skills = request.POST.get('skills')
+
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            freelancer = Freelancer.objects.create(
+                user=user,
+                full_name=full_name,
+                skills=skills
+            )
+            # Auto-create wallet as per friend's comment
+            Wallet.objects.create(user=user, balance=0.00)  # Assuming Wallet has user and balance fields
+            messages.success(request, "Freelancer account and wallet created successfully! Please log in.")
+            return redirect('login')
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+    
+    return render(request, 'core/freelancer_register.html')
 
 def verify_email(request, uidb64, token):
     try:
@@ -161,10 +191,90 @@ def verify_email(request, uidb64, token):
 
     return redirect('login')
 
+# Guest part
+@guest_required
+def home(request):
+    return render(request, 'core/home.html')
+
+# Client part 
 @client_required
 def client_home(request):
     return render(request, 'core/client_home.html')
 
+@client_required
+def client_search(request):
+    query = request.GET.get('q', '')
+    rating_filter = request.GET.get('rating')
+    avail_filter = request.GET.get('availability')
+
+    # Start with all freelancers
+    from django.db.models import Q
+    freelancers = Freelancer.objects.all()
+
+    # 1. Search Query (Multi-term support)
+    if query:
+        search_terms = query.split()
+        for term in search_terms:
+            freelancers = freelancers.filter(
+                Q(full_name__icontains=term) | 
+                Q(skills__icontains=term) |
+                Q(tagline__icontains=term) |
+                Q(user__username__icontains=term)
+            )
+
+    # 2. Rating Filter
+    if rating_filter:
+        try:
+            min_rating = float(rating_filter)
+            freelancers = freelancers.filter(average_rating__gte=min_rating)
+        except ValueError:
+            pass
+            
+    # 3. Availability Filter
+    if avail_filter:
+        freelancers = freelancers.filter(availability_status=avail_filter)
+        
+    # 4. Pagination
+    paginator = Paginator(freelancers, 10) # 10 records per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+        
+    context = {
+        'freelancers': page_obj, # Pass page_obj instead of QuerySet
+        'query': query,
+        'current_rating': rating_filter,
+        'current_avail': avail_filter,
+        'has_filter': bool(rating_filter or avail_filter)
+    }
+    
+    return render(request, 'core/client_search.html', context)
+
+def client_about(request):
+    return render(request, 'core/client_about.html')
+
+def client_chat(request):
+    return render(request, 'core/client_chat.html')
+
+@client_required
+def client_settings(request):
+    user_security, created = UserSecurity.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = SecurePinForm(request.POST, user_security=user_security)
+        if form.is_valid():
+            new_pin = form.cleaned_data['new_pin']
+            user_security.secure_pin = make_password(new_pin)
+            user_security.save()
+            messages.success(request, "Secure PIN updated successfully.")
+            return redirect('client_settings')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SecurePinForm(user_security=user_security)
+
+    return render(request, 'core/client_settings.html', {'form': form})
+
+# Client part (profile)
 @client_required
 def client_profile(request):
     return render(request, 'core/client_profile.html')
@@ -189,6 +299,7 @@ def client_editProfile(request):
 
     return render(request, 'core/client_editProfile.html', {'form': form})
 
+# Client part (wallet)
 @client_required
 def client_wallet(request):
     wallet = getattr(request.user, 'wallet', None)
@@ -200,6 +311,121 @@ def client_wallet(request):
         'wallet': wallet,
         'recent_transactions': recent_transactions
     })
+
+@login_required
+def topUp(request):
+    # Determine user role and base template
+    if hasattr(request.user, 'client'):
+        base_template = 'core/client_master.html'
+    elif hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    else:
+        messages.error(request, "User role not identified.")
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = TopUpForm(request.POST)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            payment_method_str = form.cleaned_data['payment_method']
+            
+            try:
+                with transaction.atomic():
+                    # Get or Create Wallet
+                    wallet, created = Wallet.objects.get_or_create(user=request.user)
+                    if created:
+                        wallet.wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper()
+                        wallet.save()
+
+                    # Create Transaction
+                    method_display = payment_method_str.replace('_', ' ').title()
+                    
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        direction='credit',
+                        transaction_type='top_up',
+                        status='completed',
+                        description=f"Top up via {method_display}",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
+                    )
+
+                    # Update Balance
+                    wallet.balance += decimal.Decimal(amount)
+                    wallet.save()
+
+                messages.success(request, f"Successfully topped up RM {amount:.2f} via {method_display}!")
+                
+                if hasattr(request.user, 'client'):
+                    return redirect('client_wallet')
+                else:
+                    return redirect('freelancer_home')
+
+            except Exception as e:
+                messages.error(request, f"An error occurred: {str(e)}")
+        else:
+             for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+            
+    return render(request, 'core/topUp.html', {'base_template': base_template})
+
+@login_required
+def withdraw(request):
+    # Determine user role and base template
+    if hasattr(request.user, 'client'):
+        base_template = 'core/client_master.html'
+    elif hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    else:
+        messages.error(request, "User role not identified.")
+        return redirect('home')
+        
+    wallet = getattr(request.user, 'wallet', None)
+
+    if request.method == 'POST':
+        form = WithdrawForm(request.POST, wallet=wallet)
+        if form.is_valid():
+            amount = form.cleaned_data['amount']
+            bank_name = form.cleaned_data['bank_name']
+            account_number = form.cleaned_data['account_number']
+            
+            try:
+                with transaction.atomic():
+                    if not wallet:
+                         # Should be caught by validation, but double check
+                         raise ValueError("Wallet does not exist")
+
+                    # Deduct Balance
+                    wallet.balance -= decimal.Decimal(amount)
+                    wallet.save()
+
+                    # Create Transaction
+                    Transaction.objects.create(
+                        wallet=wallet,
+                        amount=amount,
+                        direction='debit',
+                        transaction_type='withdrawal',
+                        status='pending', # Withdrawals usually require processing
+                        description=f"Withdrawal to {bank_name} ({account_number})",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
+                    )
+
+                messages.success(request, f"Withdrawal request for RM {amount:.2f} submitted successfully!")
+                
+                if hasattr(request.user, 'client'):
+                    return redirect('client_wallet')
+                else:
+                    return redirect('freelancer_home')
+
+            except Exception as e:
+                messages.error(request, f"An error occurred: {str(e)}")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{error}")
+    
+    return render(request, 'core/withdraw.html', {'base_template': base_template, 'wallet': wallet})
 
 @client_required
 def client_transaction(request):
@@ -244,6 +470,18 @@ def client_transaction(request):
         'current_type': request.GET.get('type', ''),
         'current_sort': request.GET.get('sort', 'newest'),
     })
+
+@login_required
+def toggle_balance_privacy(request):
+    if request.method == "POST":
+        wallet = getattr(request.user, 'wallet', None)
+        if wallet:
+            wallet.is_hidden = not wallet.is_hidden
+            wallet.save()
+            return JsonResponse({'status': 'success', 'is_hidden': wallet.is_hidden})
+    return JsonResponse({'status': 'error'}, status=400)
+
+# Client part (project)
 
 @client_required
 def client_project(request):
@@ -432,250 +670,6 @@ def client_projectDelete(request, project_id):
             
     return redirect('client_projectInfo', project_id=project.id)
 
-def client_about(request):
-    return render(request, 'core/client_about.html')
-
-def client_chat(request):
-    return render(request, 'core/client_chat.html')
-
-def match_jobs(request):
-    """
-    AI-Powered Job Matching Demo
-    Freelancer enters skills → System returns ranked job matches with relevance scores
-    Uses TF-IDF + Cosine Similarity (foundation for future BERT upgrade)
-    """
-    form = SkillsForm()
-    results = []
-    query = ""
-
-    if request.method == 'POST':
-        form = SkillsForm(request.POST)
-        if form.is_valid():
-            query = form.cleaned_data['skills'].strip()
-
-            if query:
-                # Get all jobs from database
-                jobs = Job.objects.all()
-
-                if jobs.exists():
-                    # Prepare documents: job descriptions + freelancer skills
-                    job_descriptions = [job.description for job in jobs]
-                    documents = job_descriptions + [query]
-
-                    # Vectorize using TF-IDF
-                    vectorizer = TfidfVectorizer(stop_words='english', lowercase=True)
-                    tfidf_matrix = vectorizer.fit_transform(documents)
-
-                    # Compute similarity between freelancer skills (last vector) and all jobs
-                    query_vector = tfidf_matrix[-1]  # Last row = user's skills
-                    job_vectors = tfidf_matrix[:-1]
-
-                    cosine_similarities = cosine_similarity(query_vector, job_vectors).flatten()
-
-                    # Create results list
-                    for idx, job in enumerate(jobs):
-                        score = cosine_similarities[idx]
-                        if score > 0.05:  # Filter very low matches
-                            results.append({
-                                'job': job,
-                                'score': round(score * 100, 2),  # Convert to percentage
-                                'snippet': job.description[:200] + "..." if len(job.description) > 200 else job.description
-                            })
-
-                    # Sort by relevance (highest first)
-                    results.sort(key=lambda x: x['score'], reverse=True)
-
-    context = {
-        'form': form,
-        'results': results,
-        'query': query,
-        'title': 'AI-Powered Job Matching Results'
-    }
-
-    return render(request, 'core/match.html', {'form': form, 'results': results})
-
-@freelancer_required
-def freelancer_home(request):
-    return render(request, 'core/freelancer_home.html')
-
-@guest_required
-def home(request):
-    return render(request, 'core/home.html')
-
-@login_required
-def logout(request):
-    auth_logout(request)
-    return redirect('home')
-
-@guest_required
-def register_freelancer(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        full_name = request.POST.get('full_name')
-        skills = request.POST.get('skills')
-
-        try:
-            user = User.objects.create_user(username=username, email=email, password=password)
-            freelancer = Freelancer.objects.create(
-                user=user,
-                full_name=full_name,
-                skills=skills
-            )
-            # Auto-create wallet as per friend's comment
-            Wallet.objects.create(user=user, balance=0.00)  # Assuming Wallet has user and balance fields
-            messages.success(request, "Freelancer account and wallet created successfully! Please log in.")
-            return redirect('login')
-        except Exception as e:
-            messages.error(request, f"Error: {str(e)}")
-    
-    return render(request, 'core/freelancer_register.html')
-
-@login_required
-def topUp(request):
-    # Determine user role and base template
-    if hasattr(request.user, 'client'):
-        base_template = 'core/client_master.html'
-    elif hasattr(request.user, 'freelancer'):
-        base_template = 'core/freelancer_master.html'
-    else:
-        messages.error(request, "User role not identified.")
-        return redirect('home')
-
-    if request.method == 'POST':
-        form = TopUpForm(request.POST)
-        if form.is_valid():
-            amount = form.cleaned_data['amount']
-            payment_method_str = form.cleaned_data['payment_method']
-            
-            try:
-                with transaction.atomic():
-                    # Get or Create Wallet
-                    wallet, created = Wallet.objects.get_or_create(user=request.user)
-                    if created:
-                        wallet.wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper()
-                        wallet.save()
-
-                    # Create Transaction
-                    method_display = payment_method_str.replace('_', ' ').title()
-                    
-                    Transaction.objects.create(
-                        wallet=wallet,
-                        amount=amount,
-                        direction='credit',
-                        transaction_type='top_up',
-                        status='completed',
-                        description=f"Top up via {method_display}",
-                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
-                    )
-
-                    # Update Balance
-                    wallet.balance += decimal.Decimal(amount)
-                    wallet.save()
-
-                messages.success(request, f"Successfully topped up RM {amount:.2f} via {method_display}!")
-                
-                if hasattr(request.user, 'client'):
-                    return redirect('client_wallet')
-                else:
-                    return redirect('freelancer_home')
-
-            except Exception as e:
-                messages.error(request, f"An error occurred: {str(e)}")
-        else:
-             for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-            
-    return render(request, 'core/topUp.html', {'base_template': base_template})
-
-@login_required
-def withdraw(request):
-    # Determine user role and base template
-    if hasattr(request.user, 'client'):
-        base_template = 'core/client_master.html'
-    elif hasattr(request.user, 'freelancer'):
-        base_template = 'core/freelancer_master.html'
-    else:
-        messages.error(request, "User role not identified.")
-        return redirect('home')
-        
-    wallet = getattr(request.user, 'wallet', None)
-
-    if request.method == 'POST':
-        form = WithdrawForm(request.POST, wallet=wallet)
-        if form.is_valid():
-            amount = form.cleaned_data['amount']
-            bank_name = form.cleaned_data['bank_name']
-            account_number = form.cleaned_data['account_number']
-            
-            try:
-                with transaction.atomic():
-                    if not wallet:
-                         # Should be caught by validation, but double check
-                         raise ValueError("Wallet does not exist")
-
-                    # Deduct Balance
-                    wallet.balance -= decimal.Decimal(amount)
-                    wallet.save()
-
-                    # Create Transaction
-                    Transaction.objects.create(
-                        wallet=wallet,
-                        amount=amount,
-                        direction='debit',
-                        transaction_type='withdrawal',
-                        status='pending', # Withdrawals usually require processing
-                        description=f"Withdrawal to {bank_name} ({account_number})",
-                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
-                    )
-
-                messages.success(request, f"Withdrawal request for RM {amount:.2f} submitted successfully!")
-                
-                if hasattr(request.user, 'client'):
-                    return redirect('client_wallet')
-                else:
-                    return redirect('freelancer_home')
-
-            except Exception as e:
-                messages.error(request, f"An error occurred: {str(e)}")
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{error}")
-    
-    return render(request, 'core/withdraw.html', {'base_template': base_template, 'wallet': wallet})
-
-@login_required
-def toggle_balance_privacy(request):
-    if request.method == "POST":
-        wallet = getattr(request.user, 'wallet', None)
-        if wallet:
-            wallet.is_hidden = not wallet.is_hidden
-            wallet.save()
-            return JsonResponse({'status': 'success', 'is_hidden': wallet.is_hidden})
-    return JsonResponse({'status': 'error'}, status=400)
-
-@client_required
-def client_settings(request):
-    user_security, created = UserSecurity.objects.get_or_create(user=request.user)
-    
-    if request.method == 'POST':
-        form = SecurePinForm(request.POST, user_security=user_security)
-        if form.is_valid():
-            new_pin = form.cleaned_data['new_pin']
-            user_security.secure_pin = make_password(new_pin)
-            user_security.save()
-            messages.success(request, "Secure PIN updated successfully.")
-            return redirect('client_settings')
-        else:
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = SecurePinForm(user_security=user_security)
-
-    return render(request, 'core/client_settings.html', {'form': form})
-
 @client_required
 def client_projectPublish(request, project_id):
     """Display payment confirmation page for publishing a project"""
@@ -719,7 +713,6 @@ def client_projectPublish(request, project_id):
     }
     
     return render(request, 'core/client_projectPublish.html', context)
-
 
 @client_required
 def client_confirmPayment(request, project_id):
@@ -801,3 +794,68 @@ def client_confirmPayment(request, project_id):
     except Exception as e:
         messages.error(request, f"An error occurred while processing payment: {str(e)}")
         return redirect('client_projectPublish', project_id=project_id)
+
+# idk what is this part
+
+def match_jobs(request):
+    """
+    AI-Powered Job Matching Demo
+    Freelancer enters skills → System returns ranked job matches with relevance scores
+    Uses TF-IDF + Cosine Similarity (foundation for future BERT upgrade)
+    """
+    form = SkillsForm()
+    results = []
+    query = ""
+
+    if request.method == 'POST':
+        form = SkillsForm(request.POST)
+        if form.is_valid():
+            query = form.cleaned_data['skills'].strip()
+
+            if query:
+                # Get all jobs from database
+                jobs = Job.objects.all()
+
+                if jobs.exists():
+                    # Prepare documents: job descriptions + freelancer skills
+                    job_descriptions = [job.description for job in jobs]
+                    documents = job_descriptions + [query]
+
+                    # Vectorize using TF-IDF
+                    vectorizer = TfidfVectorizer(stop_words='english', lowercase=True)
+                    tfidf_matrix = vectorizer.fit_transform(documents)
+
+                    # Compute similarity between freelancer skills (last vector) and all jobs
+                    query_vector = tfidf_matrix[-1]  # Last row = user's skills
+                    job_vectors = tfidf_matrix[:-1]
+
+                    cosine_similarities = cosine_similarity(query_vector, job_vectors).flatten()
+
+                    # Create results list
+                    for idx, job in enumerate(jobs):
+                        score = cosine_similarities[idx]
+                        if score > 0.05:  # Filter very low matches
+                            results.append({
+                                'job': job,
+                                'score': round(score * 100, 2),  # Convert to percentage
+                                'snippet': job.description[:200] + "..." if len(job.description) > 200 else job.description
+                            })
+
+                    # Sort by relevance (highest first)
+                    results.sort(key=lambda x: x['score'], reverse=True)
+
+    context = {
+        'form': form,
+        'results': results,
+        'query': query,
+        'title': 'AI-Powered Job Matching Results'
+    }
+
+    return render(request, 'core/match.html', {'form': form, 'results': results})
+
+# Freelancer part
+
+@freelancer_required
+def freelancer_home(request):
+    return render(request, 'core/freelancer_home.html')
+
