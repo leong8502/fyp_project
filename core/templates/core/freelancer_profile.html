@@ -86,7 +86,20 @@
 
                     <div class="action-buttons">
                         <!-- Removed generic Basic Info button as requested -->
-                        <button class="btn btn-outline-success"><i class="fas fa-share-alt"></i> Share</button>
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-outline-success dropdown-toggle" type="button" id="shareDropdown"
+                                data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-share-alt"></i> Share
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="shareDropdown">
+                                <li><a class="dropdown-item"
+                                        href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri }}"
+                                        target="_blank"><i class="fab fa-linkedin"></i> LinkedIn</a></li>
+                                <li><a class="dropdown-item"
+                                        href="https://www.facebook.com/sharer/sharer.php?u={{ request.build_absolute_uri }}"
+                                        target="_blank"><i class="fab fa-facebook-square"></i> Facebook</a></li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -316,10 +329,16 @@
             <div class="sidebar-card">
                 <h3>Languages</h3>
                 <ul class="language-list">
-                    <li>English: <span class="text-muted">Basic</span></li>
-                    <!-- Add more languages support in model if needed -->
+                    {% for lang in languages %}
+                    <li>{{ lang.language }}: <span class="text-muted">{{ lang.proficiency }}</span></li>
+                    {% empty %}
+                    <li class="text-muted">No languages added</li>
+                    {% endfor %}
+
                     {% if is_owner %}
-                    <li class="add-lang"><button class="btn btn-sm btn-link"><i class="fas fa-plus"></i> Add</button>
+                    <li class="add-lang mt-2">
+                        <button class="btn btn-sm btn-link p-0" data-bs-toggle="modal"
+                            data-bs-target="#addLanguageModal"><i class="fas fa-plus"></i> Add</button>
                     </li>
                     {% endif %}
                 </ul>
@@ -495,6 +514,25 @@
                     {% csrf_token %}
                     {{ cert_form.as_p }}
                     <button type="submit" name="add_cert" class="btn btn-primary">Upload Certificate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Language Modal -->
+<div class="modal fade" id="addLanguageModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Language</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ language_form.as_p }}
+                    <button type="submit" name="add_language" class="btn btn-primary">Add Language</button>
                 </form>
             </div>
         </div>

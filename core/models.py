@@ -399,6 +399,21 @@ class FreelancerCertification(models.Model):
     def __str__(self):
         return self.name
 
+class FreelancerLanguage(models.Model):
+    PROFICIENCY_CHOICES = [
+        ('Basic', 'Basic'),
+        ('Conversational', 'Conversational'),
+        ('Fluent', 'Fluent'),
+        ('Native', 'Native'),
+    ]
+
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='languages')
+    language = models.CharField(max_length=100)
+    proficiency = models.CharField(max_length=50, choices=PROFICIENCY_CHOICES, default='Basic')
+    
+    def __str__(self):
+        return f"{self.language} ({self.proficiency})"
+
 class Review(models.Model):
     project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='review')
     reviewer = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='given_reviews')

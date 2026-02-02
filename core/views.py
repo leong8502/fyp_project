@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm, FreelancerLanguageForm
 
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -1041,6 +1041,7 @@ def freelancer_profile(request):
     portfolios = freelancer.portfolios.all().order_by('-created_at')
     work_experiences = freelancer.work_experiences.all().order_by('-start_date')
     certifications = freelancer.certifications.all().order_by('-issue_date')
+    languages = freelancer.languages.all()
     
     # Platform Employment History (Completed Projects)
     completed_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed').order_by('-created_at')
@@ -1062,6 +1063,7 @@ def freelancer_profile(request):
     portfolio_form = FreelancerPortfolioForm()
     work_exp_form = FreelancerWorkExperienceForm()
     cert_form = FreelancerCertificationForm()
+    language_form = FreelancerLanguageForm()
 
     if request.method == 'POST':
         if 'update_avatar_direct' in request.POST:
@@ -1163,6 +1165,17 @@ def freelancer_profile(request):
              else:
                  messages.error(request, "Error adding certification.")
 
+        elif 'add_language' in request.POST:
+            language_form = FreelancerLanguageForm(request.POST)
+            if language_form.is_valid():
+                lang = language_form.save(commit=False)
+                lang.freelancer = freelancer
+                lang.save()
+                messages.success(request, "Language added!")
+                return redirect('freelancer_profile')
+            else:
+                messages.error(request, "Error adding language.")
+
     return render(request, 'core/freelancer_profile.html', {
         'freelancer': freelancer,
         'portfolios': portfolios,
@@ -1182,5 +1195,7 @@ def freelancer_profile(request):
         
         'portfolio_form': portfolio_form,
         'work_exp_form': work_exp_form,
-        'cert_form': cert_form
+        'cert_form': cert_form,
+        'language_form': language_form,
+        'languages': languages
     })

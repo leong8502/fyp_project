@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification
+from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, FreelancerLanguage
 from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
@@ -360,6 +360,15 @@ class FreelancerSkillsForm(forms.ModelForm):
         fields = ['skills']
         widgets = {
              'skills': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Python, Django, React...'}),
+        }
+
+class FreelancerLanguageForm(forms.ModelForm):
+    class Meta:
+        model = FreelancerLanguage 
+        fields = ['language', 'proficiency']
+        widgets = {
+            'language': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. English'}),
+            'proficiency': forms.Select(attrs={'class': 'form-control'}),
         }
 
 class FreelancerPortfolioForm(forms.ModelForm):
