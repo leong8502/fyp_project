@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Client, Project, Industry
+from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification
 from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
@@ -287,3 +287,59 @@ class PaymentPinForm(forms.Form):
         }),
         label="Secure PIN"
     )
+
+class FreelancerProfileForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['full_name', 'tagline', 'bio', 'location', 'hourly_rate', 
+                  'availability_status', 'profile_image', 'background_image', 
+                  'skills', 'portfolio_url', 'linkedin_url', 'github_url']
+        widgets = {
+             'full_name': forms.TextInput(attrs={'class': 'form-control'}),
+             'tagline': forms.TextInput(attrs={'class': 'form-control'}),
+             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+             'location': forms.TextInput(attrs={'class': 'form-control'}),
+             'hourly_rate': forms.NumberInput(attrs={'class': 'form-control'}),
+             'availability_status': forms.Select(attrs={'class': 'form-control'}),
+             'profile_image': forms.FileInput(attrs={'class': 'form-control'}),
+             'background_image': forms.FileInput(attrs={'class': 'form-control'}),
+             'skills': forms.TextInput(attrs={'class': 'form-control'}),
+             'portfolio_url': forms.URLInput(attrs={'class': 'form-control'}),
+             'linkedin_url': forms.URLInput(attrs={'class': 'form-control'}),
+             'github_url': forms.URLInput(attrs={'class': 'form-control'}),
+        }
+
+class FreelancerPortfolioForm(forms.ModelForm):
+    class Meta:
+        model = FreelancerPortfolio
+        fields = ['title', 'description', 'project_file', 'project_link']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'project_file': forms.FileInput(attrs={'class': 'form-control'}),
+            'project_link': forms.URLInput(attrs={'class': 'form-control'}),
+        }
+
+class FreelancerWorkExperienceForm(forms.ModelForm):
+    class Meta:
+        model = FreelancerWorkExperience
+        fields = ['company', 'job_title', 'description', 'start_date', 'end_date', 'is_current']
+        widgets = {
+            'company': forms.TextInput(attrs={'class': 'form-control'}),
+            'job_title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'is_current': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class FreelancerCertificationForm(forms.ModelForm):
+    class Meta:
+        model = FreelancerCertification
+        fields = ['name', 'issuing_organization', 'issue_date', 'certificate_file']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'issuing_organization': forms.TextInput(attrs={'class': 'form-control'}),
+            'issue_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'certificate_file': forms.FileInput(attrs={'class': 'form-control'}),
+        }

@@ -363,3 +363,49 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.username} at {self.created_at}"
+
+class FreelancerPortfolio(models.Model):
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='portfolios')
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    project_file = models.FileField(upload_to='portfolio_files/', help_text="Upload your project (ZIP/PDF)", blank=True, null=True)
+    project_link = models.URLField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+
+class FreelancerWorkExperience(models.Model):
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='work_experiences')
+    company = models.CharField(max_length=200)
+    job_title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.job_title} at {self.company}"
+
+class FreelancerCertification(models.Model):
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='certifications')
+    name = models.CharField(max_length=200)
+    issuing_organization = models.CharField(max_length=200)
+    issue_date = models.DateField()
+    certificate_file = models.FileField(upload_to='certifications/', help_text="Upload certificate image/pdf")
+    is_verified = models.BooleanField(default=False)
+    verification_date = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return self.name
+
+class Review(models.Model):
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='review')
+    reviewer = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='given_reviews')
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='received_reviews')
+    rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Review for {self.project.title} - {self.rating} stars"

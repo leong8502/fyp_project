@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -19,7 +19,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
@@ -1030,3 +1030,88 @@ def api_toggle_mute(request, conversation_id):
     
     return JsonResponse({'status': 'success', 'is_muted': participant.is_muted})
 
+@freelancer_required
+def freelancer_profile(request):
+    freelancer = request.user.freelancer
+    is_owner = True # For now, assuming accessing own profile via this URL. 
+    # If we want public profile, we might need a separate view or param. 
+    # But usually /freelancer/profile/ is own profile.
+    
+    portfolios = freelancer.portfolios.all().order_by('-created_at')
+    work_experiences = freelancer.work_experiences.all().order_by('-start_date')
+    certifications = freelancer.certifications.all().order_by('-issue_date')
+    
+    # Platform Employment History (Completed Projects)
+    completed_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed').order_by('-completed_at')
+    
+    # Testimonials (Reviews from completed projects)
+    # Since Review is OneToOne to Project, we can access via project or reverse query
+    reviews = Review.objects.filter(freelancer=freelancer).order_by('-created_at')
+
+    # Forms
+    profile_form = FreelancerProfileForm(instance=freelancer)
+    portfolio_form = FreelancerPortfolioForm()
+    work_exp_form = FreelancerWorkExperienceForm()
+    cert_form = FreelancerCertificationForm()
+
+    if request.method == 'POST':
+        if 'update_profile' in request.POST:
+            profile_form = FreelancerProfileForm(request.POST, request.FILES, instance=freelancer)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Profile updated successfully!")
+                return redirect('freelancer_profile')
+            else:
+                 messages.error(request, "Error updating profile.")
+                 
+        elif 'add_portfolio' in request.POST:
+            portfolio_form = FreelancerPortfolioForm(request.POST, request.FILES)
+            if portfolio_form.is_valid():
+                portfolio = portfolio_form.save(commit=False)
+                portfolio.freelancer = freelancer
+                portfolio.save()
+                messages.success(request, "Portfolio item added!")
+                return redirect('freelancer_profile')
+            else:
+                messages.error(request, "Error adding portfolio.")
+
+        elif 'add_work_exp' in request.POST:
+             work_exp_form = FreelancerWorkExperienceForm(request.POST)
+             if work_exp_form.is_valid():
+                 exp = work_exp_form.save(commit=False)
+                 exp.freelancer = freelancer
+                 exp.save()
+                 messages.success(request, "Work experience added!")
+                 return redirect('freelancer_profile')
+             else:
+                 messages.error(request, "Error adding work experience.")
+
+        elif 'add_cert' in request.POST:
+             cert_form = FreelancerCertificationForm(request.POST, request.FILES)
+             if cert_form.is_valid():
+                 cert = cert_form.save(commit=False)
+                 cert.freelancer = freelancer
+                 # Basic 'verification' logic stub (e.g. check if PDF)
+                 if cert.certificate_file.name.lower().endswith('.pdf'):
+                     cert.is_verified = True # Dummy verification
+                     cert.verification_date = timezone.now()
+                 
+                 cert.save()
+                 messages.success(request, "Certification added!")
+                 return redirect('freelancer_profile')
+             else:
+                 messages.error(request, "Error adding certification.")
+
+    return render(request, 'core/freelancer_profile.html', {
+        'freelancer': freelancer,
+        'portfolios': portfolios,
+        'work_experiences': work_experiences,
+        'certifications': certifications,
+        'completed_projects': completed_projects,
+        'reviews': reviews,
+        'is_owner': is_owner,
+        'profile_form': profile_form,
+        'portfolio_form': portfolio_form,
+        'work_exp_form': work_exp_form,
+        'cert_form': cert_form
+    })

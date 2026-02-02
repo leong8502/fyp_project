@@ -63,4 +63,5 @@ urlpatterns = [
     path('client/settings/', views.client_settings, name='client_settings'),
     # freelancer part
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
+    path('freelancer/profile/', views.freelancer_profile, name='freelancer_profile'),
 ]

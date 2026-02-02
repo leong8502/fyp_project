@@ -1,0 +1,373 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_profile.css' %}">
+
+<div class="profile-container">
+    <!-- Header Section -->
+    <div class="profile-header">
+        <div class="background-cover">
+            {% if freelancer.background_image %}
+            <img src="{{ freelancer.background_image.url }}" alt="Background Cover">
+            {% else %}
+            <div class="default-cover"></div>
+            {% endif %}
+        </div>
+
+        <div class="profile-info-bar">
+            <div class="profile-avatar-wrapper">
+                {% if freelancer.profile_image %}
+                <img src="{{ freelancer.profile_image.url }}" alt="Profile Picture" class="profile-avatar">
+                {% else %}
+                <img src="{% static 'images/default_avatar.png' %}" alt="Default Avatar" class="profile-avatar">
+                {% endif %}
+            </div>
+
+            <div class="profile-details">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="profile-name">{{ freelancer.full_name|default:freelancer.user.username }}</h1>
+                        <p class="profile-tagline">{{ freelancer.tagline|default:"No tagline yet" }}</p>
+                        <p class="profile-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ freelancer.location|default:"Location not set" }} -
+                            <span class="local-time">{% now "h:i a" %} local time</span>
+                        </p>
+                    </div>
+
+                    <div class="action-buttons">
+                        {% if is_owner %}
+                        <a href="#" class="btn btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#editProfileModal">Profile Setting</a>
+                        {% endif %}
+                        <button class="btn btn-outline-success"><i class="fas fa-share-alt"></i> Share</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="profile-content-grid">
+        <!-- Main Column (Left) -->
+        <div class="main-column">
+
+            <!-- Bio Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>About Me</h2>
+                </div>
+                <div class="section-content">
+                    <p>{{ freelancer.bio|default:"Describe yourself explicitly so clients know what you do." }}</p>
+                </div>
+            </section>
+
+            <!-- Portfolio Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>Portfolio</h2>
+                    {% if is_owner %}
+                    <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#addPortfolioModal"><i
+                            class="fas fa-plus"></i></button>
+                    {% endif %}
+                </div>
+                <div class="portfolio-grid">
+                    {% for item in portfolios %}
+                    <div class="portfolio-item">
+                        <div class="portfolio-icon">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <div class="portfolio-info">
+                            <h3>{{ item.title }}</h3>
+                            <p>{{ item.description|truncatechars:100 }}</p>
+                            {% if item.project_link %}
+                            <a href="{{ item.project_link }}" target="_blank">View Link</a>
+                            {% endif %}
+                            {% if item.project_file %}
+                            <a href="{{ item.project_file.url }}" download>Download Project</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No portfolio items added yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Work Experience (Manual) Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>Work Experience</h2>
+                    {% if is_owner %}
+                    <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#addWorkExpModal"><i
+                            class="fas fa-plus"></i></button>
+                    {% endif %}
+                </div>
+                <div class="timeline">
+                    {% for exp in work_experiences %}
+                    <div class="timeline-item">
+                        <div class="timeline-dot"></div>
+                        <div class="timeline-content">
+                            <h3>{{ exp.job_title }}</h3>
+                            <h4>{{ exp.company }}</h4>
+                            <span class="period">{{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else
+                                %}{{ exp.end_date|date:"M Y" }}{% endif %}</span>
+                            <p>{{ exp.description }}</p>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No work experience listed.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Employment History (Platform Projects) Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>Employment History (TalentSync)</h2>
+                </div>
+                <div class="project-list">
+                    {% for project in completed_projects %}
+                    <div class="project-item">
+                        <div class="project-title">{{ project.title }}</div>
+                        <div class="project-meta">
+                            <span>{{ project.completed_at|date:"M d, Y" }}</span>
+                            <span class="rating">
+                                {% if project.review %}
+                                {% for i in "12345" %}
+                                <i
+                                    class="fas fa-star {% if forloop.counter <= project.review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                {% endfor %}
+                                {{ project.review.rating }}.0
+                                {% else %}
+                                No Rating
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% if project.review %}
+                        <div class="project-feedback">"{{ project.review.comment }}"</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No completed projects on TalentSync yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Certifications Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>Certifications</h2>
+                    {% if is_owner %}
+                    <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#addCertModal"><i
+                            class="fas fa-plus"></i></button>
+                    {% endif %}
+                </div>
+                <div class="cert-grid">
+                    {% for cert in certifications %}
+                    <div class="cert-item">
+                        <div class="cert-icon"><i class="fas fa-certificate"></i></div>
+                        <div class="cert-info">
+                            <h3>{{ cert.name }}</h3>
+                            <p>{{ cert.issuing_organization }}</p>
+                            <span class="date">Issued: {{ cert.issue_date|date:"M Y" }}</span>
+                            {% if cert.is_verified %}
+                            <span class="badge bg-success">Verified</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Pending Verification</span>
+                            {% endif %}
+                            {% if cert.certificate_file %}
+                            <a href="{{ cert.certificate_file.url }}" target="_blank">View Certificate</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No certifications added.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <!-- Testimonials Section -->
+            <section class="profile-section">
+                <div class="section-header">
+                    <h2>Testimonials</h2>
+                </div>
+                <div class="testimonials-list">
+                    {% for review in reviews %}
+                    <div class="testimonial-item">
+                        <div class="reviewer-info">
+                            <img src="{{ review.reviewer.profile_image.url|default:'static/images/default_avatar.png' }}"
+                                alt="Client" class="reviewer-avatar">
+                            <div>
+                                <h4>{{ review.reviewer.company_name }}</h4>
+                                <div class="stars">
+                                    {% for i in "12345" %}
+                                    <i
+                                        class="fas fa-star {% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="review-text">
+                            "{{ review.comment }}"
+                        </div>
+                        <div class="review-project">
+                            Project: {{ review.project.title }}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No testimonials yet.</p>
+                    {% endfor %}
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Sidebar Column (Right) -->
+        <div class="sidebar-column">
+
+            <div class="sidebar-card">
+                <div class="rate-card">
+                    <h3>Hourly Rate</h3>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="price">RM {{ freelancer.hourly_rate|default:"0.00" }}/hr</span>
+                        <!-- Rate edit integrated in profile settings -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>Availability</h3>
+                <div class="availability-info">
+                    <i class="fas fa-clock"></i>
+                    <span>{{ freelancer.get_availability_status_display }}</span>
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <div class="section-header">
+                    <h3>Skills</h3>
+                </div>
+                <div class="skills-tags">
+                    {% for skill in freelancer.skills_list %}
+                    <span class="skill-tag">{{ skill }}</span>
+                    {% empty %}
+                    <span class="text-muted">No skills listed</span>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="sidebar-card">
+                <h3>Languages</h3>
+                <ul class="language-list">
+                    <li>English: <span class="text-muted">Basic</span></li>
+                    <!-- Add more languages support in model if needed -->
+                    {% if is_owner %}
+                    <li class="add-lang"><button class="btn btn-sm btn-link"><i class="fas fa-plus"></i> Add</button>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <div class="sidebar-card stats-card">
+                <h3>Stats</h3>
+                <ul class="stats-list">
+                    <li>
+                        <span>Job Success</span>
+                        {% if freelancer.average_rating >= 4.5 %}
+                        <span class="badge badge-success">100%</span>
+                        {% else %}
+                        <span>New</span>
+                        {% endif %}
+                    </li>
+                    <li>
+                        <span>Jobs Completed</span>
+                        <span>{{ freelancer.total_jobs_completed }}</span>
+                    </li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+{% if is_owner %}
+<!-- Edit Profile Modal -->
+<div class="modal fade" id="editProfileModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Profile Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ profile_form.as_p }}
+                    <button type="submit" name="update_profile" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Portfolio Modal -->
+<div class="modal fade" id="addPortfolioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Portfolio Item</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ portfolio_form.as_p }}
+                    <button type="submit" name="add_portfolio" class="btn btn-primary">Add Item</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Work Exp Modal -->
+<div class="modal fade" id="addWorkExpModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Work Experience</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ work_exp_form.as_p }}
+                    <button type="submit" name="add_work_exp" class="btn btn-primary">Save Experience</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Cert Modal -->
+<div class="modal fade" id="addCertModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Certification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ cert_form.as_p }}
+                    <button type="submit" name="add_cert" class="btn btn-primary">Upload Certificate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
