@@ -4,7 +4,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm
+
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -1049,7 +1050,15 @@ def freelancer_profile(request):
     reviews = Review.objects.filter(freelancer=freelancer).order_by('-created_at')
 
     # Forms
-    profile_form = FreelancerProfileForm(instance=freelancer)
+    profile_for_view = FreelancerProfileForm(instance=freelancer) # Keep full one
+    
+    header_form = FreelancerHeaderForm(instance=freelancer)
+    rate_form = FreelancerRateForm(instance=freelancer)
+    background_form = FreelancerBackgroundForm(instance=freelancer)
+    social_form = FreelancerSocialForm(instance=freelancer)
+    bio_form = FreelancerBioForm(instance=freelancer)
+    skills_form = FreelancerSkillsForm(instance=freelancer)
+    
     portfolio_form = FreelancerPortfolioForm()
     work_exp_form = FreelancerWorkExperienceForm()
     cert_form = FreelancerCertificationForm()
@@ -1064,6 +1073,49 @@ def freelancer_profile(request):
              else:
                  messages.error(request, "No image selected.")
 
+        # Granular Contextual Updates
+        elif 'update_header' in request.POST:
+            header_form = FreelancerHeaderForm(request.POST, instance=freelancer)
+            if header_form.is_valid():
+                header_form.save()
+                messages.success(request, "Header info updated!")
+                return redirect('freelancer_profile')
+
+        elif 'update_rate' in request.POST:
+            rate_form = FreelancerRateForm(request.POST, instance=freelancer)
+            if rate_form.is_valid():
+                rate_form.save()
+                messages.success(request, "Rate & availability updated!")
+                return redirect('freelancer_profile')
+        
+        elif 'update_background' in request.POST:
+            if 'background_image' in request.FILES:
+                freelancer.background_image = request.FILES['background_image']
+                freelancer.save()
+                messages.success(request, "Background image updated!")
+                return redirect('freelancer_profile')
+            else:
+                 messages.error(request, "No background image selected.")
+
+        elif 'update_bio' in request.POST:
+            bio_form = FreelancerBioForm(request.POST, instance=freelancer)
+            if bio_form.is_valid():
+                bio_form.save()
+                messages.success(request, "Bio updated!")
+                return redirect('freelancer_profile')
+            else:
+                 messages.error(request, "Error updating bio.")
+
+        elif 'update_skills' in request.POST:
+            skills_form = FreelancerSkillsForm(request.POST, instance=freelancer)
+            if skills_form.is_valid():
+                skills_form.save()
+                messages.success(request, "Skills updated!")
+                return redirect('freelancer_profile')
+            else:
+                 messages.error(request, "Error updating skills.")
+
+        # Legacy / Full Update (Optional, keeping for compatibility if older modal used)
         elif 'update_profile' in request.POST:
             profile_form = FreelancerProfileForm(request.POST, request.FILES, instance=freelancer)
             if profile_form.is_valid():
@@ -1119,7 +1171,15 @@ def freelancer_profile(request):
         'completed_projects': completed_projects,
         'reviews': reviews,
         'is_owner': is_owner,
-        'profile_form': profile_form,
+        
+        'header_form': header_form,
+        'rate_form': rate_form,
+        'background_form': background_form,
+        'social_form': social_form,
+        'bio_form': bio_form,
+        'skills_form': skills_form,
+        'profile_form': profile_for_view, 
+        
         'portfolio_form': portfolio_form,
         'work_exp_form': work_exp_form,
         'cert_form': cert_form

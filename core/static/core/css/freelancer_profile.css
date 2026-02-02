@@ -146,23 +146,26 @@
 }
 
 .edit-btn {
-    background: none;
-    border: 1px solid #ddd;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #666;
+    color: #007bff;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .edit-btn:hover {
-    background: #f8f9fa;
-    color: #007bff;
+    background: #007bff;
+    color: #fff;
     border-color: #007bff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Modules */

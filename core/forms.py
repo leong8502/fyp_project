@@ -309,6 +309,59 @@ class FreelancerProfileForm(forms.ModelForm):
              'github_url': forms.URLInput(attrs={'class': 'form-control'}),
         }
 
+class FreelancerHeaderForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['full_name', 'tagline', 'location']
+        widgets = {
+             'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your Full Name'}),
+             'tagline': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Senior Python Developer'}),
+             'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City, Country'}),
+        }
+
+class FreelancerRateForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['hourly_rate', 'availability_status']
+        widgets = {
+             'hourly_rate': forms.NumberInput(attrs={'class': 'form-control'}),
+             'availability_status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+class FreelancerBackgroundForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['background_image']
+        widgets = {
+             'background_image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+class FreelancerSocialForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['linkedin_url', 'github_url', 'portfolio_url']
+        widgets = {
+             'linkedin_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://linkedin.com/in/...'}),
+             'github_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://github.com/...'}),
+             'portfolio_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://portfolio.com'}),
+        }
+
+class FreelancerBioForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['bio']
+        widgets = {
+             'bio': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+        }
+
+class FreelancerSkillsForm(forms.ModelForm):
+    class Meta:
+        model = Freelancer
+        fields = ['skills']
+        widgets = {
+             'skills': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Python, Django, React...'}),
+        }
+
 class FreelancerPortfolioForm(forms.ModelForm):
     class Meta:
         model = FreelancerPortfolio

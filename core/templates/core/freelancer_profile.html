@@ -13,6 +13,12 @@
             {% else %}
             <div class="default-cover"></div>
             {% endif %}
+
+            {% if is_owner %}
+            <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#editBackgroundModal"
+                style="position: absolute; top: 20px; right: 20px; background: white;"><i
+                    class="fas fa-camera"></i></button>
+            {% endif %}
         </div>
 
         <div class="profile-info-bar">
@@ -61,7 +67,15 @@
             <div class="profile-details">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <h1 class="profile-name">{{ freelancer.full_name|default:freelancer.user.username }}</h1>
+                        <h1 class="profile-name">
+                            {{ freelancer.full_name|default:freelancer.user.username }}
+                            {% if is_owner %}
+                            <button class="edit-btn d-inline-flex" data-bs-toggle="modal"
+                                data-bs-target="#editHeaderModal"
+                                style="width: 24px; height: 24px; font-size: 12px; margin-left: 10px;"><i
+                                    class="fas fa-pen"></i></button>
+                            {% endif %}
+                        </h1>
                         <p class="profile-tagline">{{ freelancer.tagline|default:"No tagline yet" }}</p>
                         <p class="profile-location">
                             <i class="fas fa-map-marker-alt"></i>
@@ -71,10 +85,7 @@
                     </div>
 
                     <div class="action-buttons">
-                        {% if is_owner %}
-                        <a href="#" class="btn btn-primary" data-bs-toggle="modal"
-                            data-bs-target="#editProfileModal">Profile Setting</a>
-                        {% endif %}
+                        <!-- Removed generic Basic Info button as requested -->
                         <button class="btn btn-outline-success"><i class="fas fa-share-alt"></i> Share</button>
                     </div>
                 </div>
@@ -90,6 +101,10 @@
             <section class="profile-section">
                 <div class="section-header">
                     <h2>About Me</h2>
+                    {% if is_owner %}
+                    <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#editBioModal"><i
+                            class="fas fa-pen"></i></button>
+                    {% endif %}
                 </div>
                 <div class="section-content">
                     <p>{{ freelancer.bio|default:"Describe yourself explicitly so clients know what you do." }}</p>
@@ -265,7 +280,10 @@
                     <h3>Hourly Rate</h3>
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="price">RM {{ freelancer.hourly_rate|default:"0.00" }}/hr</span>
-                        <!-- Rate edit integrated in profile settings -->
+                        {% if is_owner %}
+                        <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#editRateModal"
+                            style="width: 28px; height: 28px; font-size: 12px;"><i class="fas fa-pen"></i></button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -281,6 +299,10 @@
             <div class="sidebar-card">
                 <div class="section-header">
                     <h3>Skills</h3>
+                    {% if is_owner %}
+                    <button class="edit-btn" data-bs-toggle="modal" data-bs-target="#editSkillsModal"
+                        style="width: 24px; height: 24px; font-size: 12px;"><i class="fas fa-pen"></i></button>
+                    {% endif %}
                 </div>
                 <div class="skills-tags">
                     {% for skill in freelancer.skills_list %}
@@ -327,19 +349,95 @@
 
 <!-- Modals -->
 {% if is_owner %}
-<!-- Edit Profile Modal -->
-<div class="modal fade" id="editProfileModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<!-- Edit Header Modal -->
+<div class="modal fade" id="editHeaderModal" tabindex="-1">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Edit Profile Settings</h5>
+                <h5 class="modal-title">Edit Header Info</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ header_form.as_p }}
+                    <button type="submit" name="update_header" class="btn btn-primary">Save Header</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Rate Modal -->
+<div class="modal fade" id="editRateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Rate & Availability</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ rate_form.as_p }}
+                    <button type="submit" name="update_rate" class="btn btn-primary">Save Rate</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Background Modal -->
+<div class="modal fade" id="editBackgroundModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Update Background Cover</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
-                    {{ profile_form.as_p }}
-                    <button type="submit" name="update_profile" class="btn btn-primary">Save Changes</button>
+                    {{ background_form.as_p }}
+                    <button type="submit" name="update_background" class="btn btn-primary">Upload Cover</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Bio Modal -->
+<div class="modal fade" id="editBioModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit About Me</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ bio_form.as_p }}
+                    <button type="submit" name="update_bio" class="btn btn-primary">Save Bio</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Skills Modal -->
+<div class="modal fade" id="editSkillsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Skills</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ skills_form.as_p }}
+                    <button type="submit" name="update_skills" class="btn btn-primary">Save Skills</button>
                 </form>
             </div>
         </div>
