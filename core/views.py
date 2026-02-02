@@ -19,7 +19,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
@@ -257,9 +257,6 @@ def client_freelancerProfile(request, freelancer_id):
 
 def client_about(request):
     return render(request, 'core/client_about.html')
-
-def client_chat(request):
-    return render(request, 'core/client_chat.html')
 
 @client_required
 def client_settings(request):
@@ -865,4 +862,171 @@ def match_jobs(request):
 @freelancer_required
 def freelancer_home(request):
     return render(request, 'core/freelancer_home.html')
+
+
+# Chat Functionality (for both client and freelancer)
+
+@login_required
+def chat_view(request):
+    context = {}
+    if hasattr(request.user, 'client'):
+        context['base_template'] = 'core/client_master.html'
+        context['find_url'] = 'client_search' # URL name for finding freelancers
+        context['find_text'] = 'Find Freelancers'
+        context['dashboard_url'] = 'client_home'
+    elif hasattr(request.user, 'freelancer'):
+        context['base_template'] = 'core/freelancer_master.html'
+        context['find_url'] = 'home' # Freelancers might search for jobs/projects. For now pointing to home or a project search view if it exists.
+        # Assuming there is no 'freelancer_project_search' yet, let's use 'home' or a placeholder.
+        # Actually user might not have a project search yet. Let's use 'freelancer_home'.
+        context['find_text'] = 'Find Jobs' 
+        context['dashboard_url'] = 'freelancer_home'
+        # Note: If no specific job search view exists, maybe point to dashboard
+    else:
+        # Fallback for admin or other
+        context['base_template'] = 'core/master.html'
+        context['find_url'] = 'home'
+        context['find_text'] = 'Go Home'
+        
+    return render(request, 'core/chat.html', context)
+
+@login_required
+def start_chat(request, user_id):
+    other_user = get_object_or_404(User, id=user_id)
+    if other_user == request.user:
+        messages.error(request, "You cannot chat with yourself.")
+        return redirect('client_search') # Or dashboard
+
+    # Check for existing conversation
+    # Filter conversations where both users are participants
+    my_convs = Conversation.objects.filter(participants=request.user)
+    common_convs = my_convs.filter(participants=other_user).distinct()
+    
+    if common_convs.exists():
+        conversation = common_convs.first()
+    else:
+        # Create new conversation
+        conversation = Conversation.objects.create()
+        ChatParticipant.objects.create(user=request.user, conversation=conversation)
+        ChatParticipant.objects.create(user=other_user, conversation=conversation)
+    
+    # Redirect to chat view with conversation ID (we'll handle opening it in JS via query param)
+    return redirect(reverse('chat') + f'?conversation_id={conversation.id}')
+
+@login_required
+def api_get_conversations(request):
+    participants = ChatParticipant.objects.filter(user=request.user).select_related('conversation')
+    data = []
+    
+    for p in participants:
+        conv = p.conversation
+        # Get other participant
+        other_participant = conv.participants.exclude(id=request.user.id).first()
+        if not other_participant:
+            continue
+            
+        last_message = conv.messages.last()
+        
+        # Determine name and avatar based on role
+        name = other_participant.username
+        avatar_url = '/static/core/images/default_profile.png' # Fallback
+        
+        if hasattr(other_participant, 'client'):
+            name = other_participant.client.company_name or other_participant.username
+            if other_participant.client.profile_image:
+                avatar_url = other_participant.client.profile_image.url
+        elif hasattr(other_participant, 'freelancer'):
+            name = other_participant.freelancer.full_name or other_participant.username
+            if other_participant.freelancer.profile_image:
+                avatar_url = other_participant.freelancer.profile_image.url
+        
+        data.append({
+            'id': conv.id,
+            'other_user_id': other_participant.id,
+            'name': name,
+            'avatar': avatar_url,
+            'last_message': last_message.content if last_message else '',
+            'last_message_time': last_message.created_at.isoformat() if last_message else conv.created_at.isoformat(),
+            'is_muted': p.is_muted
+        })
+        
+    # Sort by updated_at (or last message time)
+    data.sort(key=lambda x: x['last_message_time'], reverse=True)
+    return JsonResponse(data, safe=False)
+
+@login_required
+def api_get_messages(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id)
+    if not conversation.participants.filter(id=request.user.id).exists():
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+    messages_qs = conversation.messages.select_related('sender').all()
+    data = []
+    
+    for msg in messages_qs:
+        sender_name = "Me"
+        if msg.sender != request.user:
+            if hasattr(msg.sender, 'client'):
+                 sender_name = msg.sender.client.company_name
+            elif hasattr(msg.sender, 'freelancer'):
+                 sender_name = msg.sender.freelancer.full_name
+                 
+        sender_avatar = '/static/core/images/default_profile.png'
+        if hasattr(msg.sender, 'client') and msg.sender.client.profile_image:
+             sender_avatar = msg.sender.client.profile_image.url
+        elif hasattr(msg.sender, 'freelancer') and msg.sender.freelancer.profile_image:
+             sender_avatar = msg.sender.freelancer.profile_image.url
+             
+        data.append({
+            'id': msg.id,
+            'sender_id': msg.sender.id,
+            'is_me': msg.sender == request.user,
+            'sender_name': sender_name,
+            'sender_avatar': sender_avatar,
+            'content': msg.content,
+            'created_at': msg.created_at.isoformat(),
+            'is_read': msg.is_read
+        })
+        
+    return JsonResponse(data, safe=False)
+
+@login_required
+def api_send_message(request, conversation_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    import json
+    try:
+        data = json.loads(request.body)
+        content = data.get('content')
+        
+        if not content:
+             return JsonResponse({'error': 'Content is required'}, status=400)
+             
+        conversation = get_object_or_404(Conversation, id=conversation_id)
+        if not conversation.participants.filter(id=request.user.id).exists():
+            return JsonResponse({'error': 'Unauthorized'}, status=403)
+            
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            content=content
+        )
+        # Touch updated_at
+        conversation.save()
+        
+        return JsonResponse({'status': 'success', 'message_id': message.id})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+@login_required
+def api_toggle_mute(request, conversation_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        
+    participant = get_object_or_404(ChatParticipant, conversation_id=conversation_id, user=request.user)
+    participant.is_muted = not participant.is_muted
+    participant.save()
+    
+    return JsonResponse({'status': 'success', 'is_muted': participant.is_muted})
 

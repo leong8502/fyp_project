@@ -49,7 +49,15 @@ urlpatterns = [
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/about-us/', views.client_about, name='client_about'),
-    path('client/chat/', views.client_chat, name='client_chat'),
+    
+    # Chat API
+    path('chat/', views.chat_view, name='client_chat'),
+    path('chat/start/<int:user_id>/', views.start_chat, name='start_chat'),
+    path('api/chat/conversations/', views.api_get_conversations, name='api_get_conversations'),
+    path('api/chat/messages/<int:conversation_id>/', views.api_get_messages, name='api_get_messages'),
+    path('api/chat/send/<int:conversation_id>/', views.api_send_message, name='api_send_message'),
+    path('api/chat/mute/<int:conversation_id>/', views.api_toggle_mute, name='api_toggle_mute'),
+
     path('client/search/', views.client_search, name='client_search'),
     path('client/freelancerProfile/<int:freelancer_id>/', views.client_freelancerProfile, name='client_freelancerProfile'),
     path('client/settings/', views.client_settings, name='client_settings'),

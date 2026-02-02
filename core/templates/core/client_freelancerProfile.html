@@ -68,7 +68,7 @@
             <div class="sidebar-sticky">
                 <div class="action-card">
                     <a href="#" class="btn btn-primary">Invite to My Project</a>
-                    <a href="{% url 'client_chat' %}?user={{ freelancer.user.id }}" class="btn btn-secondary">Contact
+                    <a href="{% url 'start_chat' user_id=freelancer.user.id %}" class="btn btn-secondary">Contact
                         Now</a>
                     <ul class="info-list">
                         <li>

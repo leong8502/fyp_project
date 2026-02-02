@@ -1,0 +1,331 @@
+{% extends base_template %}
+{% load static %}
+{% block title %}Messages{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/chat.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+    <!-- Sidebar: Contact List -->
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <h2>Message</h2>
+            <div class="search-bar">
+                <input type="text" placeholder="Search..." id="contact-search">
+                <i class="search-icon">🔍</i>
+            </div>
+        </div>
+
+        <div class="contact-list" id="contact-list">
+            <!-- Dynamic Contacts will be loaded here -->
+            <div class="loading-contacts">Loading conversations...</div>
+        </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main class="chat-main" id="chat-main">
+        <!-- Chat Header -->
+        <header class="chat-header" id="chat-header" style="display:none;">
+            <div class="header-profile">
+                <div class="contact-avatar large">
+                    <img src="" alt="User" id="header-avatar">
+                </div>
+                <div class="header-info">
+                    <h3 id="header-name">User</h3>
+                    <span class="mute-status" id="header-mute-status"
+                        style="display:none; font-size: 0.8rem; color: #999;">(Muted)</span>
+                    <span class="header-role" id="header-role"></span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn-more-options" id="btn-more-options">
+                    <span>⋮</span> <!-- 3 Dots -->
+                </button>
+                <div class="dropdown-menu" id="header-dropdown">
+                    <a href="#" class="dropdown-item" id="btn-mute">Mute Notifications</a>
+                    <a href="#" class="dropdown-item">Block User</a>
+                    <a href="#" class="dropdown-item text-danger">Report</a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Messages List -->
+        <div class="messages-area" id="messages-area">
+            <div class="no-chat-selected">
+                <div class="empty-icon">💬</div>
+                <h3>Your Messages</h3>
+                <p>Select a conversation from the left to start chatting <br> or <a href="{% url find_url %}"
+                        style="color:var(--primary-color);">{{ find_text|lower }}</a> to connect.</p>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <footer class="chat-input-area" id="chat-input-area" style="display:none;">
+            <button class="btn-attach" title="Add Attachment">
+                <span class="plus-icon">+</span>
+            </button>
+            <div class="input-wrapper">
+                <input type="text" placeholder="Type a message..." class="chat-input-field" id="message-input">
+            </div>
+            <button class="btn-send" id="btn-send">Send</button>
+        </footer>
+    </main>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const contactListEl = document.getElementById('contact-list');
+        const messagesAreaEl = document.getElementById('messages-area');
+        const chatHeader = document.getElementById('chat-header');
+        const chatInputArea = document.getElementById('chat-input-area');
+        const messageInput = document.getElementById('message-input');
+        const btnSend = document.getElementById('btn-send');
+        const btnMoreOptions = document.getElementById('btn-more-options');
+        const headerDropdown = document.getElementById('header-dropdown');
+        const btnMute = document.getElementById('btn-mute');
+
+        let currentConversationId = null;
+        let pollingInterval = null;
+
+        // --- 1. Load Conversations ---
+        function loadConversations() {
+            fetch("{% url 'api_get_conversations' %}")
+                .then(response => response.json())
+                .then(data => {
+                    contactListEl.innerHTML = '';
+                    if (data.length === 0) {
+                        contactListEl.innerHTML = `
+                            <div class="sidebar-empty-state">
+                                <div class="empty-icon">📭</div>
+                                <p>No conversations yet.</p>
+                                <a href="{% url find_url %}" class="btn-find-freelancers">{{ find_text }}</a>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    data.forEach(chat => {
+                        const div = document.createElement('div');
+                        div.className = `contact-item ${chat.id == currentConversationId ? 'active' : ''}`;
+                        div.dataset.id = chat.id;
+                        div.dataset.name = chat.name;
+                        div.dataset.avatar = chat.avatar;
+                        div.dataset.muted = chat.is_muted;
+
+                        div.innerHTML = `
+                            <div class="contact-avatar">
+                                <img src="${chat.avatar}" alt="${chat.name}">
+                            </div>
+                            <div class="contact-info">
+                                <div class="contact-top">
+                                    <span class="contact-name">${chat.name}</span>
+                                    <span class="contact-time">${formatTime(chat.last_message_time)}</span>
+                                </div>
+                                <div class="contact-bottom">
+                                    <p class="contact-preview">${chat.last_message || 'Start chatting...'}</p>
+                                    ${chat.is_muted ? '<i class="mute-icon-large fas fa-bell-slash"></i>' : ''}
+                                </div>
+                            </div>
+                        `;
+
+                        div.addEventListener('click', () => selectConversation(chat.id, chat));
+                        contactListEl.appendChild(div);
+                    });
+                });
+        }
+
+        // --- 2. Select Conversation ---
+        function selectConversation(id, chatData) {
+            currentConversationId = id;
+
+            // Update UI Active State
+            document.querySelectorAll('.contact-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.id == id) item.classList.add('active');
+            });
+
+            // Show Chat Interface
+            chatHeader.style.display = 'flex';
+            chatInputArea.style.display = 'flex';
+
+            // Update Header
+            document.getElementById('header-name').textContent = chatData.name;
+            document.getElementById('header-avatar').src = chatData.avatar;
+            updateMuteUI(chatData.is_muted);
+
+            // Load Messages
+            loadMessages(id);
+
+            // Start Polling
+            if (pollingInterval) clearInterval(pollingInterval);
+            pollingInterval = setInterval(() => loadMessages(id, true), 3000); // Poll every 3s
+
+            // Update URL for persistence
+            const url = new URL(window.location);
+            url.searchParams.set('conversation_id', id);
+            window.history.pushState({}, '', url);
+        }
+
+        // --- 3. Load Messages ---
+        function loadMessages(conversationId, isPolling = false) {
+            if (!conversationId) return;
+
+            // Capture scroll position before update if polling
+            const isScrolledToBottom = messagesAreaEl.scrollHeight - messagesAreaEl.scrollTop === messagesAreaEl.clientHeight;
+
+            fetch(`/api/chat/messages/${conversationId}/`)
+                .then(response => response.json())
+                .then(messages => {
+                    if (messages.error) return;
+
+                    // Simple Diffing could be optimized, but for now re-render for simplicity 
+                    // or just append if logic allowed. For full sync, we replace content or handle diffs.
+                    // To avoid flicker, we can build the html string and check if it's different.
+                    // But simpler: just clear and rebuild if NOT polling, or append new ones?
+                    // Actually, simpler approach for MVP: Clear and Rebuild IS flickery. 
+                    // Let's trying to be smart: if new message count > old message count, refresh.
+
+                    // Ideally we should have message IDs to check diffs.
+                    // For now, let's just render.
+
+                    messagesAreaEl.innerHTML = '';
+                    messages.forEach(msg => {
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = `message-row ${msg.is_me ? 'sent' : 'received'}`;
+
+                        let avatarHtml = '';
+                        if (!msg.is_me) {
+                            avatarHtml = `
+                                <div class="message-avatar">
+                                    <img src="${msg.sender_avatar}" alt="${msg.sender_name}">
+                                </div>
+                            `;
+                        }
+
+                        msgDiv.innerHTML = `
+                            ${avatarHtml}
+                            <div class="message-content">
+                                <div class="message-bubble">
+                                    ${escapeHtml(msg.content)}
+                                </div>
+                                <span class="message-time">${formatTime(msg.created_at)}</span>
+                            </div>
+                        `;
+                        messagesAreaEl.appendChild(msgDiv);
+                    });
+
+                    // Scroll to bottom if was at bottom or first load
+                    if (!isPolling || isScrolledToBottom) {
+                        messagesAreaEl.scrollTop = messagesAreaEl.scrollHeight;
+                    }
+                });
+        }
+
+        // --- 4. Send Message ---
+        function sendMessage() {
+            const content = messageInput.value.trim();
+            if (!content || !currentConversationId) return;
+
+            fetch(`/api/chat/send/${currentConversationId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ content: content })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        messageInput.value = '';
+                        loadMessages(currentConversationId); // Refresh immediately
+                        loadConversations(); // Refresh sidebar order
+                    } else {
+                        alert('Error sending message');
+                    }
+                });
+        }
+
+        btnSend.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // --- 5. Mute Toggle ---
+        function updateMuteUI(isMuted) {
+            const muteStatus = document.getElementById('header-mute-status');
+            muteStatus.style.display = isMuted ? 'inline' : 'none';
+            btnMute.textContent = isMuted ? 'Unmute Notifications' : 'Mute Notifications';
+
+            // Also update contact list item icon if easy to find
+            // (handled by loadConversations reload usually)
+        }
+
+        btnMute.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (!currentConversationId) return;
+
+            fetch(`/api/chat/mute/${currentConversationId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updateMuteUI(data.is_muted);
+                        loadConversations(); // Update sidebar icon
+                        headerDropdown.classList.remove('show');
+                    }
+                });
+        });
+
+        // --- UI Interactions ---
+        btnMoreOptions.addEventListener('click', () => {
+            headerDropdown.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!btnMoreOptions.contains(e.target) && !headerDropdown.contains(e.target)) {
+                headerDropdown.classList.remove('show');
+            }
+        });
+
+        // --- Initial Load ---
+        loadConversations();
+
+        // Check for ?conversation_id=X
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlConvId = urlParams.get('conversation_id');
+        if (urlConvId) {
+            // We need to wait for conversations to load to get name/avatar?
+            // Or just fetch specific conv details. For now, we rely on the list item click simulation
+            // waiting for list is safer but async.
+            // Let's just set the ID and let the user click or try to auto-select after fetching list.
+
+            // Hacky auto-select after small delay to let list load
+            setTimeout(() => {
+                const item = document.querySelector(`.contact-item[data-id="${urlConvId}"]`);
+                if (item) item.click();
+            }, 500);
+        }
+
+        // --- Utilities ---
+        function formatTime(isoString) {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    });
+</script>
+{% endblock %}
