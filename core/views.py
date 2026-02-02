@@ -1042,7 +1042,7 @@ def freelancer_profile(request):
     certifications = freelancer.certifications.all().order_by('-issue_date')
     
     # Platform Employment History (Completed Projects)
-    completed_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed').order_by('-completed_at')
+    completed_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed').order_by('-created_at')
     
     # Testimonials (Reviews from completed projects)
     # Since Review is OneToOne to Project, we can access via project or reverse query
@@ -1055,7 +1055,16 @@ def freelancer_profile(request):
     cert_form = FreelancerCertificationForm()
 
     if request.method == 'POST':
-        if 'update_profile' in request.POST:
+        if 'update_avatar_direct' in request.POST:
+             if 'profile_image' in request.FILES:
+                 freelancer.profile_image = request.FILES['profile_image']
+                 freelancer.save()
+                 messages.success(request, "Profile picture updated!")
+                 return redirect('freelancer_profile')
+             else:
+                 messages.error(request, "No image selected.")
+
+        elif 'update_profile' in request.POST:
             profile_form = FreelancerProfileForm(request.POST, request.FILES, instance=freelancer)
             if profile_form.is_valid():
                 profile_form.save()

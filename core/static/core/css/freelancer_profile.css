@@ -57,6 +57,29 @@
     object-fit: cover;
 }
 
+.edit-avatar-btn {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: #007bff;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s;
+    z-index: 10;
+}
+
+.edit-avatar-btn:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
 .profile-details {
     margin-left: 140px;
     /* Space for avatar */

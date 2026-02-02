@@ -1,58 +1,116 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html>
 
 <head>
+    <title>{% block title %}TalentSync{% endblock %}</title>
+    {% block extra_css %}{% endblock %}
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}TalentSync - Freelancer{% endblock %}</title>
-
+    <!-- CSS -->
     <link rel="stylesheet" href="{% static 'core/css/master.css' %}">
     <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.9.0/css/all.css">
-
-    {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <header class="site-header" style="border-bottom: 4px solid #28a745;">
+
+    <!-- Header -->
+    <header class="site-header">
         <div class="nav_container">
-            
-            <a href="{% url 'freelancer_home' %}" class="logo-link">
-                <img class="logo" src="{% static 'core/images/logo.png' %}" alt="TalentSync">
+            <!-- Logo on the left -->
+            <a href="{% url 'home' %}" class="logo-link">
+                <img class="logo" src="{% static 'core/images/logo.png' %}" alt="TalentSync Logo">
             </a>
 
-            
+            <!-- Navigation in the center -->
             <nav class="main-nav">
-                <a href="{% url 'freelancer_home' %}">Home</a>
-                <a href="{% url 'match_jobs' %}">Find Jobs</a>
-                <a href="#">My Proposals</a>
-                <a href="#">Messages</a>
-                <a href="#">Profile</a>
+                <a href="{% url 'home' %}">Home</a>
+                <a href="#">How It Works</a>
+                <a href="#">Find Freelancer</a>
+                <a href="#">About Us</a>
+                <!-- Add more links as needed -->
             </nav>
 
-            
-            <div class="user-menu">
-                <span>Hello, {{ request.user.username }}</span>
-                <a href="{% url 'logout' %}" class="logout-btn">Logout</a>
+            <!-- Auth Buttons -->
+            <div class="auth-buttons">
+                <!-- User is assumed logged in on freelancer pages -->
+                <a href="{% url 'freelancer_profile' %}" class="profile-nav-link">
+                    {% if user.freelancer.profile_image %}
+                    <img src="{{ user.freelancer.profile_image.url }}" alt="Profile" class="nav-profile-img"
+                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    {% else %}
+                    <img src="{% static 'core/images/dummy_profile.png' %}" alt="Profile" class="nav-profile-img"
+                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
+                    {% endif %}
+                </a>
             </div>
         </div>
     </header>
 
-    
-    <main class="main-content">
-        {% block content %}{% endblock %}
+    <!-- Main Content -->
+    <main>
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% block content %}
+        <!-- Child page content goes here -->
+        {% endblock %}
     </main>
 
-    
-    <footer class="footer" style="border-top: 4px solid #28a745;">
-        <div class="footer-container">
-            <div class="footer-section">
-                <h3>TalentSync</h3>
-                <p>AI-Powered Freelancer Matching Platform</p>
+    <!-- Footer -->
+    <footer>
+        <div class="footer">
+            <div class="footer-container">
+                <div class="footer-section">
+                    <h3>Logo</h3>
+                    <a href="{% url 'client_home' %}" class="logo-link">
+                        <img class="logo" src="{% static 'core/images/logo.png' %}" alt="TalentSync Logo">
+                    </a>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h3>About</h3>
+                    <ul>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Other Services</h3>
+                    <ul>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                        <li><a href="#">nothing</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Our Partners</h3>
+                    <div class="partners">
+                        <img src="#" alt="Google">
+                        <img src="#" alt="Google">
+                    </div>
+                </div>
             </div>
-            
             <div class="footer-bottom">
                 <p>Copyright © 2025 TalentSync All rights reserved</p>
+                <p>Site Operator: TalentSync</p>
             </div>
         </div>
     </footer>
