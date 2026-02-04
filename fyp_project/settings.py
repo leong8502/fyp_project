@@ -31,12 +31,14 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',  # ASGI server for WebSocket support
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',  # Django Channels for WebSocket
     'core',
 ]
 
@@ -68,6 +70,16 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'fyp_project.wsgi.application'
+
+# ASGI Application for WebSocket support
+ASGI_APPLICATION = 'fyp_project.asgi.application'
+
+# Channel Layers (In-memory for development, use Redis for production)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}
 
 
 # Database

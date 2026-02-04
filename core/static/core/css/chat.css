@@ -305,6 +305,8 @@
     font-size: 1rem;
     line-height: 1.5;
     position: relative;
+    white-space: pre-wrap;
+    /* Preserve newlines and wrap text */
 }
 
 .received .message-bubble {
@@ -390,6 +392,18 @@
     font-size: 1rem;
     outline: none;
     transition: border-color 0.2s;
+    resize: none;
+    /* Disable manual resize, we'll auto-resize with JS */
+    overflow-y: hidden;
+    /* Hide scrollbar for auto-resize effect */
+    font-family: inherit;
+    /* Ensure font matches */
+    line-height: 1.5;
+    height: auto;
+    min-height: 52px;
+    /* Roughly matches previous input height */
+    max-height: 150px;
+    /* Limit max height */
 }
 
 .chat-input-field:focus {
@@ -517,7 +531,7 @@
     margin-bottom: 1.5rem;
 }
 
-.btn-find-freelancers {
+.btn-find {
     background-color: var(--primary-color);
     color: white;
     text-decoration: none;
@@ -527,7 +541,7 @@
     transition: background-color 0.2s;
 }
 
-.btn-find-freelancers:hover {
+.btn-find:hover {
     background-color: #5b4bc4;
     /* Darker shade of primary */
 }

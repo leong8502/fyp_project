@@ -56,6 +56,7 @@ urlpatterns = [
     path('api/chat/conversations/', views.api_get_conversations, name='api_get_conversations'),
     path('api/chat/messages/<int:conversation_id>/', views.api_get_messages, name='api_get_messages'),
     path('api/chat/send/<int:conversation_id>/', views.api_send_message, name='api_send_message'),
+    path('api/chat/download/<int:message_id>/', views.api_download_attachment, name='api_download_attachment'),
     path('api/chat/mute/<int:conversation_id>/', views.api_toggle_mute, name='api_toggle_mute'),
 
     path('client/search/', views.client_search, name='client_search'),

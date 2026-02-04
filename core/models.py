@@ -362,6 +362,7 @@ class Message(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
     content = models.TextField(blank=True)
     attachment = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
+    original_filename = models.CharField(max_length=255, blank=True, null=True)
     attachment_type = models.CharField(max_length=20, choices=ATTACHMENT_TYPES, blank=True, null=True)
     attachment_size = models.IntegerField(blank=True, null=True, help_text="File size in bytes")
     is_read = models.BooleanField(default=False)

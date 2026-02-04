@@ -1,7 +1,7 @@
 import uuid
 import decimal
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse, Http404
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
@@ -956,9 +956,11 @@ def api_get_conversations(request):
         last_msg_preview = ''
         if last_message:
             if last_message.attachment:
-                # Show attachment info
-                filename = last_message.attachment.name.split('/')[-1]
-                last_msg_preview = f"📎{filename}"
+                if last_message.attachment_type == 'image':
+                    last_msg_preview = "📷 Photo"
+                else:
+                    filename = last_message.original_filename or last_message.attachment.name.split('/')[-1]
+                    last_msg_preview = f'<i class="fas fa-paperclip"></i> {filename}'
             else:
                 last_msg_preview = last_message.content
         
@@ -1016,6 +1018,7 @@ def api_get_messages(request, conversation_id):
             'sender_avatar': sender_avatar,
             'content': msg.content,
             'attachment': attachment_url,
+            'original_filename': msg.original_filename,
             'attachment_type': msg.attachment_type,
             'attachment_size': msg.attachment_size,
             'created_at': msg.created_at.isoformat(),
@@ -1023,6 +1026,26 @@ def api_get_messages(request, conversation_id):
         })
         
     return JsonResponse(data, safe=False)
+
+@login_required
+def api_download_attachment(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    if not message.attachment:
+         raise Http404("No attachment")
+    
+    # Check permission
+    if not message.conversation.participants.filter(id=request.user.id).exists():
+         return JsonResponse({'error': 'Unauthorized'}, status=403)
+
+    filename = message.original_filename or message.attachment.name.split('/')[-1]
+    
+    # Open file and return FileResponse
+    try:
+        response = FileResponse(message.attachment.open('rb'))
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except FileNotFoundError:
+        raise Http404("File not found")
 
 @login_required
 def api_send_message(request, conversation_id):
@@ -1045,7 +1068,9 @@ def api_send_message(request, conversation_id):
         # Validate file if attachment is provided
         attachment_type = None
         attachment_size = None
+        original_filename = None
         if attachment:
+            original_filename = attachment.name
             # Check file size (10MB max)
             max_size = 10 * 1024 * 1024  # 10MB in bytes
             if attachment.size > max_size:
@@ -1069,16 +1094,69 @@ def api_send_message(request, conversation_id):
             sender=request.user,
             content=content,
             attachment=attachment,
+            original_filename=original_filename,
             attachment_type=attachment_type,
             attachment_size=attachment_size
         )
         # Touch updated_at
         conversation.save()
+        
+        # Prepare message data for response and WebSocket
+        sender_name = "Me"
+        if hasattr(request.user, 'client'):
+            sender_name = request.user.client.company_name
+        elif hasattr(request.user, 'freelancer'):
+            sender_name = request.user.freelancer.full_name
+            
+        sender_avatar = '/static/core/images/default_profile.png'
+        if hasattr(request.user, 'client') and request.user.client.profile_image:
+            sender_avatar = request.user.client.profile_image.url
+        elif hasattr(request.user, 'freelancer') and request.user.freelancer.profile_image:
+            sender_avatar = request.user.freelancer.profile_image.url
+        
+        message_data = {
+            'id': message.id,
+            'sender_id': request.user.id,
+            'sender_name': sender_name,
+            'sender_avatar': sender_avatar,
+            'content': message.content,
+            'attachment': message.attachment.url if message.attachment else None,
+            'original_filename': message.original_filename,
+            'attachment_type': message.attachment_type,
+            'attachment_size': message.attachment_size,
+            'created_at': message.created_at.isoformat(),
+            'is_read': message.is_read
+        }
+        
+        # Broadcast to WebSocket group (current conversation)
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        
+        channel_layer = get_channel_layer()
+        
+        # Send message to current conversation room
+        async_to_sync(channel_layer.group_send)(
+            f'chat_{conversation_id}',
+            {
+                'type': 'chat_message',
+                'message': message_data
+            }
+        )
+        
+        # Notify ALL participants to refresh their conversation list
+        # This ensures the conversation list updates even if they're in a different conversation
+        for participant in conversation.participants.all():
+            async_to_sync(channel_layer.group_send)(
+                f'user_{participant.id}',
+                {
+                    'type': 'conversation_updated'
+                }
+            )
 
         return JsonResponse({
             'status': 'success',
             'message_id': message.id,
-            'attachment_url': message.attachment.url if message.attachment else None
+            'message': message_data
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

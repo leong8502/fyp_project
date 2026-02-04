@@ -3,6 +3,7 @@ venv\Scripts\activate
 venv_new\Scripts\activate
 
 python manage.py runserver
+taskkill /F /IM python.exe
 cd fyp_project
 
 pip install -r requirements.txt
