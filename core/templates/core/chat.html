@@ -20,7 +20,7 @@
 
         <div class="contact-list" id="contact-list">
             <!-- Dynamic Contacts will be loaded here -->
-            <div class="loading-contacts">Loading conversations...</div>
+            <div class="loading-contacts"> Loading conversations...</div>
         </div>
     </aside>
 
@@ -34,18 +34,18 @@
                 </div>
                 <div class="header-info">
                     <h3 id="header-name">User</h3>
+                    <p class="header-tagline" id="header-tagline" style="margin: 0; font-size: 0.85rem; color: #666;">
+                    </p>
                     <span class="mute-status" id="header-mute-status"
-                        style="display:none; font-size: 0.8rem; color: #999;">(Muted)</span>
-                    <span class="header-role" id="header-role"></span>
+                        style="display:none; font-size: 0.8rem; color: #999;">Muted</span>
                 </div>
             </div>
-            <div class="header-actions">
+            <div class="header-actions" style="position: relative;">
                 <button class="btn-more-options" id="btn-more-options">
                     <span>⋮</span> <!-- 3 Dots -->
                 </button>
                 <div class="dropdown-menu" id="header-dropdown">
                     <a href="#" class="dropdown-item" id="btn-mute">Mute Notifications</a>
-                    <a href="#" class="dropdown-item">Block User</a>
                     <a href="#" class="dropdown-item text-danger">Report</a>
                 </div>
             </div>
@@ -63,11 +63,19 @@
 
         <!-- Input Area -->
         <footer class="chat-input-area" id="chat-input-area" style="display:none;">
-            <button class="btn-attach" title="Add Attachment">
+            <input type="file" id="file-input" style="display:none;"
+                accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.txt,.zip">
+            <button class="btn-attach" id="btn-attach" title="Add Attachment">
                 <span class="plus-icon">+</span>
             </button>
             <div class="input-wrapper">
                 <input type="text" placeholder="Type a message..." class="chat-input-field" id="message-input">
+                <div id="attachment-preview"
+                    style="display:none; padding: 5px; background: #f0f0f0; border-radius: 5px; margin-top: 5px; font-size: 0.85rem;">
+                    <span id="attachment-name"></span>
+                    <button id="remove-attachment"
+                        style="margin-left: 10px; cursor: pointer; background: none; border: none; color: #d32f2f;">✕</button>
+                </div>
             </div>
             <button class="btn-send" id="btn-send">Send</button>
         </footer>
@@ -112,6 +120,8 @@
                         div.dataset.id = chat.id;
                         div.dataset.name = chat.name;
                         div.dataset.avatar = chat.avatar;
+                        div.dataset.role = chat.role;
+                        div.dataset.tagline = chat.tagline;
                         div.dataset.muted = chat.is_muted;
 
                         div.innerHTML = `
@@ -125,7 +135,10 @@
                                 </div>
                                 <div class="contact-bottom">
                                     <p class="contact-preview">${chat.last_message || 'Start chatting...'}</p>
-                                    ${chat.is_muted ? '<i class="mute-icon-large fas fa-bell-slash"></i>' : ''}
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        ${chat.unread_count > 0 ? `<span class="unread-badge">${chat.unread_count}</span>` : ''}
+                                        ${chat.is_muted ? '<i class="mute-icon-large fas fa-bell-slash"></i>' : ''}
+                                    </div>
                                 </div>
                             </div>
                         `;
@@ -140,10 +153,17 @@
         function selectConversation(id, chatData) {
             currentConversationId = id;
 
-            // Update UI Active State
+            // Update UI Active State and immediately remove unread badge
             document.querySelectorAll('.contact-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.dataset.id == id) item.classList.add('active');
+                if (item.dataset.id == id) {
+                    item.classList.add('active');
+                    // Immediately remove unread badge from UI
+                    const unreadBadge = item.querySelector('.unread-badge');
+                    if (unreadBadge) {
+                        unreadBadge.remove();
+                    }
+                }
             });
 
             // Show Chat Interface
@@ -153,9 +173,17 @@
             // Update Header
             document.getElementById('header-name').textContent = chatData.name;
             document.getElementById('header-avatar').src = chatData.avatar;
+            const taglineEl = document.getElementById('header-tagline');
+            if (chatData.tagline) {
+                taglineEl.textContent = chatData.tagline;
+                taglineEl.style.display = 'block';
+            } else {
+                taglineEl.textContent = chatData.role || '';
+                taglineEl.style.display = chatData.role ? 'block' : 'none';
+            }
             updateMuteUI(chatData.is_muted);
 
-            // Load Messages
+            // Load Messages (History)
             loadMessages(id);
 
             // Start Polling
@@ -191,7 +219,21 @@
                     // For now, let's just render.
 
                     messagesAreaEl.innerHTML = '';
+                    let lastDate = null;
+
                     messages.forEach(msg => {
+                        // Add date separator if date changed
+                        const msgDate = new Date(msg.created_at);
+                        const dateStr = formatDate(msgDate);
+
+                        if (dateStr !== lastDate) {
+                            const dateSeparator = document.createElement('div');
+                            dateSeparator.className = 'date-separator';
+                            dateSeparator.innerHTML = `<span>${dateStr}</span>`;
+                            messagesAreaEl.appendChild(dateSeparator);
+                            lastDate = dateStr;
+                        }
+
                         const msgDiv = document.createElement('div');
                         msgDiv.className = `message-row ${msg.is_me ? 'sent' : 'received'}`;
 
@@ -204,11 +246,28 @@
                             `;
                         }
 
+                        // Handle message content and attachments
+                        let messageContent = '';
+                        if (msg.attachment) {
+                            if (msg.attachment_type === 'image') {
+                                messageContent = `<img src="${msg.attachment}" alt="Image" style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer;" onclick="window.open('${msg.attachment}', '_blank')">`;
+                            } else {
+                                const fileName = msg.attachment.split('/').pop();
+                                const fileIcon = msg.attachment_type === 'pdf' ? '📄' : '📎';
+                                messageContent = `<a href="${msg.attachment}" target="_blank" style="color: inherit; text-decoration: none;">${fileIcon} ${fileName}</a>`;
+                            }
+                            if (msg.content) {
+                                messageContent = `${escapeHtml(msg.content)}<br><br>${messageContent}`;
+                            }
+                        } else {
+                            messageContent = escapeHtml(msg.content);
+                        }
+
                         msgDiv.innerHTML = `
                             ${avatarHtml}
                             <div class="message-content">
                                 <div class="message-bubble">
-                                    ${escapeHtml(msg.content)}
+                                    ${messageContent}
                                 </div>
                                 <span class="message-time">${formatTime(msg.created_at)}</span>
                             </div>
@@ -224,27 +283,81 @@
         }
 
         // --- 4. Send Message ---
+        let selectedFile = null;
+        const fileInput = document.getElementById('file-input');
+        const btnAttach = document.getElementById('btn-attach');
+        const attachmentPreview = document.getElementById('attachment-preview');
+        const attachmentName = document.getElementById('attachment-name');
+        const removeAttachment = document.getElementById('remove-attachment');
+
+        btnAttach.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Validate file size (10MB max)
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                alert('File size exceeds 10MB limit');
+                fileInput.value = '';
+                return;
+            }
+
+            // Validate file type
+            const allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'zip'];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            if (!allowedExts.includes(fileExt)) {
+                alert('Unsupported file type. Allowed: images, PDFs, documents');
+                fileInput.value = '';
+                return;
+            }
+
+            selectedFile = file;
+            attachmentName.textContent = `📎 ${file.name} (${formatFileSize(file.size)})`;
+            attachmentPreview.style.display = 'block';
+        });
+
+        removeAttachment.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            attachmentPreview.style.display = 'none';
+        });
+
         function sendMessage() {
             const content = messageInput.value.trim();
-            if (!content || !currentConversationId) return;
+            if (!content && !selectedFile) return;
+            if (!currentConversationId) return;
+
+            const formData = new FormData();
+            if (content) formData.append('content', content);
+            if (selectedFile) formData.append('attachment', selectedFile);
 
             fetch(`/api/chat/send/${currentConversationId}/`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token }}'
                 },
-                body: JSON.stringify({ content: content })
+                body: formData
             })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         messageInput.value = '';
-                        loadMessages(currentConversationId); // Refresh immediately
-                        loadConversations(); // Refresh sidebar order
+                        selectedFile = null;
+                        fileInput.value = '';
+                        attachmentPreview.style.display = 'none';
+                        loadMessages(currentConversationId);
+                        loadConversations();
                     } else {
-                        alert('Error sending message');
+                        alert(data.error || 'Error sending message');
                     }
+                })
+                .catch(error => {
+                    alert('Error sending message');
+                    console.error(error);
                 });
         }
 
@@ -312,13 +425,107 @@
             }, 500);
         }
 
+        function appendMessage(msg) {
+            // Determine if we need a date separator
+            const msgDate = new Date(msg.created_at);
+            const dateStr = formatDate(msgDate);
+
+            // Try to find the last date separator to ignore logic for now or stick to simple
+            // We can check the last message element's date? 
+            // For robustness, let's just append. If it's a new day, we might miss the separator unless we track it.
+            // Let's check the last .date-separator
+            const separators = messagesAreaEl.querySelectorAll('.date-separator span');
+            let lastDateInDom = null;
+            if (separators.length > 0) {
+                lastDateInDom = separators[separators.length - 1].textContent;
+            }
+
+            if (dateStr !== lastDateInDom) {
+                const dateSeparator = document.createElement('div');
+                dateSeparator.className = 'date-separator';
+                dateSeparator.innerHTML = `<span>${dateStr}</span>`;
+                messagesAreaEl.appendChild(dateSeparator);
+            }
+
+            const msgDiv = document.createElement('div');
+            const isMe = msg.sender_id === currentUserId;
+            msgDiv.className = `message-row ${isMe ? 'sent' : 'received'}`;
+
+            let avatarHtml = '';
+            if (!isMe) {
+                avatarHtml = `
+                    <div class="message-avatar">
+                        <img src="${msg.sender_avatar}" alt="${msg.sender_name}">
+                    </div>
+                `;
+            }
+
+            // Handle message content and attachments
+            let messageContent = '';
+            if (msg.attachment) {
+                if (msg.attachment_type === 'image') {
+                    messageContent = `<img src="${msg.attachment}" alt="Image" style="max-width: 300px; max-height: 300px; border-radius: 8px; cursor: pointer;" onclick="window.open('${msg.attachment}', '_blank')">`;
+                } else {
+                    const fileName = msg.attachment.split('/').pop();
+                    const fileIcon = msg.attachment_type === 'pdf' ? '📄' : '📎';
+                    messageContent = `<a href="${msg.attachment}" target="_blank" style="color: inherit; text-decoration: none;">${fileIcon} ${fileName}</a>`;
+                }
+                if (msg.content) {
+                    messageContent = `${escapeHtml(msg.content)}<br><br>${messageContent}`;
+                }
+            } else {
+                messageContent = escapeHtml(msg.content);
+            }
+
+            msgDiv.innerHTML = `
+                ${avatarHtml}
+                <div class="message-content">
+                    <div class="message-bubble">
+                        ${messageContent}
+                    </div>
+                    <span class="message-time">${formatTime(msg.created_at)}</span>
+                </div>
+            `;
+            messagesAreaEl.appendChild(msgDiv);
+
+            // Auto scroll to bottom
+            messagesAreaEl.scrollTop = messagesAreaEl.scrollHeight;
+        }
+
         // --- Utilities ---
         function formatTime(isoString) {
             const date = new Date(isoString);
             return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
+        function formatDate(date) {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            // Reset time parts for comparison
+            today.setHours(0, 0, 0, 0);
+            yesterday.setHours(0, 0, 0, 0);
+            const msgDate = new Date(date);
+            msgDate.setHours(0, 0, 0, 0);
+
+            if (msgDate.getTime() === today.getTime()) {
+                return 'Today';
+            } else if (msgDate.getTime() === yesterday.getTime()) {
+                return 'Yesterday';
+            } else {
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
         function escapeHtml(text) {
+            if (!text) return '';
             return text
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")

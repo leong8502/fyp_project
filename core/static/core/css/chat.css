@@ -237,6 +237,23 @@
     color: var(--text-sub);
 }
 
+.header-actions {
+    position: relative;
+}
+
+/* Unread Badge */
+.unread-badge {
+    background: #ff4757;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    display: inline-block;
+}
+
 /* Messages Area */
 .messages-area {
     flex: 1;
@@ -314,6 +331,24 @@
 
 .sent .message-time {
     align-self: flex-end;
+}
+
+/* Date Separator */
+.date-separator {
+    text-align: center;
+    margin: 1rem 0;
+    position: relative;
+}
+
+.date-separator span {
+    background: #e1f5fe;
+    color: #666;
+    padding: 0.4rem 1rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Input Area */
@@ -407,15 +442,13 @@
     border-radius: 8px;
     width: 180px;
     display: none;
-    /* Hidden by default, toggle with JS or hover */
     z-index: 10;
     overflow: hidden;
     margin-top: 5px;
 }
 
-.header-actions:hover .dropdown-menu {
+.dropdown-menu.show {
     display: block;
-    /* Simple hover toggle for prototype */
 }
 
 .dropdown-item {

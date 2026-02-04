@@ -352,9 +352,18 @@ class ChatParticipant(models.Model):
         unique_together = ('user', 'conversation')
 
 class Message(models.Model):
+    ATTACHMENT_TYPES = [
+        ('image', 'Image'),
+        ('pdf', 'PDF'),
+        ('document', 'Document'),
+    ]
+    
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
-    content = models.TextField()
+    content = models.TextField(blank=True)
+    attachment = models.FileField(upload_to='chat_attachments/', blank=True, null=True)
+    attachment_type = models.CharField(max_length=20, choices=ATTACHMENT_TYPES, blank=True, null=True)
+    attachment_size = models.IntegerField(blank=True, null=True, help_text="File size in bytes")
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

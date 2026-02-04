@@ -4,6 +4,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm, FreelancerLanguageForm
 
 from .models import Job        # ← Add this
@@ -928,27 +930,49 @@ def api_get_conversations(request):
             
         last_message = conv.messages.last()
         
-        # Determine name and avatar based on role
+        # Calculate unread count (messages not sent by current user and not read)
+        unread_count = conv.messages.filter(is_read=False).exclude(sender=request.user).count()
+        
+        # Determine name, avatar, role, and tagline based on role
         name = other_participant.username
         avatar_url = '/static/core/images/default_profile.png' # Fallback
+        role = ''
+        tagline = ''
         
         if hasattr(other_participant, 'client'):
             name = other_participant.client.company_name or other_participant.username
+            role = 'Client'
+            tagline = other_participant.client.tagline or ''
             if other_participant.client.profile_image:
                 avatar_url = other_participant.client.profile_image.url
         elif hasattr(other_participant, 'freelancer'):
             name = other_participant.freelancer.full_name or other_participant.username
+            role = 'Freelancer'
+            tagline = other_participant.freelancer.tagline or ''
             if other_participant.freelancer.profile_image:
                 avatar_url = other_participant.freelancer.profile_image.url
+        
+        # Format last message preview
+        last_msg_preview = ''
+        if last_message:
+            if last_message.attachment:
+                # Show attachment info
+                filename = last_message.attachment.name.split('/')[-1]
+                last_msg_preview = f"📎{filename}"
+            else:
+                last_msg_preview = last_message.content
         
         data.append({
             'id': conv.id,
             'other_user_id': other_participant.id,
             'name': name,
             'avatar': avatar_url,
-            'last_message': last_message.content if last_message else '',
+            'role': role,
+            'tagline': tagline,
+            'last_message': last_msg_preview,
             'last_message_time': last_message.created_at.isoformat() if last_message else conv.created_at.isoformat(),
-            'is_muted': p.is_muted
+            'is_muted': p.is_muted,
+            'unread_count': unread_count
         })
         
     # Sort by updated_at (or last message time)
@@ -961,6 +985,9 @@ def api_get_messages(request, conversation_id):
     if not conversation.participants.filter(id=request.user.id).exists():
         return JsonResponse({'error': 'Unauthorized'}, status=403)
         
+    # Mark all unread messages from other users as read
+    conversation.messages.filter(is_read=False).exclude(sender=request.user).update(is_read=True)
+    
     messages_qs = conversation.messages.select_related('sender').all()
     data = []
     
@@ -978,6 +1005,9 @@ def api_get_messages(request, conversation_id):
         elif hasattr(msg.sender, 'freelancer') and msg.sender.freelancer.profile_image:
              sender_avatar = msg.sender.freelancer.profile_image.url
              
+        # Handle attachments
+        attachment_url = msg.attachment.url if msg.attachment else None
+        
         data.append({
             'id': msg.id,
             'sender_id': msg.sender.id,
@@ -985,6 +1015,9 @@ def api_get_messages(request, conversation_id):
             'sender_name': sender_name,
             'sender_avatar': sender_avatar,
             'content': msg.content,
+            'attachment': attachment_url,
+            'attachment_type': msg.attachment_type,
+            'attachment_size': msg.attachment_size,
             'created_at': msg.created_at.isoformat(),
             'is_read': msg.is_read
         })
@@ -996,27 +1029,57 @@ def api_send_message(request, conversation_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
         
-    import json
     try:
-        data = json.loads(request.body)
-        content = data.get('content')
-        
-        if not content:
-             return JsonResponse({'error': 'Content is required'}, status=400)
-             
         conversation = get_object_or_404(Conversation, id=conversation_id)
         if not conversation.participants.filter(id=request.user.id).exists():
             return JsonResponse({'error': 'Unauthorized'}, status=403)
+        
+        # Handle both text and file uploads
+        content = request.POST.get('content', '')
+        attachment = request.FILES.get('attachment')
+        
+        # Validate that at least one of content or attachment is provided
+        if not content and not attachment:
+            return JsonResponse({'error': 'Content or attachment is required'}, status=400)
+        
+        # Validate file if attachment is provided
+        attachment_type = None
+        attachment_size = None
+        if attachment:
+            # Check file size (10MB max)
+            max_size = 10 * 1024 * 1024  # 10MB in bytes
+            if attachment.size > max_size:
+                return JsonResponse({'error': 'File size exceeds 10MB limit'}, status=400)
+            
+            # Determine attachment type based on file extension
+            file_ext = attachment.name.split('.')[-1].lower()
+            if file_ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+                attachment_type = 'image'
+            elif file_ext == 'pdf':
+                attachment_type = 'pdf'
+            elif file_ext in ['doc', 'docx', 'txt', 'zip']:
+                attachment_type = 'document'
+            else:
+                return JsonResponse({'error': 'Unsupported file type'}, status=400)
+            
+            attachment_size = attachment.size
             
         message = Message.objects.create(
             conversation=conversation,
             sender=request.user,
-            content=content
+            content=content,
+            attachment=attachment,
+            attachment_type=attachment_type,
+            attachment_size=attachment_size
         )
         # Touch updated_at
         conversation.save()
-        
-        return JsonResponse({'status': 'success', 'message_id': message.id})
+
+        return JsonResponse({
+            'status': 'success',
+            'message_id': message.id,
+            'attachment_url': message.attachment.url if message.attachment else None
+        })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 
