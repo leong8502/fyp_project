@@ -16,18 +16,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         """Handle WebSocket connection"""
         self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
-        self.room_group_name = f'chat_{self.conversation_id}'
         self.user = self.scope['user']
-        self.user_group_name = f'user_{self.user.id}'  # User-specific group
-        
+        self.user_group_name = f'user_{self.user.id}'
+        self.room_group_name = None
+
         print(f"[WebSocket] User attempting to connect: {self.user}")
-        print(f"[WebSocket] Is authenticated: {self.user.is_authenticated}")
         
         # Check if user is authenticated
         if not self.user.is_authenticated:
             print(f"[WebSocket] REJECTED: User not authenticated")
             await self.close()
             return
+        
+        # Handle "global" connection (only user group, no specific conversation)
+        if self.conversation_id == 'global':
+            await self.channel_layer.group_add(
+                self.user_group_name,
+                self.channel_name
+            )
+            print(f"[WebSocket] ACCEPTED: User {self.user.username} connected to global channel")
+            await self.accept()
+            return
+
+        # Regular conversation connection
+        self.room_group_name = f'chat_{self.conversation_id}'
         
         # Verify user is participant in this conversation
         is_participant = await self.is_participant()
@@ -59,10 +71,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
         # Leave conversation room group
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+        if self.room_group_name:
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
+        
+        # Leave user-specific room group
         
         # Leave user-specific room group
         if hasattr(self, 'user_group_name'):

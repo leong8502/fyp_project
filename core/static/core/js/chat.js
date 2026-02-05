@@ -456,6 +456,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const item = document.querySelector(`.contact-item[data-id="${urlConvId}"]`);
             if (item) item.click();
         }, 500);
+    } else {
+        // No conversation selected, connect to global user channel for notifications
+        connectWebSocket('global');
     }
 
     // --- Helper: Append Message (for WebSocket) ---
