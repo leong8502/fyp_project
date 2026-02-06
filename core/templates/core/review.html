@@ -1,0 +1,63 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core/css/review.css' %}">
+
+<div class="review-container">
+    <div class="review-card">
+        <h2>Rate your experience</h2>
+        <p class="review-subtitle">
+            How was working with
+            {% if reviewee.client %}
+            {{ reviewee.client.company_name }}
+            {% elif reviewee.freelancer %}
+            {{ reviewee.freelancer.full_name }}
+            {% else %}
+            {{ reviewee.username }}
+            {% endif %}?
+        </p>
+
+        <form method="POST" action="{% url 'submit_review' project.id %}" id="reviewForm">
+            {% csrf_token %}
+
+            <!-- Section 1: Star Rating -->
+            <div class="rating-section">
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="rating" value="5" required />
+                    <label for="star5" title="5 stars"></label>
+                    <input type="radio" id="star4" name="rating" value="4" />
+                    <label for="star4" title="4 stars"></label>
+                    <input type="radio" id="star3" name="rating" value="3" />
+                    <label for="star3" title="3 stars"></label>
+                    <input type="radio" id="star2" name="rating" value="2" />
+                    <label for="star2" title="2 stars"></label>
+                    <input type="radio" id="star1" name="rating" value="1" />
+                    <label for="star1" title="1 star"></label>
+                </div>
+                <p class="rating-text">Select stars</p>
+            </div>
+
+            <!-- Section 2: Description (Optional) -->
+            <div class="form-group">
+                <label for="comment">Description (Optional but highly Recommended)</label>
+                <textarea name="comment" id="comment" rows="4" placeholder="Share your experience..."></textarea>
+            </div>
+
+            <!-- Section 3: Feedback Tags -->
+            <div class="form-group">
+                <label>What went well? (Select all that apply)</label>
+                <div class="tags-container">
+                    {% for tag in available_tags %}
+                    <input type="checkbox" name="feedback_tags" value="{{ tag }}" id="tag_{{ forloop.counter }}"
+                        class="tag-checkbox">
+                    <label for="tag_{{ forloop.counter }}" class="tag-label">{{ tag }}</label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Submit Review</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

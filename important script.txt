@@ -10,8 +10,8 @@ pip install -r requirements.txt
 pip freeze > requirements.txt
 
 Db migration
-python manage.py makemigrations # when u create new db
-python manage.py migrate # when u accept partner db
+python manage.py makemigrations # when u update db
+python manage.py migrate # when u receive updated db
 
 #reset migration history (when u db goes wrong)
 python manage.py migrate --fake core zero

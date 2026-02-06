@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, FreelancerLanguage
+from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, FreelancerLanguage, Review
 from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
@@ -405,3 +405,16 @@ class FreelancerCertificationForm(forms.ModelForm):
             'issue_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'certificate_file': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+class ReviewForm(forms.ModelForm):
+    class Meta:
+        model = Review
+        fields = ['rating', 'comment']
+        widgets = {
+            'comment': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Share your experience...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(ReviewForm, self).__init__(*args, **kwargs)
+        self.fields['comment'].required = False
+

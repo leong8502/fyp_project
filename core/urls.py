@@ -12,6 +12,7 @@ urlpatterns = [
     path('top-up/', views.topUp, name='topUp'),
     path('withdraw/', views.withdraw, name='withdraw'),
     path('wallet/toggle-privacy/', views.toggle_balance_privacy, name='toggle_balance_privacy'),
+    path('project/review/<int:project_id>/', views.submit_review, name='submit_review'),
     # register part
     path('register/selection/', views.registerSelection, name='registerSelection'),
     path('register/freelancer/', views.register_freelancer, name='register_freelancer'),

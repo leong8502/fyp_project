@@ -14,8 +14,7 @@
             <h1>{{ project.title }}</h1>
             <p>
                 {% if project.assigned_freelancer %}
-                Freelancer: {{ project.assigned_freelancer.full_name|default:project.assigned_freelancer.user.username
-                }}
+                Freelancer: {{ project.assigned_freelancer.full_name|default:project.assigned_freelancer.user.username }}
                 {% else %}
                 Freelancer: <span style="color: #999;">Not Assigned</span>
                 {% endif %}
@@ -143,7 +142,8 @@
 
             {% elif project.status == 'completed' %}
             <!-- Completed: Rate -->
-            <button class="btn-primary">Rate Freelancer</button>
+	    <a href="{% url 'submit_review' project.id %}" style="text-decoration:none; color:white;"><button
+                    class="btn-primary">Rate Freelancer</button></a>
             <button class="btn-secondary">View Invoice</button>
 
             {% elif project.status == 'cancelled' %}

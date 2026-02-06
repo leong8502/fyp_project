@@ -37,9 +37,8 @@ class Client(models.Model):
     linkedIn_url = models.URLField(blank=True, null=True)
     instagram_url = models.URLField(blank=True, null=True)
     facebook_url = models.URLField(blank=True, null=True)
-    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00, help_text="Average client rating")
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     # Email verification fields
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True)
@@ -186,7 +185,6 @@ class Freelancer(models.Model):
     )
     
     # Ratings & stats
-    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00, blank=True)
     total_jobs_completed = models.PositiveIntegerField(default=0)
     total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, blank=True)
     
@@ -424,13 +422,36 @@ class FreelancerLanguage(models.Model):
     def __str__(self):
         return f"{self.language} ({self.proficiency})"
 
-class Review(models.Model):
-    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='review')
-    reviewer = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='given_reviews')
-    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='received_reviews')
-    rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
-    comment = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+class RatingSummary(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='rating_summary')
+    average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
+    total_reviews = models.PositiveIntegerField(default=0)
+    
+    # Optional detailed breakdown
+    five_star_count = models.PositiveIntegerField(default=0)
+    four_star_count = models.PositiveIntegerField(default=0)
+    three_star_count = models.PositiveIntegerField(default=0)
+    two_star_count = models.PositiveIntegerField(default=0)
+    one_star_count = models.PositiveIntegerField(default=0)
+
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Review for {self.project.title} - {self.rating} stars"
+        return f"{self.user.username} - {self.average_rating} ({self.total_reviews} reviews)"
+
+class Review(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='reviews')
+    reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='given_reviews')
+    reviewee = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_reviews')
+    
+    rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
+    comment = models.TextField(blank=True)
+    feedback_tags = models.JSONField(default=list, blank=True, help_text="List of selected feedback tags")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('project', 'reviewer') # One review per project per reviewer
+
+    def __str__(self):
+        return f"Review by {self.reviewer.username} for {self.reviewee.username} - {self.rating} stars"
