@@ -5,6 +5,12 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
 
+# Phone number validator: Numbers, +, space, and - only
+phone_validator = RegexValidator(
+    regex=r'^[0-9+\- ]+$',
+    message="Phone number can only contain numbers, '+', spaces, and hyphens."
+)
+
 class SkillsForm(forms.Form):
     skills = forms.CharField(
         label="Your Skills",
@@ -33,6 +39,7 @@ class ClientRegistrationForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientRegistrationForm, self).__init__(*args, **kwargs)
+        self.fields['phone'].validators.append(phone_validator)
         self.fields['industry_type'].queryset = Industry.objects.all()
         self.fields['industry_type'].empty_label = "Select Industry"
 

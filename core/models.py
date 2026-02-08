@@ -144,6 +144,7 @@ class Freelancer(models.Model):
     # Basic profile info
     full_name = models.CharField(max_length=255, blank=True)
     tagline = models.CharField(max_length=150, blank=True, help_text="Short professional headline")
+    phone = models.CharField(max_length=20, blank=True)
     profile_image = models.ImageField(
         upload_to='freelancer_profiles/',
         default='freelancer_profiles/default_profile.png',

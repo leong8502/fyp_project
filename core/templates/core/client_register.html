@@ -90,6 +90,12 @@
     password.addEventListener('input', validatePassword);
     confirmPassword.addEventListener('input', validatePassword);
 
+    // Phone Number Validation (Numbers, +, space, and - only)
+    const phoneInput = document.getElementById('phone');
+    phoneInput.addEventListener('input', function (e) {
+        this.value = this.value.replace(/[^\d+ \-]/g, '');
+    });
+
     // Prevent submit if passwords don't match
     document.getElementById('register-form').addEventListener('submit', function (e) {
         if (password.value !== confirmPassword.value) {
