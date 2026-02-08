@@ -564,7 +564,15 @@ def client_projectCreate(request):
 @client_required
 def client_projectInfo(request, project_id):
     project = Project.objects.get(id=project_id, client=request.user.client)
-    return render(request, 'core/client_projectInfo.html', {'project': project})
+    
+    review = None
+    if project.status == 'completed':
+        review = Review.objects.filter(project=project, reviewer=request.user).first()
+        
+    return render(request, 'core/client_projectInfo.html', {
+        'project': project,
+        'review': review
+    })
 
 @client_required
 def client_projectMatches(request, project_id):
@@ -1171,6 +1179,118 @@ def api_toggle_mute(request, conversation_id):
     
     return JsonResponse({'status': 'success', 'is_muted': participant.is_muted})
 
+# Review functionality (for both client and freelancer)
+
+@login_required
+def submit_review(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    reviewer = request.user
+
+    # Identify reviewee (the other party)
+    reviewee = None
+    if hasattr(reviewer, 'client') and project.client == reviewer.client:
+        # Client reviewing Freelancer
+        if project.assigned_freelancer:
+            reviewee = project.assigned_freelancer.user
+    elif hasattr(reviewer, 'freelancer') and project.assigned_freelancer == reviewer.freelancer:
+        # Freelancer reviewing Client
+        reviewee = project.client.user
+        
+    if not reviewee:
+        messages.error(request, "You cannot review this project.")
+        return redirect('client_project')
+
+    # Check if already reviewed
+    existing_review = Review.objects.filter(project=project, reviewer=reviewer).first()
+    if existing_review:
+        messages.info(request, "You have already reviewed this project.")
+        # Redirect back to project info
+        if hasattr(reviewer, 'client'): 
+            return redirect('client_projectInfo', project_id=project.id)
+        else:
+            # waiting for freelancer page
+            return redirect('freelancer_home') 
+
+    # Determine base template
+    base_template = None
+    if hasattr(reviewer, 'client'):
+        base_template = 'core/client_master.html'
+    elif hasattr(reviewer, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+
+    form = ReviewForm()
+
+    if request.method == 'POST':
+        form = ReviewForm(request.POST)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    review = form.save(commit=False)
+                    review.project = project
+                    review.reviewer = reviewer
+                    review.reviewee = reviewee
+                    # feedback_tags handling:
+                    # If using ModelForm with JSONField, Django might handle list automatically if widget is correct,
+                    # but since we use custom checkbox list in template, we might need to explicit getlist if form doesn't catch it.
+                    # Standard Django behavior for custom list inputs might need explicit handling or widget config.
+                    # However, let's trust form.cleaned_data for now if input names match.
+                    # Actually, for JSONField and custom list checkboxes, we might need to help it.
+                    tags = request.POST.getlist('feedback_tags')
+                    review.feedback_tags = tags
+                    
+                    review.save()
+                    
+                    # 2. Update Rating Summary
+                    summary, created = RatingSummary.objects.get_or_create(user=reviewee)
+                    
+                    # Update specific star counts
+                    rating = review.rating
+                    if rating == 5: summary.five_star_count += 1
+                    elif rating == 4: summary.four_star_count += 1
+                    elif rating == 3: summary.three_star_count += 1
+                    elif rating == 2: summary.two_star_count += 1
+                    elif rating == 1: summary.one_star_count += 1
+                    
+                    # Recalculate average
+                    current_total_score = decimal.Decimal(str(summary.average_rating)) * summary.total_reviews
+                    summary.total_reviews += 1
+                    new_total_score = current_total_score + decimal.Decimal(rating)
+                    summary.average_rating = new_total_score / summary.total_reviews
+                    
+                    summary.save()
+                    
+                messages.success(request, "Review submitted successfully!")
+                
+                # Redirect based on role
+                if hasattr(reviewer, 'client'):
+                     return redirect('client_projectInfo', project_id=project.id)
+                else:
+                     return redirect('freelancer_home') # Or specific project view
+
+            except Exception as e:
+                print(e)
+                messages.error(request, f"Error submitting review: {str(e)}")
+        else:
+             for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    
+    # Define available tags based on role being reviewed
+    if hasattr(reviewee, 'freelancer'):
+        available_tags = ['High Quality Work', 'Fast Delivery', 'Great Communication', 'Skilled', 'Creative', 'Professional']
+    elif hasattr(reviewee, 'client'):
+        available_tags = ['Clear Requirements', 'Fast Payment', 'Good Communication', 'Respectful', 'Professional']
+    else:
+        available_tags = []
+
+    return render(request, 'core/review.html', {
+        'project': project,
+        'reviewee': reviewee,
+        'available_tags': available_tags,
+        'base_template': base_template,
+        'form': form 
+    })
+
 @freelancer_required
 def freelancer_profile(request):
     freelancer = request.user.freelancer
@@ -1322,7 +1442,6 @@ def freelancer_profile(request):
         'work_experiences': work_experiences,
         'certifications': certifications,
         'completed_projects': completed_projects,
-        'reviews': reviews,
         'is_owner': is_owner,
         
         'header_form': header_form,
@@ -1340,112 +1459,4 @@ def freelancer_profile(request):
         'languages': languages
     })
 
-@login_required
-def submit_review(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    reviewer = request.user
 
-    # Identify reviewee (the other party)
-    reviewee = None
-    if hasattr(reviewer, 'client') and project.client == reviewer.client:
-        # Client reviewing Freelancer
-        if project.assigned_freelancer:
-            reviewee = project.assigned_freelancer.user
-    elif hasattr(reviewer, 'freelancer') and project.assigned_freelancer == reviewer.freelancer:
-        # Freelancer reviewing Client
-        reviewee = project.client.user
-        
-    if not reviewee:
-        messages.error(request, "You cannot review this project.")
-        return redirect('home')
-
-    # Check if already reviewed
-    existing_review = Review.objects.filter(project=project, reviewer=reviewer).first()
-    if existing_review:
-        messages.info(request, "You have already reviewed this project.")
-        # Redirect to somewhere appropriate, maybe project info
-        if hasattr(reviewer, 'client'): 
-            return redirect('client_projectInfo', project_id=project.id)
-        else:
-            # Assuming freelancer has a similar view or returning to home
-            return redirect('freelancer_home') 
-
-    # Determine base template
-    base_template = 'core/base.html'
-    if hasattr(reviewer, 'client'):
-        base_template = 'core/client_master.html'
-    elif hasattr(reviewer, 'freelancer'):
-        base_template = 'core/freelancer_master.html'
-
-    form = ReviewForm()
-
-    if request.method == 'POST':
-        form = ReviewForm(request.POST)
-        if form.is_valid():
-            try:
-                with transaction.atomic():
-                    review = form.save(commit=False)
-                    review.project = project
-                    review.reviewer = reviewer
-                    review.reviewee = reviewee
-                    # feedback_tags handling:
-                    # If using ModelForm with JSONField, Django might handle list automatically if widget is correct,
-                    # but since we use custom checkbox list in template, we might need to explicit getlist if form doesn't catch it.
-                    # Standard Django behavior for custom list inputs might need explicit handling or widget config.
-                    # However, let's trust form.cleaned_data for now if input names match.
-                    # Actually, for JSONField and custom list checkboxes, we might need to help it.
-                    tags = request.POST.getlist('feedback_tags')
-                    review.feedback_tags = tags
-                    
-                    review.save()
-                    
-                    # 2. Update Rating Summary
-                    summary, created = RatingSummary.objects.get_or_create(user=reviewee)
-                    
-                    # Update specific star counts
-                    rating = review.rating
-                    if rating == 5: summary.five_star_count += 1
-                    elif rating == 4: summary.four_star_count += 1
-                    elif rating == 3: summary.three_star_count += 1
-                    elif rating == 2: summary.two_star_count += 1
-                    elif rating == 1: summary.one_star_count += 1
-                    
-                    # Recalculate average
-                    current_total_score = decimal.Decimal(str(summary.average_rating)) * summary.total_reviews
-                    summary.total_reviews += 1
-                    new_total_score = current_total_score + decimal.Decimal(rating)
-                    summary.average_rating = new_total_score / summary.total_reviews
-                    
-                    summary.save()
-                    
-                messages.success(request, "Review submitted successfully!")
-                
-                # Redirect based on role
-                if hasattr(reviewer, 'client'):
-                     return redirect('client_projectInfo', project_id=project.id)
-                else:
-                     return redirect('freelancer_home') # Or specific project view
-
-            except Exception as e:
-                print(e)
-                messages.error(request, f"Error submitting review: {str(e)}")
-        else:
-             for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-    
-    # Define available tags based on role being reviewed
-    if hasattr(reviewee, 'freelancer'):
-        available_tags = ['High Quality Work', 'Fast Delivery', 'Great Communication', 'Skilled', 'Creative', 'Professional']
-    elif hasattr(reviewee, 'client'):
-        available_tags = ['Clear Requirements', 'Fast Payment', 'Good Communication', 'Respectful', 'Professional']
-    else:
-        available_tags = []
-
-    return render(request, 'core/review.html', {
-        'project': project,
-        'reviewee': reviewee,
-        'available_tags': available_tags,
-        'base_template': base_template,
-        'form': form 
-    })

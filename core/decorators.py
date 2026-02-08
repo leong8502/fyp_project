@@ -5,8 +5,10 @@ def freelancer_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('login')
+        if hasattr(request.user, 'client'):
+            return redirect('client_home')
         if not hasattr(request.user, 'freelancer'):
-            return HttpResponseForbidden("Freelancer access only")
+            return redirect('home')
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -14,8 +16,10 @@ def client_required(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect('login')
+        if hasattr(request.user, 'freelancer'):
+            return redirect('freelancer_home')
         if not hasattr(request.user, 'client'):
-            return HttpResponseForbidden("Client access only")
+            return redirect('home')
         return view_func(request, *args, **kwargs)
     return wrapper
 

@@ -71,8 +71,7 @@
             {% if project.milestones.exists %}
             <ul class="milestones">
                 {% for milestone in project.milestones.all %}
-                <li
-                    class="milestone-item {% if milestone.status == 'approved' or milestone.status == 'paid' %}milestone-paid{% endif %}">
+                <li class="milestone-item milestone-{{ milestone.status }}">
                     <div class="ms-header">
                         <span class="ms-title">{{ milestone.title }}</span>
                         <span class="ms-amount">${{ milestone.amount|floatformat:0 }}</span>
@@ -105,6 +104,62 @@
             {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Recent Activity / Messages</h2>
             <p style="color: #888; font-style: italic;">No recent activity.</p>
+            {% endif %}
+
+            {% if project.status == 'completed' %}
+            <div style="margin-top: 30px;">
+                <h2>Review</h2>
+                {% if review %}
+                <div class="review-card">
+                    <div class="review-header">
+                        <div class="reviewer-info">
+                            {% if review.reviewer.client.profile_image %}
+                            <img src="{{ review.reviewer.client.profile_image.url }}" alt="Client Profile"
+                                class="reviewer-avatar">
+                            {% else %}
+                            <img src="{% static 'core/images/default_profile.png' %}" alt="Default Profile"
+                                class="reviewer-avatar">
+                            {% endif %}
+                            <div class="reviewer-details">
+                                <h4>{{ review.reviewer.client.company_name|default:review.reviewer.username }}</h4>
+                                <p>{{ review.reviewer.client.tagline|default:"" }}</p>
+                            </div>
+                        </div>
+                        <div class="review-meta">
+                            <div class="review-stars">
+                                {% with ''|center:5 as range %}
+                                {% for _ in range %}
+                                {% if forloop.counter <= review.rating %} <i class="fas fa-star"></i>
+                                    {% else %}
+                                    <i class="far fa-star"></i>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% endwith %}
+                            </div>
+                            <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+
+                    {% if review.comment %}
+                    <p class="review-comment">{{ review.comment }}</p>
+                    {% endif %}
+
+                    {% if review.feedback_tags %}
+                    <div class="review-tags">
+                        {% for tag in review.feedback_tags %}
+                        <span class="review-tag">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                </div>
+                {% else %}
+                <div class="no-review-box">
+                    <p class="no-review-text">You haven't given any review yet.</p>
+                    <a href="{% url 'submit_review' project.id %}">Rate Freelancer</a>
+                </div>
+                {% endif %}
+            </div>
             {% endif %}
         </div>
 
@@ -142,7 +197,7 @@
 
             {% elif project.status == 'completed' %}
             <!-- Completed: Rate -->
-	    <a href="{% url 'submit_review' project.id %}" style="text-decoration:none; color:white;"><button
+            <a href="{% url 'submit_review' project.id %}" style="text-decoration:none; color:white;"><button
                     class="btn-primary">Rate Freelancer</button></a>
             <button class="btn-secondary">View Invoice</button>
 

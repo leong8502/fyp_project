@@ -104,7 +104,7 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
-.milestone-paid {
+.milestone-approved {
     border-left-color: #28a745;
     background: #f0fff4;
 }
@@ -172,8 +172,7 @@
     color: #17a2b8;
 }
 
-.status-approved,
-.status-paid {
+.status-approved {
     color: #28a745;
 }
 
@@ -222,4 +221,127 @@
         align-items: flex-start;
         gap: 15px;
     }
+}
+
+/* Review Section */
+.review-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.reviewer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.reviewer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.reviewer-details h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+}
+
+.reviewer-details p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.review-meta {
+    text-align: right;
+}
+
+.review-stars {
+    color: #ffc107;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.review-score {
+    color: #333;
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.review-date {
+    display: block;
+    color: #888;
+    font-size: 12px;
+}
+
+.review-tags {
+    margin: 15px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.review-tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: inline-block;
+}
+
+.review-comment {
+    line-height: 1.6;
+    margin: 0;
+    font-size: 15px;
+    padding-top: 15px;
+}
+
+.no-review-box {
+    text-align: center;
+    padding: 30px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #ccc;
+}
+
+.no-review-text {
+    color: #666;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+/* Milestone Status Variants */
+.milestone-pending {
+    border-left-color: #6c757d;
+    background: #f8f9fa;
+}
+
+.milestone-in_progress {
+    border-left-color: #007bff;
+    background: #eef7ff;
+}
+
+.milestone-completed {
+    border-left-color: #17a2b8;
+    background: #e0faff;
+}
+
+.milestone-cancelled {
+    border-left-color: #dc3545;
+    background: #fff5f5;
 }
