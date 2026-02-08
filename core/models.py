@@ -1,4 +1,5 @@
 from django.db import models
+from pgvector.django import VectorField
 from django.contrib.auth.models import User
 from django.utils import timezone
 
@@ -49,6 +50,18 @@ class Client(models.Model):
             return [tag.strip() for tag in self.tags.split(',') if tag.strip()]
         return []
 
+    @property
+    def average_rating(self):
+        if hasattr(self.user, 'rating_summary'):
+            return self.user.rating_summary.average_rating
+        return 0.0
+
+    @property
+    def total_reviews(self):
+        if hasattr(self.user, 'rating_summary'):
+             return self.user.rating_summary.total_reviews
+        return 0
+
     def __str__(self):
         return self.company_name or self.user.email
 
@@ -97,12 +110,12 @@ class Project(models.Model):
     preferred_language = models.CharField(max_length=100, blank=True)
     
     # AI Matching Fields
-    project_embedding = models.JSONField(null=True, blank=True, help_text="Vector embedding of the project description for AI matching")
+    project_embedding = VectorField(dimensions=384, null=True, blank=True, help_text="Vector embedding of the project description for AI matching")
     ai_match_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True, help_text="AI calculated match score (0.0 to 1.0) for the assigned freelancer")
     extracted_keywords = models.JSONField(null=True, blank=True, help_text="Keywords extracted by AI for fast filtering")
     
     assigned_freelancer = models.ForeignKey('Freelancer', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_projects')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='inactive')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
 
@@ -193,7 +206,7 @@ class Freelancer(models.Model):
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True)
     # AI Matching
-    freelancer_embedding = models.JSONField(null=True, blank=True)
+    freelancer_embedding = VectorField(dimensions=384, null=True, blank=True)
     extracted_keywords = models.JSONField(null=True, blank=True)
     last_active = models.DateTimeField(default=timezone.now)
 
@@ -279,7 +292,7 @@ class Transaction(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     description = models.TextField(blank=True)
-    reference_id = models.CharField(max_length=255, blank=True, unique=True, help_text="External Transaction ID")
+    reference_id = models.CharField(max_length=255, blank=True, null=True, unique=True, help_text="External Transaction ID")
     related_project = models.ForeignKey('Project', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', help_text="Link to Project if applicable")
     related_milestone = models.ForeignKey('Milestone', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions', help_text="Link to Milestone if applicable")
     created_at = models.DateTimeField(auto_now_add=True)

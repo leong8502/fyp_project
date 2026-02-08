@@ -29,7 +29,7 @@
                     </span>
                     <span
                         style="font-size: 13px; background: #fff8e1; color: #f57f17; padding: 2px 8px; border-radius: 10px; margin-left: 5px;">
-                        {{ match.freelancer.average_rating|default:"0.0" }} ★
+                        {{ match.freelancer.user.rating_summary.average_rating|default:"0.0" }} ★
                     </span>
                 </div>
             </div>

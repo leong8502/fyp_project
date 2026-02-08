@@ -212,7 +212,7 @@ def client_search(request):
 
     # Start with all freelancers
     from django.db.models import Q
-    freelancers = Freelancer.objects.all()
+    freelancers = Freelancer.objects.select_related('user__rating_summary').all()
 
     # 1. Search Query (Multi-term support)
     if query:
@@ -229,7 +229,7 @@ def client_search(request):
     if rating_filter:
         try:
             min_rating = float(rating_filter)
-            freelancers = freelancers.filter(average_rating__gte=min_rating)
+            freelancers = freelancers.filter(user__rating_summary__average_rating__gte=min_rating)
         except ValueError:
             pass
             
@@ -585,7 +585,7 @@ def client_projectMatches(request, project_id):
          # Redirect to base path to clean url
          return redirect('client_projectMatches', project_id=project.id)
 
-    matches = project.matches.select_related('freelancer').all()
+    matches = project.matches.select_related('freelancer__user__rating_summary').all()
     
     # If no matches exist and status is open, try running once automatically
     if not matches.exists() and project.status == 'open':

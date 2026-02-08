@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'channels',  # Django Channels for WebSocket
+    'pgvector',
     'core',
 ]
 

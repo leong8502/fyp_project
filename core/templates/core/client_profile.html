@@ -30,7 +30,7 @@
         </h1>
         <p class="tagline">{{ user.client.tagline|default:'' }}</p>
     </div>
-    <div class="rating">★ {{ user.client.rating }} (127 reviews)</div> <!-- review haven't done -->
+    <div class="rating">★ {{ user.client.average_rating|default:"0.0" }} ({{ user.client.total_reviews }} reviews)</div>
 </div>
 
 <section class="content">

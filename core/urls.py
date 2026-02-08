@@ -52,7 +52,7 @@ urlpatterns = [
     path('client/about-us/', views.client_about, name='client_about'),
     
     # Chat API
-    path('chat/', views.chat_view, name='client_chat'),
+    path('chat/', views.chat_view, name='chat'),
     path('chat/start/<int:user_id>/', views.start_chat, name='start_chat'),
     path('api/chat/conversations/', views.api_get_conversations, name='api_get_conversations'),
     path('api/chat/messages/<int:conversation_id>/', views.api_get_messages, name='api_get_messages'),

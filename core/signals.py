@@ -1,9 +1,10 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Project, Freelancer
+from .models import Project, Freelancer, Milestone, FreelancerWorkExperience, FreelancerLanguage, Review
 from .ai_matching import MatchEngine
 from django.utils import timezone
 import logging
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +12,6 @@ logger = logging.getLogger(__name__)
 def trigger_project_matching(sender, instance, created, **kwargs):
     # Only run matching if project is published/open
     if instance.status == 'open':
-        # Check if we need to run matching
-        # If created or just turned to open, or if critical fields changed
-        # For simplicity, we run if it's open. 
-        # In production, check for field changes to avoid re-running on trivial edits.
-        
-        # We need to make sure we don't recurse infinitely if we save the project inside matching
-        # MatchEngine updates 'project_embedding' -> save() -> signal -> loop
-        # But MatchEngine uses update_fields=['project_embedding'] which might still trigger signals 
-        # depending on how it's called.
-        # Alternatively, MatchEngine.compute_matches handles the saving safely?
-        # Let's ensure MatchEngine only saves specific fields and we can check here.
-        
         # Basic debounce: if update_fields contains 'project_embedding', skip
         if kwargs.get('update_fields') and 'project_embedding' in kwargs['update_fields']:
             return
@@ -31,6 +20,30 @@ def trigger_project_matching(sender, instance, created, **kwargs):
         engine = MatchEngine()
         engine.compute_matches(instance.id)
 
+@receiver(post_save, sender=Milestone)
+@receiver(post_delete, sender=Milestone)
+def trigger_project_matching_milestone(sender, instance, **kwargs):
+    # Avoid matching during cascade deletes
+    # Check if 'delete' is in the call stack
+    for frame in inspect.stack():
+        if 'delete' in frame.function:
+            return
+
+    # When milestone changes, update project embedding and re-match
+    try:
+        project = instance.project
+    except Project.DoesNotExist:
+        return # Project already gone
+        
+    if project.status == 'open':
+        logger.info(f"Triggering matching for Project {project.id} (Milestone change)")
+        engine = MatchEngine()
+        try:
+            # compute_matches refetches project and regenerates embedding via generate_project_corpus
+            engine.compute_matches(project.id)
+        except Exception as e:
+            logger.warning(f"Error matching Project {project.id} (Milestone change): {e}")
+
 @receiver(post_save, sender=Freelancer)
 def update_freelancer_embedding(sender, instance, created, **kwargs):
     # Avoid recursion
@@ -38,13 +51,10 @@ def update_freelancer_embedding(sender, instance, created, **kwargs):
         return
 
     # Check if text fields updated
-    # Ideally compare with old instance, but post_save doesn't have old instance easily
-    # We'll just run it. It's not too expensive for one user save.
-    
     logger.info(f"Updating embedding for Freelancer {instance.id}")
     engine = MatchEngine()
     
-    text_corpus = f"{instance.tagline} {instance.bio} {instance.skills}"
+    text_corpus = engine.generate_freelancer_corpus(instance)
     embedding = engine.generate_embedding(text_corpus)
     keywords = engine.extract_keywords(text_corpus)
     
@@ -54,3 +64,21 @@ def update_freelancer_embedding(sender, instance, created, **kwargs):
         extracted_keywords=keywords,
         last_active=timezone.now()
     )
+
+@receiver(post_save, sender=FreelancerWorkExperience)
+@receiver(post_delete, sender=FreelancerWorkExperience)
+@receiver(post_save, sender=FreelancerLanguage)
+@receiver(post_delete, sender=FreelancerLanguage)
+def trigger_freelancer_update_related(sender, instance, **kwargs):
+    # When exp or lang changes, update freelancer embedding
+    freelancer = instance.freelancer
+    # Call the main handler
+    update_freelancer_embedding(sender=Freelancer, instance=freelancer, created=False)
+
+
+@receiver(post_save, sender=Review)
+def trigger_freelancer_update_review(sender, instance, created, **kwargs):
+    # If the reviewee is a freelancer, update their embedding (to include review text)
+    # Check if reviewee has freelancer profile
+    if hasattr(instance.reviewee, 'freelancer'):
+        update_freelancer_embedding(sender=Freelancer, instance=instance.reviewee.freelancer, created=False)

@@ -75,7 +75,8 @@
             <form class="main-search-form" action="{% url 'client_search' %}" method="GET">
                 <div class="search-input-wrapper">
                     <span class="search-icon">🔍</span>
-                    <input type="text" name="q" class="main-search-input" placeholder="Search for skills (e.g., Python, React) or names..." value="{{ query }}">
+                    <input type="text" name="q" class="main-search-input"
+                        placeholder="Search for skills (e.g., Python, React) or names..." value="{{ query }}">
                 </div>
                 <button type="submit" class="search-btn">Search</button>
             </form>
@@ -94,12 +95,13 @@
                 <!-- Left: Profile Image & Rating -->
                 <div class="card-profile">
                     <div class="profile-img-wrapper">
-                        <img src="{% if freelancer.profile_image %}{{ freelancer.profile_image.url }}{% else %}{% static 'core/images/default_profile.png' %}{% endif %}" alt="{{ freelancer.full_name }}" class="profile-img">
+                        <img src="{% if freelancer.profile_image %}{{ freelancer.profile_image.url }}{% else %}{% static 'core/images/default_profile.png' %}{% endif %}"
+                            alt="{{ freelancer.full_name }}" class="profile-img">
                         <!-- Mock online status logic or real if available -->
                         <div class="online-status" title="Online"></div>
                     </div>
                     <div class="card-rating">
-                        ★ {{ freelancer.average_rating|default:"0.0" }}
+                        ★ {{ freelancer.user.rating_summary.average_rating|default:"0.0" }}
                         <span class="rating-count">({{ freelancer.total_jobs_completed }} jobs)</span>
                     </div>
                 </div>
