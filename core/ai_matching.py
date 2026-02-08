@@ -161,8 +161,8 @@ class MatchEngine:
         
         # Clamp sim_score
         sim_score = max(0.0, min(sim_score, 1.0))
-        if sim_score > 0.6:
-            reasons.append(f"Strong semantic match ({int(sim_score*100)}%)")
+        if sim_score > 0.8:
+            reasons.append("<strong>Context Match:</strong> Profile description strongly aligns with your project goals.")
 
         # 2. Skill Overlap (20%)
         # Explicit check of required skills vs freelancer skills
@@ -174,10 +174,13 @@ class MatchEngine:
             if req_skills:
                 overlap = req_skills.intersection(free_skills)
                 skill_score = len(overlap) / len(req_skills)
-                if skill_score > 0.5:
-                    reasons.append(f"high skill overlap ({len(overlap)}/{len(req_skills)} skills)")
-                elif skill_score > 0:
-                     reasons.append(f"Matches {len(overlap)} required skills")
+                
+                if overlap:
+                    # Format standard capitalized skills for display
+                    # We can try to find original casing from freelancer.skills if possible, or just capitalize
+                    display_skills = [s.title() for s in overlap]
+                    skill_str = ", ".join(display_skills[:3]) # Limit to 3
+                    reasons.append(f"<strong>Skills Match:</strong> Freelancer has strong experience in {skill_str}, which are key requirements of your project.")
 
         # 3. Experience Match (10%)
         exp_score = 0.0
@@ -189,9 +192,12 @@ class MatchEngine:
             
         if freelancer.experience_years >= req_years:
             exp_score = 1.0
-            reasons.append(f"Exceeds experience requirement ({freelancer.experience_years} years)")
+            # Only show reason if they meet the requirement effectively to avoid "0 years" weirdness for entry level
+            if freelancer.experience_years > 0:
+                 reasons.append(f"<strong>Relevant Experience:</strong> {freelancer.experience_years} years of professional experience.")
         else:
             exp_score = 0.5 # Partial credit
+            # Do NOT show reason if under-qualified or 0 years
             
         # 4. Reputation (10%)
         rep_score = 0.0
@@ -206,35 +212,34 @@ class MatchEngine:
         if avg_rating:
             rep_score = avg_rating / 5.0
             if avg_rating >= 4.5:
-                 reasons.append(f"Top-rated freelancer ({avg_rating} ⭐)")
+                 reasons.append(f"<strong>Proven Track Record:</strong> Consistently high ratings ({avg_rating} ⭐) highlight reliability and quality delivery.")
 
         # 5. Language Match (5%)
         lang_score = 0.0
+        lang_match_text = ""
         if project.preferred_language:
             pref_lang = project.preferred_language.lower().strip()
             # Check freelancer languages
-            # Optimization: could preload languages, but for 50 candidates it's okay-ish given we need accuracy
-            # A better way is to pass annotated data, but let's query for now or rely on text corpus if strictly semantic.
-            # Ideally we check the Relation. For now, let's look at the 'languages' text logic if we had it, 
-            # OR check the ManyToMany relation.
-            # Since we have freelancer object, let's use the relation if available, else skip.
-             
-            # Using the related manager
-            has_lang = freelancer.languages.filter(language__icontains=pref_lang).exists()
-            if has_lang:
+            if freelancer.languages.filter(language__icontains=pref_lang).exists():
                 lang_score = 1.0
-                reasons.append(f"Speaks {project.preferred_language}")
+                lang_match_text = f", and is proficient in {project.preferred_language}"
 
         # 6. Availability (5%)
         avail_score = 0.0
         if freelancer.availability_status == 'full_time':
             avail_score = 1.0
+            reasons.append(f"<strong>Availability:</strong> Freelancer matches for full-time work{lang_match_text}, ensuring your project timeline is met.")
         elif freelancer.availability_status == 'part_time':
             avail_score = 0.7
+            if lang_match_text:
+                reasons.append(f"<strong>Language Match:</strong> Freelancer is proficient in {project.preferred_language}.")
         elif freelancer.availability_status == 'contract':
             avail_score = 0.9
+            reasons.append(f"<strong>Availability:</strong> Freelancer available for contract work{lang_match_text}.")
         else:
             avail_score = 0.3
+            if lang_match_text:
+                reasons.append(f"<strong>Language Match:</strong> Freelancer is proficient in {project.preferred_language}.")
             
         avail_score = min(avail_score, 1.0)
         

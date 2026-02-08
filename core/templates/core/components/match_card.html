@@ -47,7 +47,7 @@
             <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #555;">
                 {% if match.score_breakdown.reasons %}
                 {% for reason in match.score_breakdown.reasons %}
-                <li>{{ reason }}</li>
+                <li>{{ reason|safe }}</li>
                 {% endfor %}
                 {% else %}
                 <!-- Fallback if no specific reasons found -->
