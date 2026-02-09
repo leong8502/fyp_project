@@ -109,11 +109,6 @@ class Project(models.Model):
     year_of_experience = models.PositiveIntegerField(default=0)
     preferred_language = models.CharField(max_length=100, blank=True)
     
-    # AI Matching Fields
-    project_embedding = VectorField(dimensions=384, null=True, blank=True, help_text="Vector embedding of the project description for AI matching")
-    ai_match_score = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True, help_text="AI calculated match score (0.0 to 1.0) for the assigned freelancer")
-    extracted_keywords = models.JSONField(null=True, blank=True, help_text="Keywords extracted by AI for fast filtering")
-    
     assigned_freelancer = models.ForeignKey('Freelancer', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -205,9 +200,6 @@ class Freelancer(models.Model):
     # Verification & timestamps
     is_email_verified = models.BooleanField(default=False)
     email_verification_token = models.CharField(max_length=100, blank=True)
-    # AI Matching
-    freelancer_embedding = VectorField(dimensions=384, null=True, blank=True)
-    extracted_keywords = models.JSONField(null=True, blank=True)
     last_active = models.DateTimeField(default=timezone.now)
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -469,3 +461,74 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.reviewer.username} for {self.reviewee.username} - {self.rating} stars"
+
+class FreelancerAIProfile(models.Model):
+    """
+    AI-generated profile for freelancers.
+    Stores aggregated, AI-processed data for matching and recommendations.
+    """
+    freelancer = models.OneToOneField(Freelancer, on_delete=models.CASCADE, related_name='ai_profile')
+    
+    # AI-generated summaries
+    professional_summary = models.TextField(blank=True, help_text="AI-generated summary of freelancer's profile")
+    strengths = models.JSONField(default=list, blank=True, help_text="List of key strengths")
+    weaknesses = models.JSONField(default=list, blank=True, help_text="List of areas for improvement")
+    
+    # Extracted expertise
+    top_skills = models.JSONField(default=list, blank=True, help_text="Top skills extracted from profile")
+    domain_expertise = models.JSONField(default=list, blank=True, help_text="Domain/industry expertise areas")
+    
+    # Cached metrics
+    avg_rating = models.FloatField(default=0.0, help_text="Cached average rating")
+    reliability_score = models.FloatField(default=0.0, help_text="Calculated reliability metric (0.0-1.0)")
+    
+    # AI matching
+    semantic_embedding = VectorField(dimensions=384, null=True, blank=True, help_text="Vector embedding for semantic matching")
+    extracted_keywords = models.JSONField(default=list, blank=True, help_text="Keywords extracted for fast filtering")
+    
+    # Metadata
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"AI Profile for {self.freelancer.full_name or self.freelancer.user.username}"
+    
+    class Meta:
+        verbose_name = "Freelancer AI Profile"
+        verbose_name_plural = "Freelancer AI Profiles"
+
+class ProjectAIProfile(models.Model):
+    """
+    AI-generated profile for projects.
+    Stores aggregated, AI-processed data for matching freelancers.
+    """
+    COMPLEXITY_CHOICES = [
+        ('simple', 'Simple'),
+        ('moderate', 'Moderate'),
+        ('complex', 'Complex'),
+    ]
+    
+    project = models.OneToOneField(Project, on_delete=models.CASCADE, related_name='ai_profile')
+    
+    # AI-generated analysis
+    summary_text = models.TextField(blank=True, help_text="AI-generated project summary")
+    complexity_level = models.CharField(max_length=20, choices=COMPLEXITY_CHOICES, default='moderate', help_text="Assessed complexity level")
+    required_expertise = models.JSONField(default=list, blank=True, help_text="List of required expertise areas")
+    estimated_duration = models.PositiveIntegerField(null=True, blank=True, help_text="AI-estimated duration in days")
+    risk_factors = models.JSONField(default=list, blank=True, help_text="Potential project risks identified by AI")
+    
+    # AI matching
+    semantic_embedding = VectorField(dimensions=384, null=True, blank=True, help_text="Vector embedding for semantic matching")
+    extracted_keywords = models.JSONField(default=list, blank=True, help_text="Keywords extracted for fast filtering")
+    
+    # Metadata
+    last_updated = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"AI Profile for {self.project.title}"
+    
+    class Meta:
+        verbose_name = "Project AI Profile"
+        verbose_name_plural = "Project AI Profiles"
+

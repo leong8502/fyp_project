@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import Project, Freelancer, Milestone, FreelancerWorkExperience, FreelancerLanguage, Review
+from .models import Project, Freelancer, Milestone, FreelancerWorkExperience, FreelancerLanguage, Review, FreelancerAIProfile, ProjectAIProfile
 from .ai_matching import MatchEngine
 from django.utils import timezone
 import logging
@@ -12,10 +12,6 @@ logger = logging.getLogger(__name__)
 def trigger_project_matching(sender, instance, created, **kwargs):
     # Only run matching if project is published/open
     if instance.status == 'open':
-        # Basic debounce: if update_fields contains 'project_embedding', skip
-        if kwargs.get('update_fields') and 'project_embedding' in kwargs['update_fields']:
-            return
-
         logger.info(f"Triggering matching for Project {instance.id}")
         engine = MatchEngine()
         engine.compute_matches(instance.id)
@@ -46,24 +42,13 @@ def trigger_project_matching_milestone(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Freelancer)
 def update_freelancer_embedding(sender, instance, created, **kwargs):
-    # Avoid recursion
-    if kwargs.get('update_fields') and 'freelancer_embedding' in kwargs['update_fields']:
-        return
-
-    # Check if text fields updated
-    logger.info(f"Updating embedding for Freelancer {instance.id}")
+    # Avoid recursion - AI profile updates are handled separately
+    # This signal now generates the AI profile
+    logger.info(f"Generating AI profile for Freelancer {instance.id}")
     engine = MatchEngine()
     
-    text_corpus = engine.generate_freelancer_corpus(instance)
-    embedding = engine.generate_embedding(text_corpus)
-    keywords = engine.extract_keywords(text_corpus)
-    
-    # Update without triggering signal loop
-    Freelancer.objects.filter(id=instance.id).update(
-        freelancer_embedding=embedding,
-        extracted_keywords=keywords,
-        last_active=timezone.now()
-    )
+    # Generate AI profile (includes embedding, keywords, metrics)
+    engine.generate_freelancer_ai_profile(instance)
 
 @receiver(post_save, sender=FreelancerWorkExperience)
 @receiver(post_delete, sender=FreelancerWorkExperience)
