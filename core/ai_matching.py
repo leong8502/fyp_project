@@ -59,10 +59,15 @@ class MatchEngine:
         """
         corpus = [freelancer.tagline, freelancer.bio, freelancer.skills]
         
-        # Add Work Experience
+        # Add Work Experience (External)
         for exp in freelancer.work_experiences.all():
             corpus.append(f"{exp.job_title} at {exp.company}")
             corpus.append(exp.description)
+            
+        # Add Platform Experience (Completed Projects)
+        for project in freelancer.assigned_projects.filter(status='completed'):
+            corpus.append(f"Completed Project on Platform: {project.title}")
+            corpus.append(project.description)
             
         # Add Languages
         for lang in freelancer.languages.all():
@@ -545,6 +550,18 @@ class MatchEngine:
                 reasons.append(f"<strong>Experienced Professional:</strong> Solid 4+ star history across {total_reviews} reviews shows stable and dependable performance.")
             elif avg_rating >= 4.0:
                 reasons.append(f"<strong>Positive Feedback:</strong> Good ratings ({avg_rating} ⭐) from recent clients highlight quality output.")
+
+        # 4b. Platform History (Deep Integration)
+        # Check for similar completed projects in the same category
+        if project.category:
+            similar_completed_count = freelancer.assigned_projects.filter(
+                status='completed', 
+                category=project.category
+            ).count()
+            
+            if similar_completed_count > 0:
+                category_name = project.category.name
+                reasons.append(f"<strong>Proven Expert:</strong> Successfully completed {similar_completed_count} similar project(s) on our platform in the {category_name} category.")
 
 
         # 5. Language Match (5%)
