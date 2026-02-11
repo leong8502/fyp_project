@@ -26,6 +26,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
 from django.utils import timezone
+from .ai_utils import AISearchManager, get_recommendations
 
 # Create your views here.
 # Auth part
@@ -871,7 +872,42 @@ def match_jobs(request):
 
 @freelancer_required
 def freelancer_home(request):
-    return render(request, 'core/freelancer_home.html')
+    freelancer = request.user.freelancer
+    recommendations = get_recommendations(freelancer, limit=4)
+    
+    context = {
+        'recommendations': recommendations
+    }
+    return render(request, 'core/freelancer_home.html', context)
+
+@freelancer_required
+def freelancer_search_job(request):
+    query = request.GET.get('q', '').strip()
+    freelancer = request.user.freelancer
+    
+    # Get all open projects
+    projects = list(Project.objects.filter(status='open'))
+    
+    manager = AISearchManager()
+    
+    # Calculate scores based on query and/or freelancer skills
+    scored_projects = manager.calculate_match_scores(projects, freelancer=freelancer, query=query)
+    
+    # Sort by score descending
+    scored_projects.sort(key=lambda x: x[1], reverse=True)
+    
+    # Pre-process skills for template
+    for project, score in scored_projects:
+        if project.required_skills:
+            project.skills_list = [s.strip() for s in project.required_skills.split(',') if s.strip()]
+        else:
+            project.skills_list = []
+    
+    context = {
+        'query': query,
+        'scored_projects': scored_projects,
+    }
+    return render(request, 'core/freelancer_searchJob.html', context)
 
 
 # Chat Functionality (for both client and freelancer)

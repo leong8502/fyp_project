@@ -1,0 +1,135 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}Search Jobs - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-page-container">
+    <!-- Sidebar Filters -->
+    <aside class="search-sidebar">
+        <div class="filter-card">
+            <h3 class="filter-title">Apply some filter</h3>
+
+            <div class="filter-group">
+                <label class="filter-label">Experience Level</label>
+                <div class="filter-option">
+                    <input type="checkbox" id="entry"> <label for="entry">Entry Level</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="intermediate"> <label for="intermediate">Intermediate</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="expert"> <label for="expert">Expert</label>
+                </div>
+            </div>
+
+            <div class="filter-group">
+                <label class="filter-label">Category</label>
+                <div class="filter-option">
+                    <input type="checkbox" id="web"> <label for="web">Web Development</label>
+                </div>
+                <div class="filter-option">
+                    <input type="checkbox" id="design"> <label for="design">Graphic Design</label>
+                </div>
+            </div>
+
+            <button class="apply-filters-btn">Apply Filters</button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="search-main">
+        <div class="search-box-container">
+            <form method="get" action="{% url 'freelancer_search_job' %}" class="main-search-bar">
+                <input type="text" name="q" value="{{ query }}" placeholder="Search bar" class="main-search-input">
+                <button type="submit" class="main-search-btn"><i class="fas fa-search"></i></button>
+            </form>
+        </div>
+
+        <div class="results-container">
+            <p class="results-count">Found {{ scored_projects|length }} projects for "{{ query }}"</p>
+
+            {% for project, score in scored_projects %}
+            <div class="job-item-card" id="project-{{ project.id }}">
+                <div class="job-item-header">
+                    <div class="client-info">
+                        {% if project.client.profile_image %}
+                        <img src="{{ project.client.profile_image.url }}" alt="Company Logo" class="company-logo">
+                        {% else %}
+                        <img src="{% static 'core/images/default_profile.png' %}" alt="Company Logo"
+                            class="company-logo">
+                        {% endif %}
+                        <div class="company-details">
+                            <h4 class="company-name">{{ project.client.company_name }}</h4>
+                            <span class="match-percentage">{{ score }}% Match</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="job-summary">
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    <p class="project-description">{{ project.description }}</p>
+
+                    <div class="skills-tags">
+                        {% for skill in project.skills_list %}
+                        <span class="skill-tag">{{ skill|title }}</span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Hidden expanded details -->
+                    <div class="project-extra-details" id="details-{{ project.id }}" style="display: none;">
+                        <hr>
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <label>Deadline:</label>
+                                <span>{{ project.deadline|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Experience Level:</label>
+                                <span>{{ project.get_experience_level_display }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Preferred Language:</label>
+                                <span>{{ project.preferred_language|default:"Not specified" }}</span>
+                            </div>
+                            <div class="detail-item">
+                                <label>Published at:</label>
+                                <span>{{ project.published_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="job-item-footer">
+                    <button class="toggle-details-btn" onclick="toggleDetails({{ project.id }}, this)">View
+                        Details</button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="no-results">
+                <p>No projects found matching your search.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </main>
+</div>
+
+<script>
+    function toggleDetails(projectId, btn) {
+        const details = document.getElementById('details-' + projectId);
+        if (details.style.display === 'none') {
+            details.style.display = 'block';
+            btn.textContent = 'Show less';
+            btn.classList.add('active');
+        } else {
+            details.style.display = 'none';
+            btn.textContent = 'View Details';
+            btn.classList.remove('active');
+        }
+    }
+</script>
+{% endblock %}

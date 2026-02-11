@@ -7,21 +7,53 @@
 <link rel="stylesheet" href="{% static 'core/css/freelancer_home.css' %}">
 
 <section class="hero-section">
-    <div class="hero-background"></div>
     <div class="hero-content">
-        <h1 class="hero-title">Find the Perfect<br>Job Opportunity</h1>
+        <h1 class="hero-title">Startup your freelance at here</h1>
         <p class="hero-subtitle">
-            Discover AI-matched projects from clients worldwide.
-            Showcase your skills and get hired for work that fits you perfectly.
+            Do you think you have a lot of potential? Why not give it a try!<br>
+            Find the perfect freelance career for you in the vast ocean of opportunities.
         </p>
-        <form method="post" action="{% url 'match_jobs' %}" class="search-bar">
-            {% csrf_token %}
-            <input type="text" name="skills" class="search-input"
-                placeholder="Enter your skills (e.g., Python, Django, AI, BERT)" required>
-            <button type="submit" class="search-button">Search Jobs →</button>
-        </form>
+        <div class="search-container">
+            <form method="get" action="{% url 'freelancer_search_job' %}" class="search-bar">
+                <input type="text" name="q" id="search-input" class="search-input"
+                    placeholder="Find your next project..." required>
+                <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+            </form>
+            <div class="quick-actions">
+                <button type="button" class="action-btn" onclick="setSearch('Web Development')">Web Development</button>
+                <button type="button" class="action-btn" onclick="setSearch('Software Development')">Software
+                    Development</button>
+                <button type="button" class="action-btn" onclick="setSearch('Video Editing')">Video Editing</button>
+            </div>
+        </div>
     </div>
-
-    <img src="{% static 'core/images/freelancer_img.jpg' %}" alt="Freelancer working remotely" class="hero-image">
 </section>
+
+<section class="recommendations-section">
+    <div class="container">
+        <h2 class="section-title">Recommendations</h2>
+        <div class="recommendations-grid">
+            {% for project, score in recommendations %}
+            <div class="job-card">
+                <div class="match-badge">{{ score }}% Match</div>
+                <h3 class="job-title">{{ project.title }}</h3>
+                <div class="job-meta">
+                    <span class="budget">Budget: RM{{ project.budget }}</span>
+                    <span class="experience">Level: {{ project.get_experience_level_display }}</span>
+                </div>
+                <p class="job-description">{{ project.description|truncatewords:20 }}</p>
+                <a href="{% url 'freelancer_search_job' %}?q={{ project.title }}" class="view-btn">View Details</a>
+            </div>
+            {% empty %}
+            <p class="no-data">No recommendations available at the moment.</p>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<script>
+    function setSearch(value) {
+        document.getElementById('search-input').value = value;
+    }
+</script>
 {% endblock %}

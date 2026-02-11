@@ -66,4 +66,5 @@ urlpatterns = [
     # freelancer part
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
     path('freelancer/profile/', views.freelancer_profile, name='freelancer_profile'),
+    path('freelancer/search-job/', views.freelancer_search_job, name='freelancer_search_job'),
 ]

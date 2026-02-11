@@ -1,0 +1,234 @@
+.search-page-container {
+    display: flex;
+    max-width: 1400px;
+    margin: 40px auto;
+    gap: 30px;
+    padding: 0 20px;
+}
+
+/* Sidebar Styling */
+.search-sidebar {
+    flex: 0 0 300px;
+}
+
+.filter-card {
+    background: white;
+    border: 2px solid #333;
+    /* Image 3 style bold border */
+    padding: 25px;
+    position: sticky;
+    top: 100px;
+}
+
+.filter-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: #333;
+}
+
+.filter-group {
+    margin-bottom: 20px;
+    border-top: 2px solid #eee;
+    padding-top: 15px;
+}
+
+.filter-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: #444;
+}
+
+.filter-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.apply-filters-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #4a90e2;
+    color: white;
+    border: none;
+    font-weight: 600;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.apply-filters-btn:hover {
+    background-color: #357abd;
+}
+
+/* Main Content Styling */
+.search-main {
+    flex-grow: 1;
+}
+
+.search-box-container {
+    margin-bottom: 30px;
+}
+
+.main-search-bar {
+    display: flex;
+    border: 2px solid #333;
+    background: white;
+}
+
+.main-search-input {
+    flex-grow: 1;
+    padding: 15px 20px;
+    border: none;
+    font-size: 1.1rem;
+    outline: none;
+}
+
+.main-search-btn {
+    background: transparent;
+    border: none;
+    padding: 0 20px;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* Job Card Styling - Image 4 Style */
+.job-item-card {
+    background: white;
+    border: 2px solid #333;
+    margin-bottom: 25px;
+    padding: 25px;
+    transition: box-shadow 0.3s;
+}
+
+.job-item-card:hover {
+    box-shadow: 6px 6px 0px #333;
+}
+
+.job-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.client-info {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.company-logo {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #ddd;
+}
+
+.company-name {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.match-percentage {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-top: 5px;
+}
+
+.project-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 12px;
+}
+
+.project-description {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.skills-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.skill-tag {
+    background: #f0f0f0;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+/* Expanded Details */
+.project-extra-details {
+    margin-top: 15px;
+    padding-top: 15px;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.detail-item label {
+    display: block;
+    font-size: 0.8rem;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+
+.detail-item span {
+    font-weight: 600;
+    color: #333;
+}
+
+.job-item-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.toggle-details-btn {
+    padding: 10px 25px;
+    background: transparent;
+    border: 2px solid #333;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggle-details-btn:hover {
+    background: #333;
+    color: white;
+}
+
+.toggle-details-btn.active {
+    background: #333;
+    color: white;
+}
+
+@media (max-width: 992px) {
+    .search-page-container {
+        flex-direction: column;
+    }
+
+    .search-sidebar {
+        flex: none;
+    }
+}

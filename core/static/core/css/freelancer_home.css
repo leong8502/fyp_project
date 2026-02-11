@@ -1,109 +1,201 @@
+:root {
+    --hero-bg: #eef7ff;
+    --recommendation-bg: #4a90e2;
+    /* Deep blue for recommendation section */
+    --card-bg: rgba(255, 255, 255, 0.95);
+    --primary-blue: #007bff;
+    --secondary-blue: #00bcd4;
+}
+
+body {
+    background-color: white;
+}
+
 .hero-section {
     position: relative;
-    min-height: 100vh;
+    padding: 80px 20px;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    color: #333;
-    background-color: #28a745;  /* Green theme for freelancers */
-    overflow: hidden;
-}
-
-.hero-background {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(248,252,255,1));
-    z-index: 1;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-    max-width: 800px;
-    padding: 20px;
+    background-color: var(--hero-bg);
+    min-height: 500px;
 }
 
 .hero-title {
-    font-size: 4.5rem;
-    font-weight: bold;
+    font-size: 3.5rem;
+    font-weight: 800;
     margin-bottom: 20px;
-    background: linear-gradient(90deg, #28a745, #20c997);  /* Green gradient */
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    color: transparent;
+    color: #1a4f8b;
+    letter-spacing: -1px;
 }
 
 .hero-subtitle {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     margin-bottom: 40px;
-    color: #555;
+    color: #5a7b9a;
+    line-height: 1.6;
+}
+
+.search-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
 }
 
 .search-bar {
     display: flex;
-    width: 80%;
-    max-width: 600px;
-    margin: 0 auto;
     background: white;
-    border-radius: 50px;
-    overflow: hidden;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    padding: 5px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    border: 1px solid #d1e3f8;
+    margin-bottom: 20px;
 }
 
 .search-input {
     flex-grow: 1;
     padding: 15px 25px;
     border: none;
-    font-size: 1.2rem;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') no-repeat 18px center;
-    background-size: 24px;
+    font-size: 1.1rem;
     outline: none;
+    color: #333;
 }
 
-.search-input:focus {
-    border-color: #28a745;  /* Green focus */
+.search-btn {
+    background: transparent;
+    border: none;
+    padding: 0 20px;
+    color: #888;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: color 0.3s;
 }
 
-.search-button {
-    padding: 15px 30px;
-    font-size: 1.2rem;
-    background-color: #007bff;  /* Blue button for contrast */
+.search-btn:hover {
+    color: var(--primary-blue);
+}
+
+.quick-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    background-color: var(--secondary-blue);
     color: white;
     border: none;
-    border-radius: 50px;
+    padding: 12px 25px;
+    border-radius: 30px;
+    font-size: 1rem;
+    font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: transform 0.2s, background-color 0.2s;
 }
 
-.search-button:hover {
-    background-color: #0069d9;
+.action-btn:hover {
+    background-color: #00acc1;
+    transform: translateY(-2px);
 }
 
-.hero-image {
+/* Recommendations Section */
+.recommendations-section {
+    background-color: var(--recommendation-bg);
+    padding: 60px 0;
+    border-radius: 40px 40px 0 0;
+    margin-top: -30px;
     position: relative;
-    z-index: 2;
-    max-width: 70%;
-    border-radius: 10px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    z-index: 5;
+}
+
+.section-title {
+    color: white;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 40px;
+}
+
+.recommendations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+}
+
+.job-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 30px;
+    position: relative;
+    transition: transform 0.3s;
+    display: flex;
+    flex-direction: column;
+}
+
+.job-card:hover {
+    transform: translateY(-5px);
+}
+
+.match-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.job-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 15px;
+    padding-right: 80px;
+}
+
+.job-meta {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 15px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.job-description {
+    color: #555;
+    line-height: 1.5;
+    margin-bottom: 20px;
+    flex-grow: 1;
+}
+
+.view-btn {
+    text-align: center;
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 10px;
+    border: 2px solid var(--primary-blue);
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.view-btn:hover {
+    background-color: var(--primary-blue);
+    color: white;
 }
 
 @media (max-width: 768px) {
     .hero-title {
-        font-size: 3rem;
+        font-size: 2.5rem;
     }
 
-    .search-bar {
-        flex-direction: column;
-        width: 90%;
-    }
-
-    .search-button {
-        width: 100%;
+    .recommendations-grid {
+        grid-template-columns: 1fr;
+        padding: 0 20px;
     }
 }
