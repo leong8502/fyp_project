@@ -909,6 +909,20 @@ def freelancer_search_job(request):
     }
     return render(request, 'core/freelancer_searchJob.html', context)
 
+@freelancer_required
+def freelancer_track_project(request):
+    freelancer = request.user.freelancer
+    # Fetch active projects
+    current_projects = Project.objects.filter(assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing'])
+    # Fetch passed/completed projects
+    pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
+    
+    context = {
+        'current_projects': current_projects,
+        'pass_projects': pass_projects,
+    }
+    return render(request, 'core/freelancer_trackProject.html', context)
+
 
 # Chat Functionality (for both client and freelancer)
 

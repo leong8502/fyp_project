@@ -1,0 +1,113 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}Track Projects - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_track.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="track-page-container">
+    <div class="track-tabs-header">
+        <nav class="tabs-nav">
+            <a onclick="showTab('current')" id="tab-current" class="tab-link active">Current Project</a>
+            <a onclick="showTab('pass')" id="tab-pass" class="tab-link">Pass Project</a>
+        </nav>
+
+        <div class="header-actions">
+            <div class="header-search-container">
+                <input type="text" placeholder="What are you looking for...">
+                <i class="fas fa-search"></i>
+            </div>
+            <button class="filter-icon-btn">
+                <i class="fas fa-filter"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Current Projects Section -->
+    <div id="section-current" class="projects-section">
+        <div class="projects-grid">
+            {% for project in current_projects %}
+            <div class="track-card">
+                {% if project.client.profile_image %}
+                <img src="{{ project.client.profile_image.url }}" class="track-card-image">
+                {% else %}
+                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
+                {% endif %}
+                <div class="track-card-content">
+                    <h3 class="track-card-title">{{ project.title }}</h3>
+                    <div class="info-row">
+                        <span class="info-label">Duration:</span>
+                        <span class="info-value">{{ project.duration|default:"Not specified" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{ project.client.company_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <h3>No projects found at this moment</h3>
+                <p>You haven't joined any project yet. Start searching for jobs!</p>
+                <a href="{% url 'freelancer_search_job' %}" class="btn btn-primary mt-3">Find Jobs</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Pass Projects Section -->
+    <div id="section-pass" class="projects-section" style="display: none;">
+        <div class="projects-grid">
+            {% for project in pass_projects %}
+            <div class="track-card">
+                {% if project.client.profile_image %}
+                <img src="{{ project.client.profile_image.url }}" class="track-card-image">
+                {% else %}
+                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
+                {% endif %}
+                <div class="track-card-content">
+                    <h3 class="track-card-title">{{ project.title }}</h3>
+                    <div class="info-row">
+                        <span class="info-label">Duration:</span>
+                        <span class="info-value">{{ project.duration|default:"Not specified" }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{ project.client.company_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status:</span>
+                        <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <h3>No previous projects found</h3>
+                <p>Once you complete a project, it will appear here.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    function showTab(tabName) {
+        // Toggle tabs
+        document.getElementById('tab-current').classList.remove('active');
+        document.getElementById('tab-pass').classList.remove('active');
+        document.getElementById('tab-' + tabName).classList.add('active');
+
+        // Toggle sections
+        document.getElementById('section-current').style.display = tabName === 'current' ? 'block' : 'none';
+        document.getElementById('section-pass').style.display = tabName === 'pass' ? 'block' : 'none';
+    }
+</script>
+{% endblock %}
