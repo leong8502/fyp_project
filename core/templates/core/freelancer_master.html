@@ -33,19 +33,143 @@
 
             <!-- Auth Buttons -->
             <div class="auth-buttons">
-                <!-- User is assumed logged in on freelancer pages -->
-                <a href="{% url 'freelancer_profile' %}" class="profile-nav-link">
-                    {% if user.freelancer.profile_image %}
-                    <img src="{{ user.freelancer.profile_image.url }}" alt="Profile" class="nav-profile-img"
-                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                    {% else %}
-                    <img src="{% static 'core/images/dummy_profile.png' %}" alt="Profile" class="nav-profile-img"
-                        style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover;">
-                    {% endif %}
-                </a>
+                <div class="profile-dropdown">
+                    <button class="profile-nav-btn" onclick="toggleDropdown()">
+                        {% if user.freelancer.profile_image %}
+                        <img src="{{ user.freelancer.profile_image.url }}" alt="Profile" class="nav-profile-img">
+                        {% else %}
+                        <img src="{% static 'core/images/dummy_profile.png' %}" alt="Profile" class="nav-profile-img">
+                        {% endif %}
+                    </button>
+                    <div id="dropdownMenu" class="dropdown-content">
+                        <a href="{% url 'freelancer_profile' %}"><i class="fas fa-user-circle"></i> Profile</a>
+                        <a href="{% url 'freelancer_wallet' %}"><i class="fas fa-wallet"></i> My Wallet</a>
+                        <a href="{% url 'freelancer_settings' %}"><i class="fas fa-cog"></i> Settings</a>
+                        <hr>
+                        <a href="{% url 'logout' %}" class="logout-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
+
+    <style>
+        .profile-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-nav-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .nav-profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .nav-profile-img:hover {
+            transform: scale(1.05);
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            border-radius: 12px;
+            margin-top: 10px;
+            overflow: hidden;
+            transform-origin: top right;
+            animation: dropdownFadeIn 0.3s ease-out;
+        }
+
+        @keyframes dropdownFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .dropdown-content a {
+            color: #333;
+            padding: 12px 20px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .dropdown-content a i {
+            width: 20px;
+            color: #666;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #f8fbff;
+            color: #007bff;
+        }
+
+        .dropdown-content a:hover i {
+            color: #007bff;
+        }
+
+        .dropdown-content hr {
+            margin: 5px 0;
+            border: 0;
+            border-top: 1px solid #eee;
+        }
+
+        .logout-link:hover {
+            background-color: #fff5f5 !important;
+            color: #dc3545 !important;
+        }
+
+        .logout-link:hover i {
+            color: #dc3545 !important;
+        }
+
+        .show {
+            display: block;
+        }
+    </style>
+
+    <script>
+        function toggleDropdown() {
+            document.getElementById("dropdownMenu").classList.toggle("show");
+        }
+
+        // Close the dropdown if the user clicks outside of it
+        window.onclick = function (event) {
+            if (!event.target.closest('.profile-dropdown')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 
     <!-- Main Content -->
     <main>

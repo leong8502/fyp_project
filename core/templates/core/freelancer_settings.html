@@ -1,0 +1,111 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}Settings - TalentSync{% endblock %}
+
+{% block extra_css %}
+<style>
+    .settings-container {
+        max-width: 800px;
+        margin: 40px auto;
+        background: white;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+
+    .settings-header {
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+    }
+
+    .settings-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+    }
+
+    .settings-group {
+        margin-bottom: 40px;
+    }
+
+    .group-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #555;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .group-title i {
+        color: #007bff;
+    }
+
+    .form-card {
+        background: #f8fbff;
+        padding: 25px;
+        border-radius: 8px;
+        border: 1px solid #e1e9f1;
+    }
+
+    .btn-save {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.3s;
+    }
+
+    .btn-save:hover {
+        background-color: #0056b3;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <div class="settings-header">
+        <h1 class="settings-title">Account Settings</h1>
+    </div>
+
+    <div class="settings-group">
+        <h3 class="group-title"><i class="fas fa-shield-alt"></i> Security & PIN</h3>
+        <p class="text-muted mb-4">Update your secure PIN used for sensitive transactions like withdrawals.</p>
+
+        <div class="form-card">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">New 6-Digit PIN</label>
+                    {{ form.new_pin }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Confirm New PIN</label>
+                    {{ form.confirm_pin }}
+                </div>
+                <button type="submit" class="btn-save">Update PIN</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="settings-group">
+        <h3 class="group-title"><i class="fas fa-bell"></i> Notifications</h3>
+        <div class="form-card">
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-switch" type="checkbox" id="emailNotif" checked>
+                <label class="form-check-label" for="emailNotif">Email notifications for new job matches</label>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-switch" type="checkbox" id="msgNotif" checked>
+                <label class="form-check-label" for="msgNotif">Push notifications for new messages</label>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

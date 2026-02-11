@@ -916,12 +916,42 @@ def freelancer_track_project(request):
     current_projects = Project.objects.filter(assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing'])
     # Fetch passed/completed projects
     pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
-    
+
     context = {
         'current_projects': current_projects,
         'pass_projects': pass_projects,
     }
     return render(request, 'core/freelancer_trackProject.html', context)
+
+@freelancer_required
+def freelancer_wallet(request):
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    recent_transactions = Transaction.objects.filter(wallet=wallet).order_by('-created_at')[:5]
+    
+    context = {
+        'wallet': wallet,
+        'recent_transactions': recent_transactions,
+    }
+    return render(request, 'core/freelancer_wallet.html', context)
+
+@freelancer_required
+def freelancer_settings(request):
+    user_security, created = UserSecurity.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = SecurePinForm(request.POST, user_security=user_security)
+        if form.is_valid():
+            new_pin = form.cleaned_data['new_pin']
+            user_security.secure_pin = make_password(new_pin)
+            user_security.save()
+            messages.success(request, "Secure PIN updated successfully.")
+            return redirect('freelancer_settings')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SecurePinForm(user_security=user_security)
+
+    return render(request, 'core/freelancer_settings.html', {'form': form})
 
 
 # Chat Functionality (for both client and freelancer)

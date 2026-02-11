@@ -1,0 +1,152 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}My Wallet - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_wallet.css' %}">
+<style>
+    /* Styling overrides for freelancer theme if needed */
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .wallet-page {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+        display: grid;
+        grid-template-columns: 1fr 1.5fr;
+        gap: 30px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="wallet-page">
+
+    <!-- Left Column: Balance & Actions -->
+    <section class="balance-section">
+        <!-- Balance Card -->
+        <div class="balance-card">
+            <div class="balance-header">
+                <h2>Total Earnings</h2>
+                <button class="toggle-visibility-btn" onclick="toggleBalance()" aria-label="Toggle balance visibility">
+                    <i class="fas {% if wallet.is_hidden %}fa-eye-slash{% else %}fa-eye{% endif %}" id="eyeIcon"></i>
+                </button>
+            </div>
+
+            <div class="balance-amount {% if wallet.is_hidden %}hidden{% endif %}" id="balanceAmount">
+                <span class="currency">{{ wallet.currency }}</span>
+                <span class="amount">{{ wallet.balance|default:"0.00" }}</span>
+            </div>
+
+            <div class="balance-hidden {% if not wallet.is_hidden %}hidden{% endif %}" id="balanceHidden">
+                <span>••••••</span>
+            </div>
+
+            <p class="balance-label">Available for withdrawal</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions-section">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+                <!-- Top Up might not be common for freelancers but keeping for wallet consistency -->
+                <a href="{% url 'topUp' %}">
+                    <button class="btn-large btn-primary" style="width: 100%; margin-bottom: 15px;">
+                        <i class="fas fa-plus-circle fa-lg"></i>
+                        <span>Top Up</span>
+                    </button>
+                </a>
+                <a href="{% url 'withdraw' %}">
+                    <button class="btn-large btn-outline" style="width: 100%;">
+                        <i class="fas fa-arrow-circle-down fa-lg"></i>
+                        <span>Withdraw</span>
+                    </button>
+                </a>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Right Column: Recent Transactions -->
+    <section class="transactions-section">
+        <div class="section-header">
+            <h3>Recent Transactions</h3>
+            <!-- Link to transaction history if exists, for now fallback -->
+            <a href="#" class="view-all-link">View All Transactions</a>
+        </div>
+
+        <div class="transactions-list">
+            {% for transaction in recent_transactions %}
+            <div
+                class="transaction-item {% if transaction.status == 'completed' %}success{% elif transaction.status == 'pending' %}pending{% else %}failed{% endif %}">
+                <div class="transaction-icon">
+                    {% if transaction.transaction_type == 'top_up' %}
+                    <i class="fas fa-plus"></i>
+                    {% elif transaction.transaction_type == 'withdrawal' %}
+                    <i class="fas fa-university"></i>
+                    {% else %}
+                    <i class="fas fa-exchange-alt"></i>
+                    {% endif %}
+                </div>
+                <div class="transaction-details">
+                    <div class="transaction-title">{{ transaction.get_transaction_type_display }}</div>
+                    <div class="transaction-subtitle">{{ transaction.description|mask_account_in_description }}</div>
+                </div>
+                <div class="transaction-right">
+                    <div
+                        class="transaction-amount {% if transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                        {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} {{ wallet.currency }} {{
+                        transaction.amount }}
+                    </div>
+                    <div class="transaction-date">{{ transaction.created_at|date:"M d, Y, h:i A" }}</div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="transaction-item">
+                <div class="transaction-details" style="text-align: center; color: #666;">
+                    No transactions yet.
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</main>
+
+<script>
+    function toggleBalance() {
+        const balanceAmount = document.getElementById('balanceAmount');
+        const balanceHidden = document.getElementById('balanceHidden');
+        const eyeIcon = document.getElementById('eyeIcon');
+
+        fetch("{% url 'toggle_balance_privacy' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (data.is_hidden) {
+                        balanceAmount.classList.add('hidden');
+                        balanceHidden.classList.remove('hidden');
+                        eyeIcon.classList.remove('fa-eye');
+                        eyeIcon.classList.add('fa-eye-slash');
+                    } else {
+                        balanceAmount.classList.remove('hidden');
+                        balanceHidden.classList.add('hidden');
+                        eyeIcon.classList.remove('fa-eye-slash');
+                        eyeIcon.classList.add('fa-eye');
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+    }
+</script>
+{% endblock %}
