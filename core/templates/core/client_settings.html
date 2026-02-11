@@ -34,12 +34,6 @@
                         <span>Account</span>
                     </a>
                 </li>
-                <li>
-                    <a href="#privacy" class="nav-link" data-section="privacy">
-                        <i class="fas fa-lock"></i>
-                        <span>Privacy</span>
-                    </a>
-                </li>
             </ul>
         </nav>
     </aside>
@@ -160,108 +154,21 @@
                 <p>Manage your account information and preferences</p>
             </div>
 
-            <form method="post" id="account-form">
-                {% csrf_token %}
-                <input type="hidden" name="section" value="account">
-
-                <div class="form-group">
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" class="form-control" value="{{ user.email }}" readonly>
+            <div class="account-info-display">
+                <div class="info-group">
+                    <label>Email Address</label>
+                    <div class="info-value">{{ user.email }}</div>
                 </div>
 
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" class="form-control" value="{{ user.username }}"
-                        readonly>
+                <div class="info-group">
+                    <label>Username</label>
+                    <div class="info-value">{{ user.username }}</div>
                 </div>
 
                 <div class="info-box">
                     <p><i class="fas fa-info-circle"></i> To change your email or username, please contact support.</p>
                 </div>
-
-                <div class="form-group">
-                    <label for="language">Preferred Language</label>
-                    <select id="language" name="language" class="form-control">
-                        <option value="en" selected>English</option>
-                        <option value="ms">Bahasa Malaysia</option>
-                        <option value="zh">中文</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="timezone">Timezone</label>
-                    <select id="timezone" name="timezone" class="form-control">
-                        <option value="Asia/Kuala_Lumpur" selected>Asia/Kuala Lumpur (GMT+8)</option>
-                        <option value="Asia/Singapore">Asia/Singapore (GMT+8)</option>
-                        <option value="UTC">UTC (GMT+0)</option>
-                    </select>
-                </div>
-
-                <button type="submit" class="btn-save">
-                    <i class="fas fa-save"></i> Update Account
-                </button>
-            </form>
-        </section>
-
-        <!-- Privacy Section -->
-        <section id="privacy" class="settings-section">
-            <div class="section-header">
-                <h1>Privacy Settings</h1>
-                <p>Control your privacy and data sharing preferences</p>
             </div>
-
-            <form method="post" id="privacy-form">
-                {% csrf_token %}
-                <input type="hidden" name="section" value="privacy">
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
-                        <h3>Profile Visibility</h3>
-                        <p>Make your profile visible to freelancers</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="profile_visibility" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
-                        <h3>Show Online Status</h3>
-                        <p>Let others see when you're online</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="online_status" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
-                        <h3>Activity History</h3>
-                        <p>Allow the system to track your activity for analytics</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="activity_tracking" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
-                        <h3>Data Sharing</h3>
-                        <p>Share anonymized data to improve our services</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="data_sharing">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <button type="submit" class="btn-save" style="margin-top: 1.5rem;">
-                    <i class="fas fa-save"></i> Save Privacy Settings
-                </button>
-            </form>
         </section>
     </main>
 </div>
