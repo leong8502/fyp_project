@@ -1308,7 +1308,7 @@ def freelancer_profile(request):
     
     # Testimonials (Reviews from completed projects)
     # Since Review is OneToOne to Project, we can access via project or reverse query
-    reviews = Review.objects.filter(freelancer=freelancer).order_by('-created_at')
+    reviews = Review.objects.filter(reviewee=freelancer.user).order_by('-created_at')
 
     # Forms
     profile_for_view = FreelancerProfileForm(instance=freelancer) # Keep full one
