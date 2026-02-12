@@ -149,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <span class="contact-time">${formatTime(chat.last_message_time)}</span>
                             </div>
                             <div class="contact-bottom">
-                                <p class="contact-preview">${chat.last_message || 'Start chatting...'}</p>
+                                <p class="contact-preview">${chat.last_message || ''}</p>
                                 <div style="display: flex; align-items: center; gap: 8px;">
                                     ${chat.unread_count > 0 ? `<span class="unread-badge">${chat.unread_count}</span>` : ''}
                                     ${chat.is_muted ? '<i class="mute-icon-large fas fa-bell-slash"></i>' : ''}
