@@ -1,6 +1,7 @@
 python -m venv venv
 venv\Scripts\activate
 venv_new\Scripts\activate
+venv312\Scripts\activate 
 
 python manage.py runserver
 taskkill /F /IM python.exe

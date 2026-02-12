@@ -26,6 +26,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from .decorators import client_required, freelancer_required, guest_required
 from django.utils import timezone
+from .ai_utils import AISearchManager, get_recommendations
 
 # Create your views here.
 # Auth part
@@ -871,7 +872,86 @@ def match_jobs(request):
 
 @freelancer_required
 def freelancer_home(request):
-    return render(request, 'core/freelancer_home.html')
+    freelancer = request.user.freelancer
+    recommendations = get_recommendations(freelancer, limit=4)
+    
+    context = {
+        'recommendations': recommendations
+    }
+    return render(request, 'core/freelancer_home.html', context)
+
+@freelancer_required
+def freelancer_search_job(request):
+    query = request.GET.get('q', '').strip()
+    freelancer = request.user.freelancer
+    
+    # Get all open projects
+    projects = list(Project.objects.filter(status='open'))
+    
+    manager = AISearchManager()
+    
+    # Calculate scores based on query and/or freelancer skills
+    scored_projects = manager.calculate_match_scores(projects, freelancer=freelancer, query=query)
+    
+    # Sort by score descending
+    scored_projects.sort(key=lambda x: x[1], reverse=True)
+    
+    # Pre-process skills for template
+    for project, score in scored_projects:
+        if project.required_skills:
+            project.skills_list = [s.strip() for s in project.required_skills.split(',') if s.strip()]
+        else:
+            project.skills_list = []
+    
+    context = {
+        'query': query,
+        'scored_projects': scored_projects,
+    }
+    return render(request, 'core/freelancer_searchJob.html', context)
+
+@freelancer_required
+def freelancer_track_project(request):
+    freelancer = request.user.freelancer
+    # Fetch active projects
+    current_projects = Project.objects.filter(assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing'])
+    # Fetch passed/completed projects
+    pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
+
+    context = {
+        'current_projects': current_projects,
+        'pass_projects': pass_projects,
+    }
+    return render(request, 'core/freelancer_trackProject.html', context)
+
+@freelancer_required
+def freelancer_wallet(request):
+    wallet, created = Wallet.objects.get_or_create(user=request.user)
+    recent_transactions = Transaction.objects.filter(wallet=wallet).order_by('-created_at')[:5]
+    
+    context = {
+        'wallet': wallet,
+        'recent_transactions': recent_transactions,
+    }
+    return render(request, 'core/freelancer_wallet.html', context)
+
+@freelancer_required
+def freelancer_settings(request):
+    user_security, created = UserSecurity.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        form = SecurePinForm(request.POST, user_security=user_security)
+        if form.is_valid():
+            new_pin = form.cleaned_data['new_pin']
+            user_security.secure_pin = make_password(new_pin)
+            user_security.save()
+            messages.success(request, "Secure PIN updated successfully.")
+            return redirect('freelancer_settings')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SecurePinForm(user_security=user_security)
+
+    return render(request, 'core/freelancer_settings.html', {'form': form})
 
 
 # Chat Functionality (for both client and freelancer)
@@ -1308,7 +1388,7 @@ def freelancer_profile(request):
     
     # Testimonials (Reviews from completed projects)
     # Since Review is OneToOne to Project, we can access via project or reverse query
-    reviews = Review.objects.filter(freelancer=freelancer).order_by('-created_at')
+    reviews = Review.objects.filter(reviewee=freelancer.user).order_by('-created_at')
 
     # Forms
     profile_for_view = FreelancerProfileForm(instance=freelancer) # Keep full one
