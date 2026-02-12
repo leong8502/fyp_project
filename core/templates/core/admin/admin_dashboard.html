@@ -1,0 +1,106 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1 class="page-title">Dashboard Overview</h1>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_users }}</h3>
+                <p>Total Users</p>
+                <small>{{ total_clients }} Clients | {{ total_freelancers }} Freelancers</small>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_projects }}</h3>
+                <p>Total Projects</p>
+                <small>{{ open_projects }} Open | {{ completed_projects }} Completed</small>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="stat-content">
+                <h3>RM {{ total_earnings|floatformat:2 }}</h3>
+                <p>Total Earnings</p>
+                <small>All completed transactions</small>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="stat-content">
+                <h3>RM {{ platform_revenue|floatformat:2 }}</h3>
+                <p>Platform Revenue</p>
+                <small>10% platform fee</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+        <div class="activity-card">
+            <h2><i class="fas fa-user-plus"></i> Recent Users</h2>
+            <div class="activity-list">
+                {% for user in recent_users %}
+                <div class="activity-item">
+                    <div class="activity-info">
+                        <strong>{{ user.username }}</strong>
+                        <span>{{ user.email }}</span>
+                    </div>
+                    <div class="activity-meta">
+                        <span class="badge {% if user.client %}badge-client{% elif user.freelancer %}badge-freelancer{% else %}badge-admin{% endif %}">
+                            {% if user.client %}Client{% elif user.freelancer %}Freelancer{% else %}Admin{% endif %}
+                        </span>
+                        <small>{{ user.date_joined|date:"M d, Y" }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="no-data">No recent users</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="activity-card">
+            <h2><i class="fas fa-project-diagram"></i> Recent Projects</h2>
+            <div class="activity-list">
+                {% for project in recent_projects %}
+                <div class="activity-item">
+                    <div class="activity-info">
+                        <strong>{{ project.title }}</strong>
+                        <span>{{ project.client.company_name }}</span>
+                    </div>
+                    <div class="activity-meta">
+                        <span class="badge badge-{{ project.status }}">{{ project.get_status_display }}</span>
+                        <small>RM {{ project.budget }}</small>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="no-data">No recent projects</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

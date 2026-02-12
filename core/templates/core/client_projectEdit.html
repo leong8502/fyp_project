@@ -24,8 +24,10 @@
                 <label for="category">Category</label>
                 <select id="category" name="category" required>
                     <option value="">Select Category...</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if project.category and project.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% for value, label in form.fields.category.choices %}
+                        {% if value %}
+                            <option value="{{ value }}" {% if project.category and project.category.id|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>

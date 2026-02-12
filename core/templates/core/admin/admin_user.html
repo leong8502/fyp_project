@@ -1,0 +1,111 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block title %}User Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_user.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="user-container">
+    <h1 class="page-title">User Management</h1>
+    
+    <!-- Search and Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="filter-form">
+            <input type="text" name="search" placeholder="Search users..." value="{{ search }}" class="search-input">
+            
+            <select name="role" class="filter-select">
+                <option value="">All Roles</option>
+                <option value="client" {% if role_filter == 'client' %}selected{% endif %}>Client</option>
+                <option value="freelancer" {% if role_filter == 'freelancer' %}selected{% endif %}>Freelancer</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+            </select>
+            
+            <select name="status" class="filter-select">
+                <option value="">All Status</option>
+                <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+            
+            <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filter</button>
+            <a href="{% url 'admin_user_management' %}" class="btn-reset"><i class="fas fa-redo"></i> Reset</a>
+        </form>
+    </div>
+    
+    <!-- Users Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>#{{ user.id }}</td>
+                    <td>
+                        <strong>{{ user.username }}</strong>
+                    </td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        {% if user.is_superuser %}
+                        <span class="badge badge-admin">Admin</span>
+                        {% elif user.client %}
+                        <span class="badge badge-client">Client</span>
+                        {% elif user.freelancer %}
+                        <span class="badge badge-freelancer">Freelancer</span>
+                        {% else %}
+                        <span class="badge badge-other">Unknown</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="badge badge-status-active">Active</span>
+                        {% else %}
+                        <span class="badge badge-status-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.date_joined|date:"M d, Y" }}</td>
+                    <td>
+                        <button class="btn-action btn-view" title="View"><i class="fas fa-eye"></i></button>
+                        <button class="btn-action btn-edit" title="Edit"><i class="fas fa-edit"></i></button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="no-data">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if users.has_other_pages %}
+    <div class="pagination">
+        {% if users.has_previous %}
+        <a href="?page={{ users.previous_page_number }}&search={{ search }}&role={{ role_filter }}&status={{ status_filter }}" class="page-link">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ users.number }} of {{ users.paginator.num_pages }}</span>
+        
+        {% if users.has_next %}
+        <a href="?page={{ users.next_page_number }}&search={{ search }}&role={{ role_filter }}&status={{ status_filter }}" class="page-link">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

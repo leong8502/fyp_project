@@ -5,6 +5,7 @@ from django.utils import timezone
 
 class Industry(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -25,7 +26,7 @@ class Client(models.Model):
     tags = models.TextField(blank=True, help_text="Comma-separated tags")
     phone = models.CharField(max_length=20)
     address = models.TextField(blank=True)
-    industry_type = models.ForeignKey(Industry, on_delete=models.SET_NULL, null=True, blank=True, related_name='clients')
+    industry_type = models.ForeignKey(Industry, on_delete=models.PROTECT, null=True, blank=True, related_name='clients')
     company_size = models.CharField(max_length=50, choices=[
         ('1-10', '1-10 employees'),
         ('11-50', '11-50 employees'),
@@ -75,6 +76,7 @@ class Job(models.Model):
 
 class ProjectCategory(models.Model):
     name = models.CharField(max_length=100, unique=True)
+    is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -101,7 +103,7 @@ class Project(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='projects')
     title = models.CharField(max_length=200)
     description = models.TextField()
-    category = models.ForeignKey('ProjectCategory', on_delete=models.SET_NULL, null=True, related_name='projects')
+    category = models.ForeignKey('ProjectCategory', on_delete=models.PROTECT, null=True, related_name='projects')
     budget = models.DecimalField(max_digits=10, decimal_places=2)
     deadline = models.DateField()
     required_skills = models.TextField(help_text="Comma-separated skills")
@@ -531,4 +533,64 @@ class ProjectAIProfile(models.Model):
     class Meta:
         verbose_name = "Project AI Profile"
         verbose_name_plural = "Project AI Profiles"
+
+class Ticket(models.Model):
+    STATUS_CHOICES = [
+        ('open', 'Open'),
+        ('in_progress', 'In Progress'),
+        ('resolved', 'Resolved'),
+        ('closed', 'Closed'),
+    ]
+    
+    CATEGORY_CHOICES = [
+        ('account', 'Account & Profile'),
+        ('projects', 'Projects & Jobs'),
+        ('billing', 'Billing & Payments'),
+        ('disputes', 'Disputes & Reports'),
+        ('reviews', 'Reviews & Ratings'),
+        ('messages', 'Messaging & Notifications'),
+        ('technical', 'Technical Issues / Bugs'),
+        ('feedback', 'Feedback & Suggestions'),
+        ('other', 'Other / General Inquiry'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
+    title = models.CharField(max_length=255)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    description = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='open')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.get_status_display()}"
+    
+    class Meta:
+        ordering = ['-created_at']
+
+class AdminLog(models.Model):
+    ACTION_CHOICES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+    ]
+    
+    admin_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='admin_logs')
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    target_model = models.CharField(max_length=100, blank=True, help_text="Model name that was affected")
+    target_id = models.CharField(max_length=100, blank=True, help_text="ID of the affected object")
+    description = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.admin_user.username} - {self.action} - {self.created_at}"
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Admin Activity Log"
+        verbose_name_plural = "Admin Activity Logs"
 

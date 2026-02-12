@@ -23,8 +23,10 @@
                 <label for="category">Category *</label>
                 <select id="category" name="category" required>
                     <option value="">Select Category...</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% for value, label in form.fields.category.choices %}
+                        {% if value %}
+                            <option value="{{ value }}">{{ label }}</option>
+                        {% endif %}
                     {% endfor %}
                 </select>
             </div>

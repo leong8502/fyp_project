@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm, FreelancerLanguageForm, ReviewForm
+from .forms import SkillsForm, ProjectForm, ClientRegistrationForm, ClientProfileForm, TopUpForm, WithdrawForm, SecurePinForm, PaymentPinForm, FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm, FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm, FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm, FreelancerSkillsForm, FreelancerLanguageForm, ReviewForm, SupportForm
 from .models import Job        # ← Add this
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -21,10 +21,11 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary, Ticket, AdminLog
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
-from .decorators import client_required, freelancer_required, guest_required
+from django.db.models import Q, ProtectedError
+from .decorators import client_required, freelancer_required, guest_required, admin_required
 from django.utils import timezone
 from .ai_utils import AISearchManager, get_recommendations
 
@@ -79,8 +80,52 @@ def login(request):
 
     return render(request, "core/login.html")
 
+def admin_login(request):
+    """Admin login - for superusers and staff"""
+    if request.user.is_authenticated:
+        if request.user.is_superuser or request.user.is_staff:
+            return redirect('admin_dashboard')
+        else:
+            messages.error(request, "Access denied. Admin privileges required.")
+            return redirect('home')
+    
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
+        user = authenticate(request, username=username, password=password)
+        
+        if user is not None:
+            if user.is_superuser or user.is_staff:
+                auth_login(request, user)
+                
+                # Log admin login
+                AdminLog.objects.create(
+                    admin_user=user,
+                    action='login',
+                    description='Admin logged in',
+                    ip_address=request.META.get('REMOTE_ADDR')
+                )
+                
+                messages.success(request, f"Welcome back, {user.username}!")
+                return redirect('admin_dashboard')
+            else:
+                messages.error(request, "Access denied. Only administrators can login here.")
+        else:
+            messages.error(request, "Invalid username or password.")
+    
+    return render(request, 'core/admin/admin_login.html')
+
 @login_required
 def logout(request):
+    if request.user.is_superuser or request.user.is_staff:
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='logout',
+            description='Admin logged out',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+    
     auth_logout(request)
     return redirect('home')
 
@@ -260,6 +305,29 @@ def client_freelancerProfile(request, freelancer_id):
 
 def client_about(request):
     return render(request, 'core/client_about.html')
+
+@client_required
+def client_support(request):
+    if request.method == 'POST':
+        form = SupportForm(request.POST, user=request.user)
+        if form.is_valid():
+            # Create a ticket in the database
+            Ticket.objects.create(
+                user=request.user,
+                title=form.cleaned_data['title'],
+                category=form.cleaned_data['category'],
+                description=form.cleaned_data['description'],
+                status='open'
+            )
+            messages.success(request, "Your ticket has been submitted successfully! We will contact you shortly.")
+            return redirect('client_support')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SupportForm(user=request.user)
+
+    return render(request, 'core/client_support.html', {'form': form})
+
 
 @client_required
 def client_settings(request):
@@ -513,8 +581,6 @@ def client_project(request):
 
 @client_required
 def client_projectCreate(request):
-    categories = ProjectCategory.objects.all()
-    
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES)
         if form.is_valid():
@@ -550,16 +616,12 @@ def client_projectCreate(request):
             except Exception as e:
                 messages.error(request, f"Error creating project: {str(e)}")
         else:
-            # Show specific form errors
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
+            messages.error(request, "Please correct the errors below.")
     else:
         form = ProjectForm()
 
     return render(request, 'core/client_projectCreate.html', {
-        'form': form,
-        'categories': categories # Still passed for reference or manual iteration if needed, though form handles it
+        'form': form
     })
 
 @client_required
@@ -611,8 +673,6 @@ def client_projectEdit(request, project_id):
         messages.error(request, "Only draft projects can be edited.")
         return redirect('client_projectInfo', project_id=project.id)
     
-    categories = ProjectCategory.objects.all()
-    
     if request.method == 'POST':
         form = ProjectForm(request.POST, request.FILES, instance=project)
         if form.is_valid():
@@ -661,7 +721,6 @@ def client_projectEdit(request, project_id):
     return render(request, 'core/client_projectEdit.html', {
         'form': form,
         'project': project,
-        'categories': categories,
         'experience_5_plus': experience_5_plus
     })
 
@@ -809,64 +868,6 @@ def client_confirmPayment(request, project_id):
     except Exception as e:
         messages.error(request, f"An error occurred while processing payment: {str(e)}")
         return redirect('client_projectPublish', project_id=project_id)
-
-# idk what is this part
-
-def match_jobs(request):
-    """
-    AI-Powered Job Matching Demo
-    Freelancer enters skills → System returns ranked job matches with relevance scores
-    Uses TF-IDF + Cosine Similarity (foundation for future BERT upgrade)
-    """
-    form = SkillsForm()
-    results = []
-    query = ""
-
-    if request.method == 'POST':
-        form = SkillsForm(request.POST)
-        if form.is_valid():
-            query = form.cleaned_data['skills'].strip()
-
-            if query:
-                # Get all jobs from database
-                jobs = Job.objects.all()
-
-                if jobs.exists():
-                    # Prepare documents: job descriptions + freelancer skills
-                    job_descriptions = [job.description for job in jobs]
-                    documents = job_descriptions + [query]
-
-                    # Vectorize using TF-IDF
-                    vectorizer = TfidfVectorizer(stop_words='english', lowercase=True)
-                    tfidf_matrix = vectorizer.fit_transform(documents)
-
-                    # Compute similarity between freelancer skills (last vector) and all jobs
-                    query_vector = tfidf_matrix[-1]  # Last row = user's skills
-                    job_vectors = tfidf_matrix[:-1]
-
-                    cosine_similarities = cosine_similarity(query_vector, job_vectors).flatten()
-
-                    # Create results list
-                    for idx, job in enumerate(jobs):
-                        score = cosine_similarities[idx]
-                        if score > 0.05:  # Filter very low matches
-                            results.append({
-                                'job': job,
-                                'score': round(score * 100, 2),  # Convert to percentage
-                                'snippet': job.description[:200] + "..." if len(job.description) > 200 else job.description
-                            })
-
-                    # Sort by relevance (highest first)
-                    results.sort(key=lambda x: x['score'], reverse=True)
-
-    context = {
-        'form': form,
-        'results': results,
-        'query': query,
-        'title': 'AI-Powered Job Matching Results'
-    }
-
-    return render(request, 'core/match.html', {'form': form, 'results': results})
 
 # Freelancer part
 
@@ -1539,4 +1540,288 @@ def freelancer_profile(request):
         'languages': languages
     })
 
+
+# Admin Part
+@admin_required
+def admin_dashboard(request):
+    """Admin Dashboard with platform statistics"""
+    from django.db.models import Sum, Count
+    
+    # Platform Statistics
+    total_users = User.objects.count()
+    total_clients = Client.objects.count()
+    total_freelancers = Freelancer.objects.count()
+    total_projects = Project.objects.count()
+    open_projects = Project.objects.filter(status='open').count()
+    completed_projects = Project.objects.filter(status='completed').count()
+    
+    # Earnings Calculation (sum of all completed transactions)
+    total_earnings = Transaction.objects.filter(
+        status='completed',
+        transaction_type='payment'
+    ).aggregate(total=Sum('amount'))['total'] or 0
+    
+    # Calculate platform fee (assuming 10% of earnings)
+    platform_revenue = total_earnings * decimal.Decimal('0.10')
+    
+    # Recent activity
+    recent_users = User.objects.order_by('-date_joined')[:5]
+    recent_projects = Project.objects.order_by('-created_at')[:5]
+    
+    context = {
+        'total_users': total_users,
+        'total_clients': total_clients,
+        'total_freelancers': total_freelancers,
+        'total_projects': total_projects,
+        'open_projects': open_projects,
+        'completed_projects': completed_projects,
+        'total_earnings': total_earnings,
+        'platform_revenue': platform_revenue,
+        'recent_users': recent_users,
+        'recent_projects': recent_projects,
+    }
+    
+    return render(request, 'core/admin/admin_dashboard.html', context)
+
+@admin_required
+def admin_support(request):
+    """Admin Support Ticket Management"""
+    # Get all tickets
+    tickets = Ticket.objects.select_related('user').all()
+    
+    # Search functionality
+    search = request.GET.get('search', '')
+    if search:
+        from django.db.models import Q
+        tickets = tickets.filter(
+            Q(title__icontains=search) |
+            Q(user__username__icontains=search) |
+            Q(user__email__icontains=search)
+        )
+    
+    # Filter by category
+    category_filter = request.GET.get('category', '')
+    if category_filter:
+        tickets = tickets.filter(category=category_filter)
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        tickets = tickets.filter(status=status_filter)
+    
+    # Pagination
+    paginator = Paginator(tickets, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'tickets': page_obj,
+        'search': search,
+        'category_filter': category_filter,
+        'status_filter': status_filter,
+        'category_choices': Ticket.CATEGORY_CHOICES,
+        'status_choices': Ticket.STATUS_CHOICES,
+    }
+    
+    return render(request, 'core/admin/admin_support.html', context)
+
+@admin_required
+def admin_user_management(request):
+    """Admin User Management"""
+    # Get all users
+    users = User.objects.all().order_by('-date_joined')
+    
+    # Search functionality
+    search = request.GET.get('search', '')
+    if search:
+        from django.db.models import Q
+        users = users.filter(
+            Q(username__icontains=search) |
+            Q(email__icontains=search) |
+            Q(first_name__icontains=search) |
+            Q(last_name__icontains=search)
+        )
+    
+    # Filter by role
+    role_filter = request.GET.get('role', '')
+    if role_filter == 'client':
+        users = users.filter(client__isnull=False)
+    elif role_filter == 'freelancer':
+        users = users.filter(freelancer__isnull=False)
+    elif role_filter == 'admin':
+        users = users.filter(is_superuser=True)
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter == 'active':
+        users = users.filter(is_active=True)
+    elif status_filter == 'inactive':
+        users = users.filter(is_active=False)
+    
+    # Pagination
+    paginator = Paginator(users, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'users': page_obj,
+        'search': search,
+        'role_filter': role_filter,
+        'status_filter': status_filter,
+    }
+    
+    return render(request, 'core/admin/admin_user.html', context)
+
+@admin_required
+def admin_activity_log(request):
+    """Admin Activity Log"""
+    # Get all logs
+    logs = AdminLog.objects.select_related('admin_user').all()
+    
+    # Filter by action
+    action_filter = request.GET.get('action', '')
+    if action_filter:
+        logs = logs.filter(action=action_filter)
+    
+    # Filter by admin user
+    admin_filter = request.GET.get('admin', '')
+    if admin_filter:
+        logs = logs.filter(admin_user__username__icontains=admin_filter)
+    
+    # Pagination
+    paginator = Paginator(logs, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'logs': page_obj,
+        'action_filter': action_filter,
+        'admin_filter': admin_filter,
+        'action_choices': AdminLog.ACTION_CHOICES,
+    }
+    
+    return render(request, 'core/admin/admin_activityLog.html', context)
+
+@admin_required
+def admin_reference_data(request):
+    """Manage reference data like Industries and Project Categories"""
+    industries = Industry.objects.all().order_by('name')
+    categories = ProjectCategory.objects.all().order_by('name')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        type = request.POST.get('type')
+        name = request.POST.get('name')
+        pk = request.POST.get('pk')
+        
+        try:
+            if action == 'add':
+                if type == 'industry':
+                    Industry.objects.create(name=name)
+                    messages.success(request, f"Industry Type '{name}' added successfully.")
+                else:
+                    ProjectCategory.objects.create(name=name)
+                    messages.success(request, f"Project Category '{name}' added successfully.")
+                
+            elif action == 'edit':
+                if type == 'industry':
+                    obj = Industry.objects.get(pk=pk)
+                    old_name = obj.name
+                    obj.name = name
+                    obj.save()
+                    messages.success(request, f"Industry Type updated from '{old_name}' to '{name}'.")
+                else:
+                    obj = ProjectCategory.objects.get(pk=pk)
+                    old_name = obj.name
+                    obj.name = name
+                    obj.save()
+                    messages.success(request, f"Project Category updated from '{old_name}' to '{name}'.")
+                
+            elif action == 'toggle_status':
+                if type == 'industry':
+                    obj = Industry.objects.get(pk=pk)
+                    obj.is_active = not obj.is_active
+                    obj.save()
+                    status = "activated" if obj.is_active else "deactivated"
+                    messages.success(request, f"Industry Type '{obj.name}' {status}.")
+                else:
+                    obj = ProjectCategory.objects.get(pk=pk)
+                    obj.is_active = not obj.is_active
+                    obj.save()
+                    status = "activated" if obj.is_active else "deactivated"
+                    messages.success(request, f"Project Category '{obj.name}' {status}.")
+                    
+            elif action == 'delete':
+                # Attempt hard delete, but catch ProtectedError
+                if type == 'industry':
+                    obj = Industry.objects.get(pk=pk)
+                    name = obj.name
+                    try:
+                        obj.delete()
+                        messages.success(request, f"Industry Type '{name}' permanently deleted.")
+                    except ProtectedError:
+                        # If protected, suggest deactivation instead
+                        messages.error(request, f"Cannot delete '{name}' because it is linked to existing clients. Please deactivate it instead.")
+                else:
+                    obj = ProjectCategory.objects.get(pk=pk)
+                    name = obj.name
+                    try:
+                        obj.delete()
+                        messages.success(request, f"Project Category '{name}' permanently deleted.")
+                    except ProtectedError:
+                        messages.error(request, f"Cannot delete '{name}' because it is linked to existing projects. Please deactivate it instead.")
+                     # Log admin action
+            display_type = "Industry Type" if type == 'industry' else "Project Category"
+            action_map = {
+                'add': 'Added',
+                'edit': 'Edited',
+                'delete': 'Deleted',
+                'toggle_status': 'Activated' if locals().get('status') == 'activated' else 'Deactivated'
+            }
+            
+            # Log admin action
+            display_type = "Industry Type" if type == 'industry' else "Project Category"
+            action_map = {
+                'add': 'Added',
+                'edit': 'Edited',
+                'delete': 'Deleted',
+                'toggle_status': 'Activated' if locals().get('status') == 'activated' else 'Deactivated'
+            }
+            
+            # Action type for the model choice
+            log_action_type = 'update'
+            if action == 'add':
+                log_action_type = 'create'
+            elif action == 'delete':
+                log_action_type = 'delete'
+            
+            friendly_action = action_map.get(action, action)
+            
+
+            log_item_name = name if name else locals().get('name', '')
+            if not log_item_name and 'obj' in locals():
+                log_item_name = obj.name
+                
+            log_description = f"Managed reference data: {friendly_action} {display_type} {log_item_name}"
+
+            AdminLog.objects.create(
+                admin_user=request.user,
+                action=log_action_type,
+                target_model='Industry' if type == 'industry' else 'ProjectCategory',
+                target_id=pk if pk else 'new',
+                description=log_description,
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+        except Exception as e:
+            messages.error(request, f"Error: {str(e)}")
+            
+        return redirect('admin_reference_data')
+
+    context = {
+        'industries': industries,
+        'categories': categories,
+        'active_menu': 'reference'
+    }
+    return render(request, 'core/admin/admin_reference.html', context)
 

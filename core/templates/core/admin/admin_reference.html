@@ -1,0 +1,190 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block title %}Reference Data - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_reference.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="reference-container">
+    <div class="header-section">
+        <h1 class="page-title"><i class="fas fa-database"></i> Reference Data Management</h1>
+        <p>Manage Industries and Project Categories used across the platform.</p>
+    </div>
+
+    <div class="reference-grid">
+        <!-- Industries Section -->
+        <div class="reference-card">
+            <div class="card-header">
+                <h2><i class="fas fa-building"></i> Industry Types</h2>
+                <button class="btn-add" onclick="showAddModal('industry')"><i class="fas fa-plus"></i> Add New</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in industries %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>
+                                <span class="status-badge {% if item.is_active %}active{% else %}inactive{% endif %}">
+                                    {{ item.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                            <td>{{ item.created_at|date:"M d, Y" }}</td>
+                            <td class="actions">
+                                <button class="btn-icon" title="Edit" onclick="showEditModal('industry', '{{ item.pk }}', '{{ item.name|escapejs }}')"><i class="fas fa-edit"></i></button>
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_status">
+                                    <input type="hidden" name="type" value="industry">
+                                    <input type="hidden" name="pk" value="{{ item.pk }}">
+                                    <button type="submit" class="btn-icon" title="{{ item.is_active|yesno:'Deactivate,Activate' }}">
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Note: Deletion will only work if not linked to any client. Are you sure?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="type" value="industry">
+                                    <input type="hidden" name="pk" value="{{ item.pk }}">
+                                    <button type="submit" class="btn-icon text-danger" title="Permanently Delete"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="no-data">No industries found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Categories Section -->
+        <div class="reference-card">
+            <div class="card-header">
+                <h2><i class="fas fa-tags"></i> Project Categories</h2>
+                <button class="btn-add" onclick="showAddModal('category')"><i class="fas fa-plus"></i> Add New</button>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categories %}
+                        <tr>
+                            <td><strong>{{ item.name }}</strong></td>
+                            <td>
+                                <span class="status-badge {% if item.is_active %}active{% else %}inactive{% endif %}">
+                                    {{ item.is_active|yesno:"Active,Inactive" }}
+                                </span>
+                            </td>
+                            <td>{{ item.created_at|date:"M d, Y" }}</td>
+                            <td class="actions">
+                                <button class="btn-icon" title="Edit" onclick="showEditModal('category', '{{ item.pk }}', '{{ item.name|escapejs }}')"><i class="fas fa-edit"></i></button>
+                                <form method="POST" style="display:inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_status">
+                                    <input type="hidden" name="type" value="category">
+                                    <input type="hidden" name="pk" value="{{ item.pk }}">
+                                    <button type="submit" class="btn-icon" title="{{ item.is_active|yesno:'Deactivate,Activate' }}">
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                </form>
+                                <form method="POST" style="display:inline;" onsubmit="return confirm('Note: Deletion will only work if not linked to any project. Are you sure?')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="type" value="category">
+                                    <input type="hidden" name="pk" value="{{ item.pk }}">
+                                    <button type="submit" class="btn-icon text-danger" title="Permanently Delete"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="no-data">No categories found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div id="referenceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Add New Index</h3>
+            <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <form method="POST">
+            {% csrf_token %}
+            <input type="hidden" id="formAction" name="action" value="add">
+            <input type="hidden" id="formType" name="type" value="">
+            <input type="hidden" id="formPk" name="pk" value="">
+            
+            <div class="form-group">
+                <label for="nameInput">Name</label>
+                <input type="text" id="nameInput" name="name" required placeholder="Enter name...">
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="submitBtn">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const modal = document.getElementById("referenceModal");
+
+    function showAddModal(type) {
+        document.getElementById("formAction").value = "add";
+        document.getElementById("formType").value = type;
+        document.getElementById("modalTitle").innerText = "Add New " + (type === 'industry' ? 'Industry' : 'Category');
+        document.getElementById("nameInput").value = "";
+        document.getElementById("submitBtn").innerText = "Create";
+        modal.style.display = "block";
+    }
+
+    function showEditModal(type, pk, name) {
+        document.getElementById("formAction").value = "edit";
+        document.getElementById("formType").value = type;
+        document.getElementById("formPk").value = pk;
+        document.getElementById("modalTitle").innerText = "Edit " + (type === 'industry' ? 'Industry' : 'Category');
+        document.getElementById("nameInput").value = name;
+        document.getElementById("submitBtn").innerText = "Update";
+        modal.style.display = "block";
+    }
+
+    function closeModal() {
+        modal.style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+</script>
+{% endblock %}

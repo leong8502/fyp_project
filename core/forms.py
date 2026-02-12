@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Client, Project, Industry, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, FreelancerLanguage, Review
+from .models import Client, Project, Industry, ProjectCategory, Freelancer, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, FreelancerLanguage, Review
 from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
@@ -23,7 +23,7 @@ class SkillsForm(forms.Form):
     )
 
 class ClientRegistrationForm(forms.ModelForm):
-    full_name = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., John Doe'}))
+    username = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., johndoe'}))
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'john@company.com'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'At least 8 characters'}))
     confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}))
@@ -40,7 +40,7 @@ class ClientRegistrationForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ClientRegistrationForm, self).__init__(*args, **kwargs)
         self.fields['phone'].validators.append(phone_validator)
-        self.fields['industry_type'].queryset = Industry.objects.all()
+        self.fields['industry_type'].queryset = Industry.objects.filter(is_active=True)
         self.fields['industry_type'].empty_label = "Select Industry"
 
     def clean_email(self):
@@ -48,6 +48,12 @@ class ClientRegistrationForm(forms.ModelForm):
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("Email is already registered.")
         return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Username is already taken.")
+        return username
 
     def clean(self):
         cleaned_data = super().clean()
@@ -61,16 +67,11 @@ class ClientRegistrationForm(forms.ModelForm):
 
     def save(self, commit=True):
         import uuid
-        full_name = self.cleaned_data['full_name']
-        first_name = full_name.split()[0] if full_name else ''
-        last_name = ' '.join(full_name.split()[1:]) if len(full_name.split()) > 1 else ''
         
         user = User.objects.create_user(
-            username=self.cleaned_data['email'],
+            username=self.cleaned_data['username'],
             email=self.cleaned_data['email'],
             password=self.cleaned_data['password'],
-            first_name=first_name,
-            last_name=last_name,
             is_active=False 
         )
         client = super().save(commit=False)
@@ -112,7 +113,7 @@ class ClientProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(ClientProfileForm, self).__init__(*args, **kwargs)
-        self.fields['industry_type'].queryset = Industry.objects.all()
+        self.fields['industry_type'].queryset = Industry.objects.filter(is_active=True)
         self.fields['industry_type'].empty_label = "Select Industry..."
         self.fields['industry_type'].required = False
         self.fields['company_size'].required = False
@@ -155,6 +156,7 @@ class ProjectForm(forms.ModelForm):
             (5, '5+ Years')
         ]
         self.fields['year_of_experience'].widget = forms.Select(choices=YEAR_CHOICES)
+        self.fields['category'].queryset = ProjectCategory.objects.filter(is_active=True)
         self.fields['category'].empty_label = "Select Category..."
         self.fields['required_skills'].required = False
         self.fields['preferred_language'].required = False
@@ -424,4 +426,32 @@ class ReviewForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(ReviewForm, self).__init__(*args, **kwargs)
         self.fields['comment'].required = False
+
+class SupportForm(forms.Form):
+    sender = forms.EmailField(
+        label="Sender Email",
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'readonly': 'readonly'})
+    )
+    category = forms.ChoiceField(
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    title = forms.CharField(
+        label="Subject",
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Brief summary of the issue'})
+    )
+    description = forms.CharField(
+        label="Description",
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 6, 'placeholder': 'Please describe your issue in detail...'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super(SupportForm, self).__init__(*args, **kwargs)
+        
+        # Import here to avoid circular import
+        from .models import Ticket
+        self.fields['category'].choices = Ticket.CATEGORY_CHOICES
+        
+        if user:
+            self.fields['sender'].initial = user.email
 

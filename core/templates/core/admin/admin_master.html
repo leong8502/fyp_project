@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Admin Panel - TalentSync{% endblock %}</title>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{% static 'core/css/admin/admin_master.css' %}">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.9.0/css/all.css">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="sidebar-header">
+                <h2><i class="fas fa-user-shield"></i> Admin Panel</h2>
+                <p>{{ request.user.username }}</p>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="{% url 'admin_dashboard' %}" class="{% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+                <a href="{% url 'admin_support' %}" class="{% if request.resolver_match.url_name == 'admin_support' %}active{% endif %}">
+                    <i class="fas fa-ticket-alt"></i> Ticket Support
+                </a>
+                <a href="{% url 'admin_user_management' %}" class="{% if request.resolver_match.url_name == 'admin_user_management' %}active{% endif %}">
+                    <i class="fas fa-users"></i> User Management
+                </a>
+                <a href="{% url 'admin_reference_data' %}" class="{% if request.resolver_match.url_name == 'admin_reference_data' %}active{% endif %}">
+                    <i class="fas fa-database"></i> Reference Data
+                </a>
+                <a href="{% url 'admin_activity_log' %}" class="{% if request.resolver_match.url_name == 'admin_activity_log' %}active{% endif %}">
+                    <i class="fas fa-clipboard-list"></i> Activity Log
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="{% url 'home' %}" class="btn-link">
+                    <i class="fas fa-arrow-left"></i> Back to Site
+                </a>
+                <a href="{% url 'logout' %}" class="btn-link">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="admin-main">
+            {% if messages %}
+            <div class="messages-container">
+                {% for message in messages %}
+                <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% block content %}
+            <!-- Page content goes here -->
+            {% endblock %}
+        </main>
+    </div>
+</body>
+</html>

@@ -1,0 +1,102 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block title %}Activity Log - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_activityLog.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="log-container">
+    <h1 class="page-title"><i class="fas fa-clipboard-list"></i> Admin Activity Log</h1>
+    
+   <!-- Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="filter-form">
+            <input type="text" name="admin" placeholder="Filter by admin username..." value="{{ admin_filter }}" class="search-input">
+            
+            <select name="action" class="filter-select">
+                <option value="">All Actions</option>
+                {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" class="btn-filter"><i class="fas fa-filter"></i> Filter</button>
+            <a href="{% url 'admin_activity_log' %}" class="btn-reset"><i class="fas fa-redo"></i> Reset</a>
+        </form>
+    </div>
+    
+    <!-- Logs List -->
+    <div class="logs-container">
+        {% for log in logs %}
+        <div class="log-card">
+            <div class="log-icon action-{{ log.action }}">
+                {% if log.action == 'create' %}
+                <i class="fas fa-plus"></i>
+                {% elif log.action == 'update' %}
+                <i class="fas fa-edit"></i>
+                {% elif log.action == 'delete' %}
+                <i class="fas fa-trash"></i>
+                {% elif log.action == 'login' %}
+                <i class="fas fa-sign-in-alt"></i>
+                {% elif log.action == 'logout' %}
+                <i class="fas fa-sign-out-alt"></i>
+                {% endif %}
+            </div>
+            
+            <div class="log-content">
+                <div class="log-header">
+                    <div class="log-title">
+                        <span class="log-admin"><i class="fas fa-user"></i> {{ log.admin_user.username }}</span>
+                        <span class="log-action badge action-{{ log.action }}">{{ log.get_action_display }}</span>
+                    </div>
+                    <span class="log-time"><i class="far fa-clock"></i> {{ log.created_at|date:"M d, Y H:i:s" }}</span>
+                </div>
+                <div class="log-description">
+                    {{ log.description }}
+                    {% if log.target_model %}
+                    <br>
+                    <span class="log-meta">
+                        <strong>Target:</strong> {{ log.target_model }}
+                        {% if log.target_id %}(ID: {{ log.target_id }}){% endif %}
+                    </span>
+                    {% endif %}
+                    {% if log.ip_address %}
+                    <br>
+                    <span class="log-meta">
+                        <strong>IP:</strong> {{ log.ip_address }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-data">
+            <i class="fas fa-clipboard"></i>
+            <p>No activity logs found</p>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if logs.has_other_pages %}
+    <div class="pagination">
+        {% if logs.has_previous %}
+        <a href="?page={{ logs.previous_page_number }}&action={{ action_filter }}&admin={{ admin_filter }}" class="page-link">
+            <i class="fas fa-chevron-left"></i> Previous
+        </a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ logs.number }} of {{ logs.paginator.num_pages }}</span>
+        
+        {% if logs.has_next %}
+        <a href="?page={{ logs.next_page_number }}&action={{ action_filter }}&admin={{ admin_filter }}" class="page-link">
+            Next <i class="fas fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

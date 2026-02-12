@@ -1,6 +1,6 @@
 # core/urls.py
 from django.urls import path
-from .views import match_jobs, login
+from .views import login
 from . import views  # for home view
 from django.contrib.auth import views as auth_views
 
@@ -8,6 +8,7 @@ urlpatterns = [
     # both part
     path('', views.home, name='home'),
     path('accounts/login/', views.login, name='login'),
+    path('panel/login/', views.admin_login, name='admin_login'),
     path('logout/', views.logout, name='logout'),
     path('top-up/', views.topUp, name='topUp'),
     path('withdraw/', views.withdraw, name='withdraw'),
@@ -33,8 +34,6 @@ urlpatterns = [
          auth_views.PasswordResetCompleteView.as_view(template_name='reset_password/password_reset_complete.html'), 
          name='password_reset_complete'),
 
-    # idk what is this part
-    path('match/', match_jobs, name='match_jobs'),
     # client part
     path('client/home/', views.client_home, name='client_home'),
     path('client/profile/', views.client_profile, name='client_profile'),
@@ -50,6 +49,7 @@ urlpatterns = [
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/about-us/', views.client_about, name='client_about'),
+    path('client/support/', views.client_support, name='client_support'),
     
     # Chat API
     path('chat/', views.chat_view, name='chat'),
@@ -70,4 +70,11 @@ urlpatterns = [
     path('freelancer/track-project/', views.freelancer_track_project, name='freelancer_track_project'),
     path('freelancer/wallet/', views.freelancer_wallet, name='freelancer_wallet'),
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),
+    
+    # admin part
+    path('panel/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('panel/support/', views.admin_support, name='admin_support'),
+    path('panel/users/', views.admin_user_management, name='admin_user_management'),
+    path('panel/activity-log/', views.admin_activity_log, name='admin_activity_log'),
+    path('panel/reference-data/', views.admin_reference_data, name='admin_reference_data'),
 ]
