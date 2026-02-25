@@ -93,12 +93,24 @@
                     {% endif %}
                 </div>
                 <div class="transaction-details">
-                    <div class="transaction-title">{{ transaction.get_transaction_type_display }}</div>
+                    <div class="transaction-title">
+                        {{ transaction.get_transaction_type_display }}
+                        <span class="status-tag status-{{ transaction.status }}">{{ transaction.get_status_display }}</span>
+                    </div>
                     <div class="transaction-subtitle">{{ transaction.description|mask_account_in_description }}</div>
+                    {% if transaction.status == 'pending' and transaction.transaction_type == 'top_up' %}
+                    <div class="transaction-actions" style="margin-top: 8px;">
+                        <a href="{% url 'payment_continue' transaction.id %}" class="btn-action btn-pay">Pay Now</a>
+                        <form action="{% url 'payment_cancel_pending' transaction.id %}" method="POST" style="display: inline; margin: 0;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this pending top-up?')">Cancel</button>
+                        </form>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="transaction-right">
                     <div
-                        class="transaction-amount {% if transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                        class="transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
                         {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} {{ wallet.currency }} {{
                         transaction.amount }}
                     </div>

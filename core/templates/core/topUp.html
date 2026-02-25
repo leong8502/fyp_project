@@ -32,7 +32,7 @@
             <div class="error-msg" id="amount-error">Amount must be at least RM 20</div>
         </div>
 
-        <div class="amount-grid">
+        <div class="amount-grid mb-4">
             <div class="amount-btn" data-value="20">RM 20</div>
             <div class="amount-btn" data-value="50">RM 50</div>
             <div class="amount-btn" data-value="100">RM 100</div>
@@ -97,7 +97,7 @@
             </div>
         </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn" disabled>Confirm Top Up</button>
+        <button type="submit" class="submit-btn" id="submit-btn" disabled>Proceed to Checkout</button>
     </form>
 </div>
 
@@ -108,7 +108,6 @@
         const totalDisplay = document.getElementById('total-amount');
         const finalAmountInput = document.getElementById('final-amount');
         const amountError = document.getElementById('amount-error');
-
         const methodCards = document.querySelectorAll('.payment-method-card');
         const methodInput = document.getElementById('selected-method');
         const submitBtn = document.getElementById('submit-btn');
@@ -119,7 +118,6 @@
         const cardCvv = document.getElementById('card-cvv');
 
         let currentAmount = 0;
-        let currentMethod = '';
 
         // Amount Selection Logic
         amountBtns.forEach(btn => {
@@ -149,7 +147,7 @@
             validateForm();
         }
 
-        // Payment Method Logic
+                // Payment Method Logic
         methodCards.forEach(card => {
             card.addEventListener('click', function () {
                 methodCards.forEach(c => c.classList.remove('active'));
@@ -215,7 +213,7 @@
             e.target.value = value.substring(0, 3);
             validateForm();
         });
-
+        
         function validateForm() {
             let isValid = true;
             let btnText = "Confirm Top Up";
@@ -227,6 +225,7 @@
             } else {
                 amountError.style.display = 'none';
             }
+
 
             // 2. Validate Method
             if (!currentMethod) {

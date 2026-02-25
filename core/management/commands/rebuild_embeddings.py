@@ -1,11 +1,11 @@
 import os
 import logging
 from django.core.management.base import BaseCommand
-from core.models import Project, Freelancer
+from core.models import Project, Freelancer, FreelancerAIProfile, ProjectAIProfile
 from core.ai_matching import MatchEngine
 
 class Command(BaseCommand):
-    help = 'Rebuilds AI embeddings for all Freelancers and open Projects'
+    help = 'Rebuilds AI embeddings for all Freelancers and open Projects using AI Profiles'
 
     def handle(self, *args, **options):
         self.stdout.write("Initializing Match Engine...")
@@ -20,10 +20,14 @@ class Command(BaseCommand):
             try:
                 text_corpus = f"{f.tagline} {f.bio} {f.skills}"
                 # Generate embedding
-                f.freelancer_embedding = engine.generate_embedding(text_corpus)
-                f.extracted_keywords = engine.extract_keywords(text_corpus)
-                # Save only specific fields to avoid overhead (and potential recursion if signals weren't handled)
-                f.save(update_fields=['freelancer_embedding', 'extracted_keywords'])
+                embedding = engine.generate_embedding(text_corpus)
+                keywords = engine.extract_keywords(text_corpus)
+                
+                profile, created = FreelancerAIProfile.objects.get_or_create(freelancer=f)
+                profile.semantic_embedding = embedding
+                profile.extracted_keywords = keywords
+                profile.save(update_fields=['semantic_embedding', 'extracted_keywords'])
+                
                 count_f += 1
                 if count_f % 10 == 0:
                     self.stdout.write(f"Processed {count_f} freelancers...")
@@ -40,9 +44,17 @@ class Command(BaseCommand):
         for p in projects:
             try:
                 text_corpus = f"{p.title} {p.description} {p.required_skills}"
-                p.project_embedding = engine.generate_embedding(text_corpus)
-                p.save(update_fields=['project_embedding'])
+                embedding = engine.generate_embedding(text_corpus)
+                keywords = engine.extract_keywords(text_corpus)
+                
+                profile, created = ProjectAIProfile.objects.get_or_create(project=p)
+                profile.semantic_embedding = embedding
+                profile.extracted_keywords = keywords
+                profile.save(update_fields=['semantic_embedding', 'extracted_keywords'])
+                
                 count_p += 1
+                if count_p % 10 == 0:
+                    self.stdout.write(f"Processed {count_p} projects...")
             except Exception as e:
                 self.stderr.write(f"Error processing project {p.id}: {e}")
 

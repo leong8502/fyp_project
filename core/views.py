@@ -1,5 +1,8 @@
 import uuid
 import decimal
+import stripe
+from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, FileResponse, Http404
 from django.contrib.auth.decorators import login_required
@@ -389,6 +392,8 @@ def client_wallet(request):
 
 @login_required
 def topUp(request):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
     # Determine user role and base template
     if hasattr(request.user, 'client'):
         base_template = 'core/client_master.html'
@@ -399,51 +404,164 @@ def topUp(request):
         return redirect('home')
 
     if request.method == 'POST':
-        form = TopUpForm(request.POST)
-        if form.is_valid():
-            amount = form.cleaned_data['amount']
-            payment_method_str = form.cleaned_data['payment_method']
+        amount_str = request.POST.get('amount')
+        try:
+            amount = decimal.Decimal(amount_str)
+            if amount < 20:
+                raise ValueError("Minimum top up amount is RM 20.")
             
-            try:
-                with transaction.atomic():
-                    # Get or Create Wallet
-                    wallet, created = Wallet.objects.get_or_create(user=request.user)
-                    if created:
-                        wallet.wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper()
-                        wallet.save()
-
-                    # Create Transaction
-                    method_display = payment_method_str.replace('_', ' ').title()
-                    
-                    Transaction.objects.create(
-                        wallet=wallet,
-                        amount=amount,
-                        direction='credit',
-                        transaction_type='top_up',
-                        status='completed',
-                        description=f"Top up via {method_display}",
-                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
-                    )
-
-                    # Update Balance
-                    wallet.balance += decimal.Decimal(amount)
+            with transaction.atomic():
+                wallet, created = Wallet.objects.get_or_create(user=request.user)
+                if created:
+                    wallet.wallet_number = str(uuid.uuid4()).replace('-', '')[:16].upper()
                     wallet.save()
 
-                messages.success(request, f"Successfully topped up RM {amount:.2f} via {method_display}!")
+                reference_id = str(uuid.uuid4()).replace('-', '')[:12].upper()
                 
-                if hasattr(request.user, 'client'):
-                    return redirect('client_wallet')
-                else:
-                    return redirect('freelancer_home')
-
-            except Exception as e:
-                messages.error(request, f"An error occurred: {str(e)}")
-        else:
-             for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
+                # Create pending transaction
+                txn = Transaction.objects.create(
+                    wallet=wallet,
+                    amount=amount,
+                    direction='credit',
+                    transaction_type='top_up',
+                    status='pending',
+                    description="Wallet Top Up via Stripe",
+                    reference_id=reference_id
+                )
             
+            # Create Stripe Checkout Session
+            domain_url = request.build_absolute_uri('/')[:-1] # Remove trailing slash
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'myr',
+                        'product_data': {
+                            'name': 'Wallet Top Up',
+                            'description': 'Add funds to your TalentSync Wallet',
+                        },
+                        'unit_amount': int(amount * 100), # Amount in cents
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=domain_url + reverse('payment_success') + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=domain_url + reverse('payment_cancel'),
+                client_reference_id=txn.reference_id,
+            )
+            return redirect(session.url)
+            
+        except Exception as e:
+            messages.error(request, f"An error occurred: {str(e)}")
+            return redirect('topUp')
+
     return render(request, 'core/topUp.html', {'base_template': base_template})
+
+@login_required
+def payment_success(request):
+    session_id = request.GET.get('session_id')
+    
+    if session_id:
+        stripe.api_key = settings.STRIPE_SECRET_KEY
+        try:
+            session = stripe.checkout.Session.retrieve(session_id)
+            client_reference_id = session.get('client_reference_id')
+            
+            # If the session is complete and paid, fulfill the order
+            if session.payment_status == 'paid' and client_reference_id:
+                try:
+                    txn = Transaction.objects.get(reference_id=client_reference_id, status='pending')
+                    with transaction.atomic():
+                        txn.status = 'completed'
+                        txn.save()
+                        
+                        wallet = txn.wallet
+                        wallet.balance += txn.amount
+                        wallet.save()
+                    messages.success(request, "Payment successful! Your wallet balance has been updated.")
+                except Transaction.DoesNotExist:
+                    # Transaction already processed or doesn't exist
+                    messages.success(request, "Payment successful!")
+            else:
+                messages.warning(request, "Payment is still processing.")
+        except Exception as e:
+            messages.error(request, "Could not verify payment status.")
+    else:
+        messages.success(request, "Payment successful!")
+        
+    if hasattr(request.user, 'client'):
+        return redirect('client_wallet')
+    else:
+        return redirect('freelancer_wallet')
+
+@login_required
+def payment_cancel(request):
+    messages.warning(request, "Payment is pending. Please continue to pay for the transaction.")
+    return redirect('topUp')
+
+@login_required
+def payment_cancel_pending(request, transaction_id):
+    if request.method == 'POST':
+        wallet = get_object_or_404(Wallet, user=request.user)
+        txn = get_object_or_404(Transaction, id=transaction_id, wallet=wallet)
+        
+        if txn.status == 'pending' and txn.transaction_type == 'top_up':
+            txn.status = 'cancelled'
+            txn.save()
+            messages.success(request, "Pending top up has been cancelled.")
+        else:
+            messages.error(request, "This transaction cannot be cancelled.")
+            
+    # Redirect back to where they came from, or wallet default
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        return redirect(referer)
+        
+    if hasattr(request.user, 'client'):
+        return redirect('client_wallet')
+    else:
+        return redirect('freelancer_wallet')
+
+@login_required
+def payment_continue(request, transaction_id):
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+    wallet = get_object_or_404(Wallet, user=request.user)
+    txn = get_object_or_404(Transaction, id=transaction_id, wallet=wallet)
+    
+    if txn.status != 'pending' or txn.transaction_type != 'top_up':
+        messages.error(request, "This transaction cannot be continued.")
+        if hasattr(request.user, 'client'):
+            return redirect('client_wallet')
+        else:
+            return redirect('freelancer_wallet')
+            
+    try:
+        domain_url = request.build_absolute_uri('/')[:-1]
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'myr',
+                    'product_data': {
+                        'name': 'Wallet Top Up',
+                        'description': 'Add funds to your TalentSync Wallet',
+                    },
+                    'unit_amount': int(txn.amount * 100),
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=domain_url + reverse('payment_success') + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=domain_url + reverse('payment_cancel'),
+            client_reference_id=txn.reference_id,
+        )
+        return redirect(session.url)
+    except Exception as e:
+        messages.error(request, f"An error occurred with the payment gateway: {str(e)}")
+        if hasattr(request.user, 'client'):
+            return redirect('client_wallet')
+        else:
+            return redirect('freelancer_wallet')
 
 @login_required
 def withdraw(request):

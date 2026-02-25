@@ -57,12 +57,21 @@
             </div>
             <div class="col">{{ transaction.get_transaction_type_display }}</div>
             <div
-                class="col transaction-amount {% if transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                class="col transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
                 {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} RM {{ transaction.amount }}
             </div>
             <div class="col transaction-date">{{ transaction.created_at|date:"M d, Y" }}</div>
             <div class="col">
                 <span class="status-badge status {{ transaction.status }}">{{ transaction.get_status_display }}</span>
+                {% if transaction.status == 'pending' and transaction.transaction_type == 'top_up' %}
+                <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start;">
+                    <a href="{% url 'payment_continue' transaction.id %}" class="btn-action btn-pay">Pay Now</a>
+                    <form action="{% url 'payment_cancel_pending' transaction.id %}" method="POST" style="margin: 0; display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-cancel" onclick="return confirm('Are you sure you want to cancel this pending top-up?')">Cancel</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </div>
         {% empty %}

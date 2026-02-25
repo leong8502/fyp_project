@@ -509,3 +509,72 @@ body {
         padding: 1.5rem;
     }
 }
+
+/* --- New Status Tags & Action Buttons --- */
+.status-tag {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.status-tag.status-completed {
+    background-color: rgba(0, 208, 132, 0.15);
+    color: var(--success);
+}
+
+.status-tag.status-pending {
+    background-color: rgba(255, 159, 67, 0.15);
+    color: var(--warning);
+}
+
+.status-tag.status-failed,
+.status-tag.status-cancelled {
+    background-color: rgba(238, 82, 83, 0.15);
+    color: var(--danger);
+}
+
+.pending-amount {
+    color: var(--warning) !important;
+}
+
+.transaction-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-action {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    line-height: 1.2;
+}
+
+.btn-pay {
+    background-color: var(--primary);
+    color: white !important;
+}
+
+.btn-pay:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-cancel {
+    background-color: transparent;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border);
+}
+
+.btn-cancel:hover {
+    background-color: #f8f9fa;
+    color: var(--danger) !important;
+    border-color: var(--danger);
+}
