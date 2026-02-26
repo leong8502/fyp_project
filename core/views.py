@@ -307,7 +307,13 @@ def client_freelancerProfile(request, freelancer_id):
     return render(request, 'core/client_freelancerProfile.html', {'freelancer': freelancer})
 
 def client_about(request):
-    return render(request, 'core/client_about.html')
+    if request.user.is_authenticated and hasattr(request.user, 'client'):
+        base_template = 'core/client_master.html'
+    elif request.user.is_authenticated and hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    else:
+        base_template = 'core/master.html'
+    return render(request, 'core/about.html', {'base_template': base_template})
 
 @client_required
 def client_support(request):
@@ -808,6 +814,13 @@ def client_projectEdit(request, project_id):
                     m_deadlines = request.POST.getlist('milestone_deadline[]')
 
                     project.save()
+                    
+                    # Handle attachment removal
+                    if request.POST.get('attachment-clear'):
+                        if project.attachment:
+                            project.attachment.delete(save=False)
+                            project.attachment = None
+                            project.save()
                     
                     # Delete existing milestones and create new ones
                     project.milestones.all().delete()

@@ -7,19 +7,194 @@
 {% endblock %}
 
 {% block content %}
+
+<!-- ===== HERO SECTION ===== -->
 <section class="hero-section">
-    <div class="hero-background"></div>
-    <div class="hero-content">
-        <h1 class="hero-title">Find the Perfect<br>Freelancer Talent</h1>
-        <p class="hero-subtitle">Connect with top freelancers worldwide. Get your projects done by skilled professionals
-            who deliver quality work on time.</p>
-        <form class="search-bar" action="{% url 'client_search' %}" method="GET">
-            <input type="text" name="q" class="search-input" placeholder="Search for freelancers">
-            <button type="submit" class="search-button">Search →</button>
-        </form>
+    <div class="hero-bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
     </div>
-    <img src="https://www.flexjobs.com/blog/wp-content/uploads/2025/04/What-Is-Freelancing-A-Complete-Guide-to-Freelance-Jobs.jpg"
-        alt="home_img" class="hero-image">
+    <div class="hero-inner">
+        <div class="hero-text">
+            <span class="hero-badge">✦ Malaysia's Freelance Platform</span>
+            <h1 class="hero-title">Find the Perfect<br><span class="gradient-text">Freelancer Talent</span></h1>
+            <p class="hero-subtitle">Connect with top freelancers worldwide. Get your projects done by skilled professionals who deliver quality work on time.</p>
+
+            <!-- Search Bar -->
+            <form class="search-bar" action="{% url 'client_search' %}" method="GET">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" name="q" class="search-input" placeholder="Search for freelancers by skill, name or tagline…" autocomplete="off">
+                    <button type="submit" class="search-button">Search</button>
+                </div>
+            </form>
+
+            <div class="hero-tags">
+                <span class="tag-label">Popular:</span>
+                <a href="{% url 'client_search' %}?q=web+developer" class="tag">Web Developer</a>
+                <a href="{% url 'client_search' %}?q=graphic+design" class="tag">Graphic Design</a>
+                <a href="{% url 'client_search' %}?q=mobile+app" class="tag">Mobile App</a>
+                <a href="{% url 'client_search' %}?q=data+science" class="tag">Data Science</a>
+            </div>
+        </div>
+
+        <div class="hero-visual">
+            <div class="dashboard-card">
+                <div class="card-header-row">
+                    <span class="card-dot green"></span>
+                    <span class="card-dot yellow"></span>
+                    <span class="card-dot red"></span>
+                </div>
+                <div class="freelancer-list">
+                    <div class="freelancer-item">
+                        <div class="f-avatar" style="background: linear-gradient(135deg,#667eea,#764ba2);">A</div>
+                        <div class="f-info">
+                            <p class="f-name">Alex Tan</p>
+                            <p class="f-skill">UI/UX Designer</p>
+                        </div>
+                        <span class="f-rating">⭐ 4.9</span>
+                    </div>
+                    <div class="freelancer-item active-item">
+                        <div class="f-avatar" style="background: linear-gradient(135deg,#f093fb,#f5576c);">S</div>
+                        <div class="f-info">
+                            <p class="f-name">Sarah Lim</p>
+                            <p class="f-skill">Full-Stack Developer</p>
+                        </div>
+                        <span class="f-rating">⭐ 5.0</span>
+                    </div>
+                    <div class="freelancer-item">
+                        <div class="f-avatar" style="background: linear-gradient(135deg,#4facfe,#00f2fe);">R</div>
+                        <div class="f-info">
+                            <p class="f-name">Rajesh Kumar</p>
+                            <p class="f-skill">Data Scientist</p>
+                        </div>
+                        <span class="f-rating">⭐ 4.8</span>
+                    </div>
+                </div>
+                <div class="card-footer-row">
+                    <span class="match-label">🤖 AI-Matched for you</span>
+                </div>
+            </div>
+
+            <!-- Floating badges -->
+            <div class="float-badge badge-top">
+                <i class="fas fa-shield-alt"></i> Verified Talent
+            </div>
+            <div class="float-badge badge-bottom">
+                <i class="fas fa-bolt"></i> Fast Turnaround
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<section class="how-section">
+    <div class="section-inner">
+        <div class="section-header">
+            <span class="section-badge">Simple Process</span>
+            <h2 class="section-title">How TalentSync Works</h2>
+            <p class="section-subtitle">Get your project done in three easy steps</p>
+        </div>
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="step-icon-wrap" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="step-number">01</div>
+                <h3>Search & Discover</h3>
+                <p>Browse through our curated pool of verified freelancers or let our AI match you with the best talent for your project.</p>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step-card">
+                <div class="step-icon-wrap" style="background: linear-gradient(135deg, #00c6ff, #0072ff);">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <div class="step-number">02</div>
+                <h3>Post Your Project</h3>
+                <p>Create a detailed project listing with your requirements, budget and timeline. Receive proposals fast.</p>
+            </div>
+            <div class="step-arrow">→</div>
+            <div class="step-card">
+                <div class="step-icon-wrap" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="step-number">03</div>
+                <h3>Get It Done</h3>
+                <p>Collaborate, track progress and release payment securely only when you're 100% satisfied with the deliverables.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== FEATURES SECTION ===== -->
+<section class="features-section">
+    <div class="section-inner features-inner">
+        <div class="features-text">
+            <span class="section-badge light">Why Choose Us</span>
+            <h2 class="section-title light">Everything you need<br>to hire with confidence</h2>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-robot"></i></div>
+                    <div>
+                        <h4>AI-Powered Matching</h4>
+                        <p>Our intelligent system recommends the most suitable freelancers based on your project needs and history.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-lock"></i></div>
+                    <div>
+                        <h4>Secure Payments</h4>
+                        <p>Funds are held in escrow and only released when you approve the completed work. Zero risk.</p>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                    <div>
+                        <h4>Real-Time Messaging</h4>
+                        <p>Built-in chat keeps you connected with your freelancer throughout the entire project lifecycle.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="features-visual">
+            <div class="feature-mockup">
+                <div class="mockup-row">
+                    <div class="mockup-chip active"><i class="fas fa-robot"></i> AI Match Found</div>
+                </div>
+                <div class="mockup-profile-card">
+                    <div class="mp-avatar" style="background: linear-gradient(135deg,#667eea,#764ba2);">M</div>
+                    <div class="mp-details">
+                        <p class="mp-name">Maria Chen</p>
+                        <p class="mp-role">Mobile App Developer</p>
+                        <div class="mp-tags">
+                            <span>Flutter</span><span>React Native</span><span>iOS</span>
+                        </div>
+                    </div>
+                    <div class="mp-score">
+                        <span class="score-value">96%</span>
+                        <span class="score-label">Match</span>
+                    </div>
+                </div>
+                <div class="mockup-secure-badge">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Payment Protected · Verified Profile · 5★ Reviews</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA SECTION ===== -->
+<section class="cta-section">
+    <div class="cta-bg-blob"></div>
+    <div class="cta-inner">
+        <h2>Ready to build something great?</h2>
+        <p>Post your first project today — it's free and takes less than 2 minutes.</p>
+        <a href="{% url 'client_project' %}" class="cta-btn">
+            <i class="fas fa-rocket"></i> Post a Project
+        </a>
+    </div>
 </section>
 
 {% endblock %}

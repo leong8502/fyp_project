@@ -1,0 +1,198 @@
+{% extends base_template %}
+{% load static %}
+{% block title %}About Us — TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_about.css' %}">
+{% endblock %}
+
+{% block content %}
+
+<!-- ===== HERO ===== -->
+<section class="ab-hero">
+    <div class="ab-hero-blobs">
+        <div class="ab-blob ab-b1"></div>
+        <div class="ab-blob ab-b2"></div>
+    </div>
+    <div class="ab-hero-inner">
+        <span class="ab-badge">About TalentSync</span>
+        <h1 class="ab-hero-title">Connecting <span class="ab-grad">Talent</span> with<br>Opportunity</h1>
+        <p class="ab-hero-sub">TalentSync is a Malaysian freelance marketplace platform built to bridge the gap between skilled freelancers and clients who need quality work — powered by AI matching technology.</p>
+        <div class="ab-hero-chips">
+            <span class="ab-chip"><i class="fas fa-map-marker-alt"></i> Based in Malaysia</span>
+            <span class="ab-chip"><i class="fas fa-robot"></i> AI-Powered Matching</span>
+            <span class="ab-chip"><i class="fas fa-shield-alt"></i> Secure Escrow Payments</span>
+        </div>
+    </div>
+</section>
+
+<!-- ===== MISSION / VISION ===== -->
+<section class="ab-mission">
+    <div class="ab-inner">
+        <div class="ab-mv-grid">
+            <div class="ab-mv-card mv-mission">
+                <div class="ab-mv-icon"><i class="fas fa-bullseye"></i></div>
+                <h2>Our Mission</h2>
+                <p>To empower Malaysian businesses and freelancers by providing a trustworthy, intelligent, and accessible platform that makes hiring and working seamless, fair, and rewarding for everyone involved.</p>
+            </div>
+            <div class="ab-mv-card mv-vision">
+                <div class="ab-mv-icon"><i class="fas fa-eye"></i></div>
+                <h2>Our Vision</h2>
+                <p>To become Malaysia's leading freelance platform — where every talented individual can find meaningful work, and every business can find the right person to bring their ideas to life.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== WHAT WE DO ===== -->
+<section class="ab-what">
+    <div class="ab-inner">
+        <div class="ab-section-header">
+            <span class="ab-badge-sm">What We Do</span>
+            <h2 class="ab-section-title">A Platform Built for Everyone</h2>
+            <p class="ab-section-sub">Whether you're a business looking to hire or a freelancer looking for your next gig — TalentSync has you covered.</p>
+        </div>
+        <div class="ab-what-grid">
+            <div class="ab-what-card">
+                <div class="ab-what-icon" style="background: linear-gradient(135deg, #00c6ff, #0072ff);">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+                <h3>For Clients</h3>
+                <ul class="ab-what-list">
+                    <li><i class="fas fa-check-circle"></i> Post projects and receive proposals</li>
+                    <li><i class="fas fa-check-circle"></i> AI-powered freelancer recommendations</li>
+                    <li><i class="fas fa-check-circle"></i> Secure milestone-based payments</li>
+                    <li><i class="fas fa-check-circle"></i> Real-time messaging with freelancers</li>
+                    <li><i class="fas fa-check-circle"></i> Full project management dashboard</li>
+                </ul>
+            </div>
+            <div class="ab-what-divider"></div>
+            <div class="ab-what-card">
+                <div class="ab-what-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <h3>For Freelancers</h3>
+                <ul class="ab-what-list">
+                    <li><i class="fas fa-check-circle"></i> Browse and apply for projects</li>
+                    <li><i class="fas fa-check-circle"></i> Build your professional profile & portfolio</li>
+                    <li><i class="fas fa-check-circle"></i> Get matched to relevant projects automatically</li>
+                    <li><i class="fas fa-check-circle"></i> Receive payments securely to your wallet</li>
+                    <li><i class="fas fa-check-circle"></i> Grow your reputation through client reviews</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== STATS ===== -->
+<section class="ab-stats">
+    <div class="ab-inner">
+        <div class="ab-stats-grid">
+            <div class="ab-stat">
+                <span class="ab-stat-num">500+</span>
+                <span class="ab-stat-label">Registered Freelancers</span>
+            </div>
+            <div class="ab-stat">
+                <span class="ab-stat-num">1,200+</span>
+                <span class="ab-stat-label">Projects Completed</span>
+            </div>
+            <div class="ab-stat">
+                <span class="ab-stat-num">98%</span>
+                <span class="ab-stat-label">Client Satisfaction</span>
+            </div>
+            <div class="ab-stat">
+                <span class="ab-stat-num">20+</span>
+                <span class="ab-stat-label">Industries Covered</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== KEY FEATURES ===== -->
+<section class="ab-features">
+    <div class="ab-inner">
+        <div class="ab-section-header">
+            <span class="ab-badge-sm">Platform Features</span>
+            <h2 class="ab-section-title">Why TalentSync is Different</h2>
+        </div>
+        <div class="ab-feat-grid">
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #00c6ff;">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <h4>AI-Powered Matching</h4>
+                <p>Our intelligent algorithm analyses project requirements and freelancer profiles to surface the best matches — saving both parties time and effort.</p>
+            </div>
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #764ba2;">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h4>Escrow Payment Protection</h4>
+                <p>Funds are held securely in escrow and only released once the client approves deliverables. Freelancers get paid on time, every time.</p>
+            </div>
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #38f9d7;">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h4>Real-Time Messaging</h4>
+                <p>Integrated chat lets clients and freelancers communicate directly within the platform, keeping everything in one place.</p>
+            </div>
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #f093fb;">
+                    <i class="fas fa-star"></i>
+                </div>
+                <h4>Verified Reviews</h4>
+                <p>Every completed project can be reviewed. Build your reputation and let your work speak for itself on your public profile.</p>
+            </div>
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #fbbf24;">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <h4>Integrated Wallet</h4>
+                <p>Both clients and freelancers have a digital wallet for seamless top-ups, withdrawals, and transaction history tracking.</p>
+            </div>
+            <div class="ab-feat-card">
+                <div class="ab-feat-icon" style="color: #4facfe;">
+                    <i class="fas fa-tachometer-alt"></i>
+                </div>
+                <h4>Smart Dashboard</h4>
+                <p>A clean, intuitive dashboard gives you full visibility of your projects, bids, earnings, and communications at a glance.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== TECH STACK (fun section) ===== -->
+<section class="ab-tech">
+    <div class="ab-inner">
+        <div class="ab-section-header">
+            <span class="ab-badge-sm dark">Built With</span>
+            <h2 class="ab-section-title light">Powered by Modern Technology</h2>
+            <p class="ab-section-sub light">TalentSync is built on a robust and scalable technology stack.</p>
+        </div>
+        <div class="ab-tech-grid">
+            <div class="ab-tech-pill"><i class="fab fa-python"></i> Django (Python)</div>
+            <div class="ab-tech-pill"><i class="fas fa-database"></i> PostgreSQL / SQLite</div>
+            <div class="ab-tech-pill"><i class="fab fa-bootstrap"></i> Bootstrap 5</div>
+            <div class="ab-tech-pill"><i class="fas fa-brain"></i> AI Matching Engine</div>
+            <div class="ab-tech-pill"><i class="fab fa-js"></i> JavaScript</div>
+            <div class="ab-tech-pill"><i class="fas fa-shield-alt"></i> Google OAuth 2.0</div>
+        </div>
+    </div>
+</section>
+
+<!-- ===== CTA ===== -->
+<section class="ab-cta">
+    <div class="ab-cta-blob"></div>
+    <div class="ab-inner ab-cta-inner">
+        <h2>Ready to get started?</h2>
+        <p>Join TalentSync today and experience the smarter way to hire or work as a freelancer in Malaysia.</p>
+        <div class="ab-cta-btns">
+            <a href="{% url 'login' %}" class="ab-cta-btn primary">
+                <i class="fas fa-sign-in-alt"></i> Join Us
+            </a>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

@@ -92,7 +92,7 @@
                 </div>
                 <div class="transaction-right">
                     <div
-                        class="transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                        class="transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.status == 'completed' and transaction.transaction_type == 'top_up' %}positive{% else %}negative{% endif %}">
                         {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} {{ wallet.currency }} {{ transaction.amount }}
                     </div>
                     <div class="transaction-date">{{ transaction.created_at|date:"M d, Y, h:i A" }}</div>

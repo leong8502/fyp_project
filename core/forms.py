@@ -119,14 +119,13 @@ class ClientProfileForm(forms.ModelForm):
         self.fields['company_size'].required = False
 
 class ProjectForm(forms.ModelForm):
-    attachments = forms.FileField(required=False, widget=forms.ClearableFileInput(attrs={'class': 'form-control'}))
 
     class Meta:
         model = Project
         fields = [
             'title', 'description', 'category', 'budget', 'deadline',
             'required_skills', 'experience_level', 'year_of_experience',
-            'preferred_language', 'status'
+            'preferred_language', 'status', 'attachment'
         ]
         
         widgets = {
@@ -142,6 +141,7 @@ class ProjectForm(forms.ModelForm):
             ]}),
             'preferred_language': forms.HiddenInput(attrs={'id': 'preferred_language'}), # Handled by JS
             'status': forms.Select(attrs={'class': 'form-control'}),
+            'attachment': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -161,6 +161,14 @@ class ProjectForm(forms.ModelForm):
         self.fields['required_skills'].required = False
         self.fields['preferred_language'].required = False
         self.fields['status'].required = False # Status defaults to 'draft' in logic
+        self.fields['attachment'].required = False
+
+    def clean_attachment(self):
+        attachment = self.cleaned_data.get('attachment')
+        if attachment and hasattr(attachment, 'name'):
+            if not attachment.name.lower().endswith('.pdf'):
+                raise forms.ValidationError("Only PDF files are allowed.")
+        return attachment
 
     def clean(self):
         cleaned_data = super().clean()

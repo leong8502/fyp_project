@@ -57,7 +57,7 @@
             </div>
             <div class="col">{{ transaction.get_transaction_type_display }}</div>
             <div
-                class="col transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.direction == 'credit' %}positive{% else %}negative{% endif %}">
+                class="col transaction-amount {% if transaction.status == 'pending' %}pending-amount{% elif transaction.status == 'completed' and transaction.transaction_type == 'top_up' %}positive{% else %}negative{% endif %}">
                 {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} RM {{ transaction.amount }}
             </div>
             <div class="col transaction-date">{{ transaction.created_at|date:"M d, Y" }}</div>

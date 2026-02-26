@@ -113,6 +113,7 @@ class Project(models.Model):
     
     assigned_freelancer = models.ForeignKey('Freelancer', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_projects')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    attachment = models.FileField(upload_to='project_attachments/', blank=True, null=True, help_text="Single PDF attachment")
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
 

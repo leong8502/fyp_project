@@ -12,7 +12,7 @@
         <div class="header">
             <h1>Edit Project</h1>
         </div>
-        <form class="form-body" method="POST" id="create-project-form">
+        <form class="form-body" method="POST" enctype="multipart/form-data" id="create-project-form">
             {% csrf_token %}
             <div class="form-group">
                 <label for="title">Project Title</label>
@@ -174,10 +174,19 @@
             </div>
 
             <div class="form-group">
-                <label for="attachments">Attachments (Optional)</label>
-                <input type="file" id="attachments" name="attachments" multiple accept=".pdf,.docx,.zip,.jpg,.png">
-                <p style="font-size:14px; color:#666; margin-top:8px;">Upload briefs, wireframes, brand guidelines, etc.
-                </p>
+                <label for="attachment">Attachment (Optional, PDF only)</label>
+                {% if project.attachment %}
+                <div style="margin-bottom: 10px; display: flex; align-items: center; gap: 10px;">
+                    <a href="{{ project.attachment.url }}" target="_blank" style="color: #4e54c8; text-decoration: none; font-weight: 500;">
+                        <i class="fas fa-file-pdf" style="color: #e74c3c; margin-right: 5px;"></i>{{ project.attachment.name|cut:'project_attachments/' }}
+                    </a>
+                    <label style="font-size: 14px; color: #666; cursor: pointer;">
+                        <input type="checkbox" name="attachment-clear" id="attachment-clear"> Remove
+                    </label>
+                </div>
+                {% endif %}
+                <input type="file" id="attachment" name="attachment" accept=".pdf">
+                <p style="font-size:14px; color:#666; margin-top:8px;">Upload a project brief, requirements document, etc.</p>
             </div>
 
             <div class="actions">

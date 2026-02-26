@@ -58,6 +58,19 @@
                 {% endif %}
             </p>
 
+            {% if project.attachment %}
+            <div style="margin-top: 10px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <a href="{{ project.attachment.url }}" target="_blank" class="btn-primary" 
+                   style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85rem;">
+                    <i class="fas fa-file-pdf" style="font-size: 0.9rem;"></i>
+                    View Attachment
+                </a>
+                <span style="font-size: 0.75rem; color: #888;">
+                    ({{ project.attachment.name|cut:'project_attachments/' }})
+                </span>
+            </div>
+            {% endif %}
+
             {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Progress</h2>
             <div class="progress">
@@ -66,6 +79,8 @@
             </div>
             <p><strong>In Progress</strong></p>
             {% endif %}
+
+
 
             <h2>Milestones</h2>
             {% if project.milestones.exists %}
