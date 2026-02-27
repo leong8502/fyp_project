@@ -51,7 +51,14 @@
             </thead>
             <tbody>
                 {% for ticket in tickets %}
-                <tr>
+                <tr data-ticket-id="{{ ticket.id }}"
+                    data-title="{{ ticket.title }}"
+                    data-email="{{ ticket.user.email }}"
+                    data-category="{{ ticket.get_category_display }}"
+                    data-status="{{ ticket.status }}"
+                    data-created="{{ ticket.created_at|date:'M d, Y H:i' }}"
+                    data-updated="{{ ticket.updated_at|date:'M d, Y H:i' }}">
+                    <td class="d-none ticket-description" style="display:none;">{{ ticket.description }}</td>
                     <td>#{{ ticket.id }}</td>
                     <td>
                         <strong>{{ ticket.title }}</strong>
@@ -62,8 +69,7 @@
                     <td><span class="badge badge-status-{{ ticket.status }}">{{ ticket.get_status_display }}</span></td>
                     <td>{{ ticket.created_at|date:"M d, Y H:i" }}</td>
                     <td>
-                        <button class="btn-action btn-view" title="View"><i class="fas fa-eye"></i></button>
-                        <button class="btn-action btn-edit" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-action btn-view" title="View / Manage" onclick="openTicketModal(this)"><i class="fas fa-tools"></i></button>
                     </td>
                 </tr>
                 {% empty %}
@@ -94,4 +100,147 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Ticket Modal -->
+<div id="ticketModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Manage Support Ticket</h2>
+            <button type="button" class="btn-close" onclick="closeTicketModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="ticketForm">
+                <input type="hidden" id="modalTicketId" name="ticket_id">
+                
+                <div class="form-group">
+                    <label>User Email</label>
+                    <input type="email" id="modalEmail" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="modalCategory" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label>Title</label>
+                    <input type="text" id="modalTitle" class="form-control" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="modalDescription" class="form-control" rows="4" readonly></textarea>
+                </div>
+                
+                <div class="row info-row">
+                    <div class="form-group half-width">
+                        <label>Created Time</label>
+                        <input type="text" id="modalCreated" class="form-control" readonly>
+                    </div>
+                    <div class="form-group half-width">
+                        <label>Last Updated</label>
+                        <input type="text" id="modalUpdated" class="form-control" readonly>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalStatus">Status</label>
+                    <select id="modalStatus" name="status" class="form-control">
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeTicketModal()">Cancel</button>
+            <button type="button" class="btn-save" onclick="saveTicket()"><i class="fas fa-save"></i> Update Ticket</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openTicketModal(btn) {
+        const row = btn.closest('tr');
+        const ticketId = row.dataset.ticketId;
+        const title = row.dataset.title;
+        const email = row.dataset.email;
+        const category = row.dataset.category;
+        const status = row.dataset.status;
+        const created = row.dataset.created;
+        const updated = row.dataset.updated;
+        const description = row.querySelector('.ticket-description').innerText;
+
+        // Populate modal fields
+        document.getElementById('modalTicketId').value = ticketId;
+        document.getElementById('modalEmail').value = email;
+        document.getElementById('modalCategory').value = category;
+        document.getElementById('modalTitle').value = title;
+        document.getElementById('modalDescription').value = description;
+        document.getElementById('modalCreated').value = created;
+        document.getElementById('modalUpdated').value = updated;
+        document.getElementById('modalStatus').value = status;
+
+        document.getElementById('ticketModal').style.display = 'flex';
+    }
+
+    function closeTicketModal() {
+        document.getElementById('ticketModal').style.display = 'none';
+        document.getElementById('ticketForm').reset();
+    }
+
+    function saveTicket() {
+        const ticketId = document.getElementById('modalTicketId').value;
+        const status = document.getElementById('modalStatus').value;
+
+        const formData = new FormData();
+        formData.append('status', status);
+
+        // Fetch CSRF token
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        };
+
+        fetch(`/panel/support/update/${ticketId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error updating ticket.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the ticket.');
+        });
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const modal = document.getElementById('ticketModal');
+        if (event.target == modal) {
+            closeTicketModal();
+        }
+    }
+</script>
 {% endblock %}

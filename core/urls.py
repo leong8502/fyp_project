@@ -78,7 +78,9 @@ urlpatterns = [
     # admin part
     path('panel/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('panel/support/', views.admin_support, name='admin_support'),
+    path('panel/support/update/<int:ticket_id>/', views.admin_update_ticket, name='admin_update_ticket'),
     path('panel/users/', views.admin_user_management, name='admin_user_management'),
+    path('panel/users/update/<int:user_id>/', views.admin_update_user, name='admin_update_user'),
     path('panel/activity-log/', views.admin_activity_log, name='admin_activity_log'),
     path('panel/reference-data/', views.admin_reference_data, name='admin_reference_data'),
 ]

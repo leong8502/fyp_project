@@ -50,7 +50,13 @@
             </thead>
             <tbody>
                 {% for user in users %}
-                <tr>
+                <tr data-user-id="{{ user.id }}"
+                    data-username="{{ user.username }}"
+                    data-email="{{ user.email }}"
+                    data-phone="{% if user.client %}{{ user.client.phone }}{% elif user.freelancer %}{{ user.freelancer.phone }}{% else %}{% endif %}"
+                    data-status="{% if user.is_active %}active{% else %}inactive{% endif %}"
+                    data-joined="{{ user.date_joined|date:'Y-m-d' }}"
+                    data-role="{% if user.is_superuser %}Admin{% elif user.client %}Client{% elif user.freelancer %}Freelancer{% else %}Unknown{% endif %}">
                     <td>#{{ user.id }}</td>
                     <td>
                         <strong>{{ user.username }}</strong>
@@ -76,8 +82,8 @@
                     </td>
                     <td>{{ user.date_joined|date:"M d, Y" }}</td>
                     <td>
-                        <button class="btn-action btn-view" title="View"><i class="fas fa-eye"></i></button>
-                        <button class="btn-action btn-edit" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button type="button" class="btn-action btn-view" title="View" onclick="openUserModal(this, 'view')"><i class="fas fa-eye"></i></button>
+                        <button type="button" class="btn-action btn-edit" title="Edit" onclick="openUserModal(this, 'edit')"><i class="fas fa-edit"></i></button>
                     </td>
                 </tr>
                 {% empty %}
@@ -108,4 +114,166 @@
     </div>
     {% endif %}
 </div>
+
+<!-- User Modal -->
+<div id="userModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title" id="modalTitle">View User</h2>
+            <button type="button" class="btn-close" onclick="closeUserModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="userForm">
+                <input type="hidden" id="modalUserId" name="user_id">
+                
+                <div class="form-group">
+                    <label for="modalEmail">Email</label>
+                    <input type="email" id="modalEmail" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalUsername">Username</label>
+                    <input type="text" id="modalUsername" name="username" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="modalRole">Role</label>
+                    <input type="text" id="modalRole" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalPhone">Phone Number</label>
+                    <input type="text" id="modalPhone" name="phone" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label for="modalJoined">Joined Date</label>
+                    <input type="text" id="modalJoined" class="form-control" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalStatus">Status</label>
+                    <select id="modalStatus" name="status" class="form-control">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeUserModal()">Cancel</button>
+            <button type="button" id="btnSaveUser" class="btn-save d-none" onclick="saveUser()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openUserModal(btn, mode) {
+        const row = btn.closest('tr');
+        const userId = row.dataset.userId;
+        const username = row.dataset.username;
+        const email = row.dataset.email;
+        const phone = row.dataset.phone;
+        const status = row.dataset.status;
+        const joined = row.dataset.joined;
+        const role = row.dataset.role;
+
+        // Populate modal fields
+        document.getElementById('modalUserId').value = userId;
+        document.getElementById('modalEmail').value = email;
+        document.getElementById('modalUsername').value = username;
+        document.getElementById('modalPhone').value = phone;
+        document.getElementById('modalStatus').value = status;
+        document.getElementById('modalJoined').value = joined;
+        document.getElementById('modalRole').value = role;
+
+        const modalTitle = document.getElementById('modalTitle');
+        const usernameInput = document.getElementById('modalUsername');
+        const phoneInput = document.getElementById('modalPhone');
+        const statusSelect = document.getElementById('modalStatus');
+        const btnSave = document.getElementById('btnSaveUser');
+
+        if (mode === 'view') {
+            modalTitle.innerText = "View User Details";
+            
+            usernameInput.readOnly = true;
+            phoneInput.readOnly = true;
+            statusSelect.disabled = true;
+            
+            btnSave.classList.add('d-none');
+        } else if (mode === 'edit') {
+            modalTitle.innerText = "Edit User Details";
+            
+            usernameInput.readOnly = false;
+            phoneInput.readOnly = false;
+            statusSelect.disabled = false;
+            
+            btnSave.classList.remove('d-none');
+        }
+
+        document.getElementById('userModal').style.display = 'flex';
+    }
+
+    function closeUserModal() {
+        document.getElementById('userModal').style.display = 'none';
+        document.getElementById('userForm').reset();
+    }
+
+    function saveUser() {
+        const userId = document.getElementById('modalUserId').value;
+        const username = document.getElementById('modalUsername').value;
+        const phone = document.getElementById('modalPhone').value;
+        const status = document.getElementById('modalStatus').value;
+
+        const formData = new FormData();
+        formData.append('username', username);
+        formData.append('phone', phone);
+        formData.append('status', status);
+
+        // Fetch CSRF token
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        };
+
+        fetch(`/panel/users/update/${userId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error updating user.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the user.');
+        });
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const modal = document.getElementById('userModal');
+        if (event.target == modal) {
+            closeUserModal();
+        }
+    }
+</script>
 {% endblock %}

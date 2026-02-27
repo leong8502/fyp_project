@@ -1756,6 +1756,40 @@ def admin_support(request):
     
     return render(request, 'core/admin/admin_support.html', context)
 
+
+@admin_required
+def admin_update_ticket(request, ticket_id):
+    """Admin Update Support Ticket Status"""
+    if request.method == 'POST':
+        from .models import AdminLog
+        
+        ticket = get_object_or_404(Ticket, id=ticket_id)
+        
+        status = request.POST.get('status')
+        old_status = ticket.status
+        
+        if status and status in dict(Ticket.STATUS_CHOICES):
+            ticket.status = status
+            
+            # If resolved or closed, set resolved_at if not set
+            if status in ['resolved', 'closed'] and not ticket.resolved_at:
+                from django.utils import timezone
+                ticket.resolved_at = timezone.now()
+                
+            ticket.save()
+            
+            AdminLog.objects.create(
+                admin_user=request.user,
+                action='update',
+                target_model='Ticket',
+                target_id=str(ticket.id),
+                description=f"Updated ticket status from '{old_status}' to '{status}' for ticket '{ticket.title}' (ID: {ticket.id})."
+            )
+            
+            return JsonResponse({'status': 'success', 'message': 'Ticket updated successfully.'})
+        return JsonResponse({'status': 'error', 'message': 'Invalid status provided.'}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
+
 @admin_required
 def admin_user_management(request):
     """Admin User Management"""
@@ -1802,6 +1836,50 @@ def admin_user_management(request):
     }
     
     return render(request, 'core/admin/admin_user.html', context)
+
+
+@admin_required
+def admin_update_user(request, user_id):
+    """Admin Update User Details"""
+    if request.method == 'POST':
+        from django.contrib.auth.models import User
+        from .models import AdminLog
+        
+        user = get_object_or_404(User, id=user_id)
+        
+        username = request.POST.get('username')
+        status = request.POST.get('status')
+        phone = request.POST.get('phone')
+        
+        if username:
+            user.username = username
+            
+        if status:
+            user.is_active = (status == 'active')
+            
+        user.save()
+        
+        # update phone
+        target_model = 'User'
+        if hasattr(user, 'client') and user.client:
+            user.client.phone = phone
+            user.client.save()
+            target_model = 'Client'
+        elif hasattr(user, 'freelancer') and user.freelancer:
+            user.freelancer.phone = phone
+            user.freelancer.save()
+            target_model = 'Freelancer'
+            
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model=target_model,
+            target_id=str(user.id),
+            description=f"Updated user details for '{user.email}' (ID: {user.id})."
+        )
+        
+        return JsonResponse({'status': 'success', 'message': 'User updated successfully.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
 @admin_required
 def admin_activity_log(request):
