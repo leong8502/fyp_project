@@ -92,77 +92,174 @@ img.logo {
     border-color: #0056b3;
 }
 
-.footer {
-    background-color: #1d1d1d;
-    padding: 30px 0;
-    color: #eeeded;
-    font-size: 14px;
-    width: 100%;
+/* Footer */
+.site-footer {
+    background: #111827;
+    color: #9ca3af;
+    padding: 0;
+    margin-top: auto;
+    font-size: 0.9rem;
 }
 
-.footer-container {
+.footer-inner {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px 20px;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30px;
+    padding: 48px 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 40px;
+    flex-wrap: wrap;
 }
 
-@media (min-width: 768px) {
-    .footer-container {
-        grid-template-columns: repeat(4, 1fr);
-    }
+.footer-brand {
+    max-width: 260px;
 }
 
-.footer-section h3 {
-    font-weight: bold;
-    margin-bottom: 10px;
-}
-
-.footer-section ul {
-    list-style: none;
-    padding: 0;
-}
-
-.footer-section ul li {
+.footer-brand-name {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.5px;
     margin-bottom: 8px;
 }
 
-.footer-section ul li a {
-    color: #a7a6a6;
+.footer-tagline {
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.footer-social {
+    display: flex;
+    gap: 10px;
+}
+
+.footer-social a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #1f2937;
+    color: #9ca3af;
     text-decoration: none;
+    font-size: 0.8rem;
+    transition: background 0.2s, color 0.2s;
 }
 
-.footer-section ul li span {
-    color: #a7a6a6;
+.footer-social a:hover {
+    background: #3730a3;
+    color: #fff;
 }
 
-.footer-section ul li a:hover {
-    text-decoration: underline;
+.footer-links {
+    display: flex;
+    gap: 60px;
+    flex-wrap: wrap;
 }
 
-.social-icons {
-    margin-top: 10px;
+.footer-col h4 {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0 0 16px;
 }
 
-.social-icons a {
-    margin-right: 10px;
-    color: #eeeded;
-    font-size: 16px;
+.footer-col a {
+    display: block;
+    color: #6b7280;
+    text-decoration: none;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+    transition: color 0.2s;
 }
 
-.partners img {
-    height: 24px;
-    margin-right: 10px;
-    vertical-align: middle;
+.footer-col a:hover {
+    color: #d1d5db;
+}
+
+.footer-contact-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #6b7280;
+    font-size: 0.88rem;
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.footer-contact-item i {
+    width: 14px;
+    color: #4b5563;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+
+/* CTA Strip */
+.footer-cta-strip {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+    border-bottom: 1px solid #1f2937;
+}
+
+.footer-cta-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.footer-cta-inner h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0 0 4px;
+}
+
+.footer-cta-inner p {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.75);
+    margin: 0;
+}
+
+.footer-cta-btn {
+    display: inline-block;
+    padding: 11px 26px;
+    background: #fff;
+    color: #1e3a8a;
+    border-radius: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    transition: background 0.2s, transform 0.2s;
+    flex-shrink: 0;
+}
+
+.footer-cta-btn:hover {
+    background: #e0e7ff;
+    transform: translateY(-1px);
 }
 
 .footer-bottom {
+    border-top: 1px solid #1f2937;
     text-align: center;
-    margin-top: 20px;
-    color: #666;
-    font-size: 12px;
+    padding: 16px 24px;
+    color: #4b5563;
+    font-size: 0.82rem;
+}
+
+.footer-bottom p {
+    margin: 0;
 }
 
 /* Messages/Alerts */
