@@ -120,7 +120,7 @@
         <div class="profile-right-col">
             <div class="sidebar-sticky">
                 <div class="action-card">
-                    <a href="#" class="btn btn-primary">Invite to My Project</a>
+                    <a href="#" class="btn btn-primary" onclick="document.getElementById('inviteModal').style.display='block'; return false;">Invite to My Project</a>
                     <a href="{% url 'start_chat' user_id=freelancer.user.id %}" class="btn btn-secondary">Contact
                         Now</a>
                     <ul class="info-list">
@@ -162,6 +162,40 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
+
+<!-- Invite Modal -->
+<div id="inviteModal" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0;">Invite {{ freelancer.full_name|default:freelancer.user.username }}</h2>
+            <span onclick="document.getElementById('inviteModal').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+        </div>
+        
+        <form action="{% url 'client_invite_freelancer' freelancer.id %}" method="post">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label for="project_id" style="display: block; font-weight: 500; margin-bottom: 8px;">Select Project:</label>
+                <select name="project_id" id="project_id" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;" required>
+                    <option value="" disabled selected>Select an open project</option>
+                    {% for project in open_projects %}
+                    <option value="{{ project.id }}">{{ project.title }}</option>
+                    {% endfor %}
+                </select>
+                {% if not open_projects %}
+                <p style="color: #dc3545; font-size: 0.85em; margin-top: 5px;">You don't have any open projects to invite freelancers to.</p>
+                {% endif %}
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="message" style="display: block; font-weight: 500; margin-bottom: 8px;">Message (Optional):</label>
+                <textarea name="message" id="message" rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical;" placeholder="Hi, I'd like to invite you to collaborate on my project..."></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('inviteModal').style.display='none'">Cancel</button>
+                <button type="submit" class="btn btn-primary" {% if not open_projects %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>Send Invitation</button>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

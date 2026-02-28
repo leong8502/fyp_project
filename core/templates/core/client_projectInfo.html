@@ -104,6 +104,25 @@
                             <i class="fas fa-calendar-alt"></i> Due: {{ milestone.deadline|date:"M d, Y" }}
                         </span>
                     </div>
+                    {% if milestone.attachments.exists %}
+                    <div style="margin-top: 10px; font-size: 0.9em; background: #f8f9fa; padding: 10px; border-radius: 6px;">
+                        <strong style="display:block; margin-bottom: 5px;">Submitted Files:</strong>
+                        <ul style="list-style-type: none; padding-left: 0; margin: 0;">
+                            {% for attachment in milestone.attachments.all %}
+                            <li style="margin-bottom: 4px;">
+                                <a href="{{ attachment.file.url }}" target="_blank" style="text-decoration: none; color: #1976d2;">
+                                    <i class="fas fa-link"></i> {{ attachment.file.name|cut:'milestone_attachments/' }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                    {% if milestone.revision_reason and milestone.status == 'in_progress' %}
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #842029; background: #f8d7da; padding: 10px; border-radius: 5px; border: 1px solid #f5c2c7;">
+                        <strong>Revision Requested:</strong> {{ milestone.revision_reason }}
+                    </div>
+                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>
@@ -112,8 +131,51 @@
             {% endif %}
 
             {% if project.status == 'open' %}
-            <h2>Manage Proposal</h2>
-            <p style="color: #888; font-style: italic;">No proposals received.</p>
+            <h2>Manage Proposals</h2>
+            {% if project.applications.exists %}
+                {% for app in project.applications.all %}
+                    {% if app.status == 'pending' %}
+                    <div class="proposal-card" style="border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <h4 style="margin: 0 0 5px 0;">{{ app.freelancer.user.username }}</h4>
+                                <span style="font-size: 0.85em; color: #666; font-weight: 500;">
+                                    {% if app.application_type == 'apply' %}Application{% else %}Invitation Sent{% endif %}
+                                </span>
+                            </div>
+                            <span style="font-size: 0.85em; color: #888;">{{ app.created_at|date:"M d, Y" }}</span>
+                        </div>
+                        <p style="margin-top: 10px; font-size: 0.95em;">{{ app.message|linebreaksbr|default:"No message attached." }}</p>
+                        
+                        {% if app.attachment %}
+                        <div style="margin-top: 10px;">
+                            <a href="{{ app.attachment.url }}" target="_blank" style="text-decoration: none; color: #1976d2; font-size: 0.9em;">
+                                <i class="fas fa-paperclip"></i> View Attached Resume/File
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            {% if app.application_type == 'apply' %}
+                                <!-- Form to Accept Application -->
+                                <form action="{% url 'accept_application' app.id %}" method="post" onsubmit="return confirm('Are you sure you want to accept this freelancer? This will assign them to the project and reject all other proposals.');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-success" style="padding: 6px 16px; font-size: 13px;">Accept Freelancer</button>
+                                </form>
+                                <form action="{% url 'reject_application' app.id %}" method="post">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-secondary" style="padding: 6px 16px; font-size: 13px; background-color: #dc3545; color: white;">Reject</button>
+                                </form>
+                            {% else %}
+                                <span style="color: #f57f17; font-weight: 500; font-size: 0.9em;"><i class="fas fa-clock"></i> Waiting for freelancer to accept</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+            <p style="color: #888; font-style: italic;">No proposals received yet.</p>
+            {% endif %}
             {% endif %}
 
             {% if project.status == 'in_progress' or project.status == 'completed' %}
@@ -210,9 +272,15 @@
             {% else %}
             <button class="btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">No Freelancer Assigned</button>
             {% endif %}
-            <button class="btn-success">Release Milestone Payment</button>
-            <button class="btn-secondary">Request Revision</button>
-            <button class="btn-secondary">Download All Files</button>
+            
+            {% for milestone in project.milestones.all %}
+                {% if milestone.status == 'completed' %}
+                <!-- Actions for Completed Milestone waiting for client approval -->
+                <button class="btn-success" onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='block'">Release Milestone Payment</button>
+                <button class="btn-secondary" onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='block'">Request Revision</button>
+                {% endif %}
+            {% endfor %}
+
 
             {% elif project.status == 'completed' %}
             <!-- Completed: Rate -->
@@ -244,4 +312,67 @@
         </div>
     </div>
 </div>
+
+<!-- Action Modals for Milestones -->
+{% if project.status == 'in_progress' %}
+    {% for milestone in project.milestones.all %}
+        {% if milestone.status == 'completed' %}
+            <!-- Request Revision Modal -->
+            <div id="requestRevisionModal_{{ milestone.id }}" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+                <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Request Revision</h2>
+                        <span onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+                    </div>
+                    <p style="color: #666; margin-bottom: 20px;">Please provide details on what needs to be revised for the milestone "<strong>{{ milestone.title }}</strong>". The status will change back to 'In Progress'.</p>
+                    
+                    <form action="{% url 'client_request_revision' milestone.id %}" method="post">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 20px;">
+                            <label for="reason" style="display: block; font-weight: 500; margin-bottom: 8px;">Revision Reason:</label>
+                            <textarea name="reason" id="reason" rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; resize: vertical;" required placeholder="E.g., The logo colors don't match our branding guidelines..."></textarea>
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='none'">Cancel</button>
+                            <button type="submit" class="btn-primary" style="background-color: #f57f17; border-color: #f57f17;">Submit Revision Request</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Release Payment Modal -->
+            <div id="releasePaymentModal_{{ milestone.id }}" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+                <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 450px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin: 0;">Release Payment</h2>
+                        <span onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin: 0 0 10px 0;">Milestone: {{ milestone.title }}</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #666;">Amount to Release:</span>
+                            <strong style="font-size: 1.2rem; color: #2e7d32;">RM {{ milestone.amount|floatformat:2 }}</strong>
+                        </div>
+                    </div>
+                    
+                    <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">By releasing this payment, you confirm that the work meets your requirements. This action cannot be undone.</p>
+                    
+                    <form action="{% url 'client_release_milestone_payment' milestone.id %}" method="post">
+                        {% csrf_token %}
+                        <div style="margin-bottom: 25px;">
+                            <label for="secure_pin" style="display: block; font-weight: 500; margin-bottom: 8px;">Enter 6-Digit Secure PIN:</label>
+                            <input type="password" name="secure_pin" id="secure_pin" maxlength="6" pattern="\d{6}" title="Please enter exactly 6 digits" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1.2rem; text-align: center; letter-spacing: 0.5em;">
+                        </div>
+                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                            <button type="button" class="btn-secondary" onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='none'">Cancel</button>
+                            <button type="submit" class="btn-success" style="padding: 10px 20px;">Confirm & Release RM {{ milestone.amount|floatformat:0 }}</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
 {% endblock %}

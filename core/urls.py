@@ -52,6 +52,8 @@ urlpatterns = [
     path('client/project/delete/<int:project_id>/', views.client_projectDelete, name='client_projectDelete'),
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
+    path('client/invite/<int:freelancer_id>/', views.client_invite_freelancer, name='client_invite_freelancer'),
+
     path('client/about-us/', views.client_about, name='client_about'),
     path('client/support/', views.client_support, name='client_support'),
     
@@ -66,11 +68,22 @@ urlpatterns = [
 
     path('client/search/', views.client_search, name='client_search'),
     path('client/freelancerProfile/<int:freelancer_id>/', views.client_freelancerProfile, name='client_freelancerProfile'),
+    
+    # Application / Proposal Actions
+    path('project/application/<int:app_id>/accept/', views.accept_application, name='accept_application'),
+    path('project/application/<int:app_id>/reject/', views.reject_application, name='reject_application'),
+
+    # Milestone Actions
+    path('milestone/<int:milestone_id>/submit/', views.freelancer_submit_milestone, name='freelancer_submit_milestone'),
+    path('milestone/<int:milestone_id>/revision/', views.client_request_revision, name='client_request_revision'),
+    path('milestone/<int:milestone_id>/release-payment/', views.client_release_milestone_payment, name='client_release_milestone_payment'),
+
     path('client/settings/', views.client_settings, name='client_settings'),
     # freelancer part
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
     path('freelancer/profile/', views.freelancer_profile, name='freelancer_profile'),
     path('freelancer/search-job/', views.freelancer_search_job, name='freelancer_search_job'),
+    path('freelancer/apply/<int:project_id>/', views.freelancer_apply_project, name='freelancer_apply_project'),
     path('freelancer/track-project/', views.freelancer_track_project, name='freelancer_track_project'),
     path('freelancer/wallet/', views.freelancer_wallet, name='freelancer_wallet'),
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),

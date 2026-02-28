@@ -104,9 +104,13 @@
                     </div>
                 </div>
 
-                <div class="job-item-footer">
+                <div class="job-item-footer" style="display: flex; gap: 10px; align-items: center;">
                     <button class="toggle-details-btn" onclick="toggleDetails({{ project.id }}, this)">View
                         Details</button>
+                    <!-- Apply Button -->
+                    {% if project.status == 'open' %}
+                    <button class="btn-primary" onclick="document.getElementById('applyModal_{{ project.id }}').style.display='block'" style="padding: 8px 16px; border-radius: 6px; font-weight: 500; border: none; cursor: pointer; background-color: #1976d2; color: white;">Apply Now</button>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}
@@ -117,6 +121,37 @@
         </div>
     </main>
 </div>
+
+<!-- Apply Modals -->
+{% for project, score in scored_projects %}
+<div id="applyModal_{{ project.id }}" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
+    <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 1.4rem;">Apply for: {{ project.title }}</h2>
+            <span onclick="document.getElementById('applyModal_{{ project.id }}').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+        </div>
+        
+        <form action="{% url 'freelancer_apply_project' project.id %}" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div style="margin-bottom: 20px;">
+                <label for="message_{{ project.id }}" style="display: block; font-weight: 500; margin-bottom: 8px;">Cover Letter / Message:</label>
+                <textarea name="message" id="message_{{ project.id }}" rows="5" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; resize: vertical;" required placeholder="Introduce yourself and explain why you're a great fit for this project..."></textarea>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label for="attachment_{{ project.id }}" style="display: block; font-weight: 500; margin-bottom: 8px;">Attachment (Optional, e.g., customized resume or portfolio PDF):</label>
+                <input type="file" name="attachment" id="attachment_{{ project.id }}" accept=".pdf" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('applyModal_{{ project.id }}').style.display='none'" style="padding: 10px 16px; border-radius: 6px; border: 1px solid #ccc; cursor: pointer; background: white; color: black;">Cancel</button>
+                <button type="submit" class="btn btn-primary" style="background-color: #1976d2; padding: 10px 16px; border-radius: 6px; border: none; color: white; cursor: pointer;">Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
 
 <script>
     function toggleDetails(projectId, btn) {

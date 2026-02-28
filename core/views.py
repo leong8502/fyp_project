@@ -24,7 +24,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary, Ticket, AdminLog
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary, Ticket, AdminLog, ProjectApplication, MilestoneAttachment
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from django.db.models import Q, ProtectedError
@@ -291,12 +291,15 @@ def client_search(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
         
+    open_projects = Project.objects.filter(client=request.user.client, status='open')
+        
     context = {
         'freelancers': page_obj, # Pass page_obj instead of QuerySet
         'query': query,
         'current_rating': rating_filter,
         'current_avail': avail_filter,
-        'has_filter': bool(rating_filter or avail_filter)
+        'has_filter': bool(rating_filter or avail_filter),
+        'open_projects': open_projects
     }
     
     return render(request, 'core/client_search.html', context)
@@ -304,7 +307,11 @@ def client_search(request):
 @client_required
 def client_freelancerProfile(request, freelancer_id):
     freelancer = get_object_or_404(Freelancer, id=freelancer_id)
-    return render(request, 'core/client_freelancerProfile.html', {'freelancer': freelancer})
+    open_projects = Project.objects.filter(client=request.user.client, status='open')
+    return render(request, 'core/client_freelancerProfile.html', {
+        'freelancer': freelancer,
+        'open_projects': open_projects
+    })
 
 def client_about(request):
     if request.user.is_authenticated and hasattr(request.user, 'client'):
@@ -1048,10 +1055,13 @@ def freelancer_track_project(request):
     current_projects = Project.objects.filter(assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing'])
     # Fetch passed/completed projects
     pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
+    # Fetch pending applications/invitations
+    pending_applications = ProjectApplication.objects.filter(freelancer=freelancer, status='pending').order_by('-created_at')
 
     context = {
         'current_projects': current_projects,
         'pass_projects': pass_projects,
+        'pending_applications': pending_applications,
     }
     return render(request, 'core/freelancer_trackProject.html', context)
 
@@ -2033,4 +2043,242 @@ def admin_reference_data(request):
         'active_menu': 'reference'
     }
     return render(request, 'core/admin/admin_reference.html', context)
+
+# --- Project Tracking and Completion Views ---
+
+@freelancer_required
+def freelancer_apply_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    if project.status != 'open':
+        messages.error(request, "This project is no longer accepting applications.")
+        return redirect('freelancer_search_job')
+        
+    if request.method == 'POST':
+        message = request.POST.get('message', '')
+        attachment = request.FILES.get('attachment')
+        
+        # Check if already applied
+        application = ProjectApplication.objects.filter(project=project, freelancer=request.user.freelancer).first()
+        if application:
+            if application.status in ['pending', 'accepted']:
+                messages.error(request, "You have already applied or been invited to this project.")
+                return redirect('freelancer_search_job')
+            else:
+                # Update existing rejected/withdrawn application
+                application.status = 'pending'
+                application.message = message
+                application.application_type = 'apply'
+                if attachment:
+                    application.attachment = attachment
+                application.save()
+                messages.success(request, "Application sent successfully!")
+                return redirect('freelancer_track_project')
+            
+        ProjectApplication.objects.create(
+            project=project,
+            freelancer=request.user.freelancer,
+            application_type='apply',
+            message=message,
+            attachment=attachment
+        )
+        messages.success(request, "Application sent successfully!")
+        return redirect('freelancer_track_project')
+        
+    return redirect('freelancer_search_job')
+
+@client_required
+def client_invite_freelancer(request, freelancer_id):
+    freelancer = get_object_or_404(Freelancer, id=freelancer_id)
+    if request.method == 'POST':
+        project_id = request.POST.get('project_id')
+        message = request.POST.get('message', '')
+        project = get_object_or_404(Project, id=project_id, client=request.user.client, status='open')
+        
+        # Check if already invited or applied
+        application = ProjectApplication.objects.filter(project=project, freelancer=freelancer).first()
+        if application:
+            if application.status in ['pending', 'accepted']:
+                messages.error(request, "You have already invited this freelancer or they have already applied.")
+                return redirect('client_freelancerProfile', freelancer_id=freelancer.id)
+            else:
+                # Update existing rejected/withdrawn application
+                application.status = 'pending'
+                application.message = message
+                application.application_type = 'invite'
+                application.save()
+                messages.success(request, f"Invitation sent to {freelancer.user.username} for {project.title}!")
+                return redirect('client_projectInfo', project_id=project.id)
+            
+        ProjectApplication.objects.create(
+            project=project,
+            freelancer=freelancer,
+            application_type='invite',
+            message=message
+        )
+        messages.success(request, f"Invitation sent to {freelancer.user.username} for {project.title}!")
+        return redirect('client_projectInfo', project_id=project.id)
+        
+    return redirect('client_search')
+
+@login_required
+def accept_application(request, app_id):
+    application = get_object_or_404(ProjectApplication, id=app_id)
+    project = application.project
+    
+    # Validation: Only client can accept an 'apply' proposal, only freelancer can accept an 'invite'
+    if getattr(request.user, 'client', None) == project.client and application.application_type == 'apply':
+        pass
+    elif getattr(request.user, 'freelancer', None) == application.freelancer and application.application_type == 'invite':
+        pass
+    else:
+        messages.error(request, "Unauthorized to accept this application.")
+        return redirect('home')
+
+    if project.status != 'open':
+        messages.error(request, "This project is no longer open.")
+        return redirect('home')
+
+    try:
+        with transaction.atomic():
+            application.status = 'accepted'
+            application.save()
+            
+            project.assigned_freelancer = application.freelancer
+            project.status = 'in_progress'
+            project.save()
+            
+            # Reject all other pending applications for this project
+            ProjectApplication.objects.filter(project=project, status='pending').exclude(id=application.id).update(status='rejected')
+            
+            # Change first milestone status to in_progress
+            first_milestone = project.milestones.order_by('order').first()
+            if first_milestone:
+                first_milestone.status = 'in_progress'
+                first_milestone.save()
+                
+        messages.success(request, f"Application accepted! Project '{project.title}' has started.")
+    except Exception as e:
+        messages.error(request, f"Error: {e}")
+        
+    if hasattr(request.user, 'client'):
+        return redirect('client_projectInfo', project_id=project.id)
+    return redirect('freelancer_track_project')
+
+@login_required
+def reject_application(request, app_id):
+    application = get_object_or_404(ProjectApplication, id=app_id)
+    
+    if getattr(request.user, 'client', None) == application.project.client or getattr(request.user, 'freelancer', None) == application.freelancer:
+        application.status = 'rejected'
+        application.save()
+        messages.success(request, "Application rejected.")
+    else:
+        messages.error(request, "Unauthorized to reject this application.")
+        
+    if hasattr(request.user, 'client'):
+        return redirect('client_projectInfo', project_id=application.project.id)
+    return redirect('freelancer_track_project')
+
+@freelancer_required
+def freelancer_submit_milestone(request, milestone_id):
+    milestone = get_object_or_404(Milestone, id=milestone_id, project__assigned_freelancer=request.user.freelancer)
+    if milestone.status != 'in_progress':
+        messages.error(request, "Milestone must be in progress to submit.")
+        return redirect('freelancer_track_project')
+        
+    if request.method == 'POST':
+        files = request.FILES.getlist('attachments')
+        if not files and milestone.attachments.count() == 0:
+            messages.error(request, "Please upload at least one file to submit the milestone.")
+            return redirect('freelancer_track_project')
+            
+        for f in files:
+            MilestoneAttachment.objects.create(milestone=milestone, file=f)
+            
+        milestone.status = 'completed'
+        milestone.completed_at = timezone.now()
+        milestone.save()
+        messages.success(request, "Milestone submitted successfully! Waiting for client approval.")
+        
+    return redirect('freelancer_track_project')
+
+@client_required
+def client_request_revision(request, milestone_id):
+    milestone = get_object_or_404(Milestone, id=milestone_id, project__client=request.user.client)
+    if milestone.status != 'completed':
+        messages.error(request, "Milestone must be completed by freelancer first.")
+        return redirect('client_projectInfo', project_id=milestone.project.id)
+        
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '')
+        milestone.status = 'in_progress'
+        milestone.revision_requested = True
+        milestone.revision_count += 1
+        milestone.revision_reason = reason
+        milestone.save()
+        messages.success(request, "Revision requested.")
+        
+    return redirect('client_projectInfo', project_id=milestone.project.id)
+
+@client_required
+def client_release_milestone_payment(request, milestone_id):
+    milestone = get_object_or_404(Milestone, id=milestone_id, project__client=request.user.client)
+    if milestone.status != 'completed':
+        messages.error(request, "Milestone must be submitted before releasing payment.")
+        return redirect('client_projectInfo', project_id=milestone.project.id)
+        
+    if request.method == 'POST':
+        # Verify PIN
+        user_security = getattr(request.user, 'security', None)
+        entered_pin = request.POST.get('secure_pin')
+        if not user_security or not check_password(entered_pin, user_security.secure_pin):
+            messages.error(request, "Invalid Secure PIN.")
+            return redirect('client_projectInfo', project_id=milestone.project.id)
+            
+        try:
+            with transaction.atomic():
+                project = milestone.project
+                freelancer_wallet = project.assigned_freelancer.user.wallet
+                escrow = project.escrow
+                
+                # Release funds
+                escrow.remaining_amount -= milestone.amount
+                escrow.released_amount += milestone.amount
+                if escrow.remaining_amount <= 0:
+                    escrow.status = 'released'
+                escrow.save()
+                
+                freelancer_wallet.balance += milestone.amount
+                freelancer_wallet.save()
+                
+                Transaction.objects.create(
+                    wallet=freelancer_wallet,
+                    amount=milestone.amount,
+                    direction='credit',
+                    transaction_type='payout',
+                    status='completed',
+                    description=f"Payment for milestone: {milestone.title}",
+                    reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                    related_project=project,
+                    related_milestone=milestone
+                )
+                
+                milestone.status = 'approved'
+                milestone.save()
+                
+                # Activate next milestone or complete project
+                next_milestone = project.milestones.filter(order__gt=milestone.order).order_by('order').first()
+                if next_milestone:
+                    next_milestone.status = 'in_progress'
+                    next_milestone.save()
+                    messages.success(request, f"Payment released! Next milestone '{next_milestone.title}' is now in progress.")
+                else:
+                    project.status = 'completed'
+                    project.save()
+                    messages.success(request, "Payment released! All milestones done, project is now completed.")
+                    
+        except Exception as e:
+            messages.error(request, f"Error releasing payment: {e}")
+            
+    return redirect('client_projectInfo', project_id=milestone.project.id)
 

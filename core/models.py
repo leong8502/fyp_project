@@ -116,9 +116,37 @@ class Project(models.Model):
     attachment = models.FileField(upload_to='project_attachments/', blank=True, null=True, help_text="Single PDF attachment")
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
-
     def __str__(self):
         return self.title
+
+class ProjectApplication(models.Model):
+    APPLICATION_TYPES = [
+        ('apply', 'Application'),
+        ('invite', 'Invitation'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+        ('withdrawn', 'Withdrawn'),
+    ]
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='applications')
+    freelancer = models.ForeignKey('Freelancer', on_delete=models.CASCADE, related_name='applications')
+    application_type = models.CharField(max_length=10, choices=APPLICATION_TYPES)
+    message = models.TextField(blank=True, help_text="Cover letter or invitation message")
+    attachment = models.FileField(upload_to='application_attachments/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('project', 'freelancer')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.get_application_type_display()} - {self.freelancer.user.username} for {self.project.title}"
+
 
 class Milestone(models.Model):
 
@@ -141,12 +169,23 @@ class Milestone(models.Model):
     # Revision Support
     revision_requested = models.BooleanField(default=False, help_text="Indicates whether client requested a revision")
     revision_count = models.PositiveIntegerField(default=0, help_text="Number of revisions requested")
+    revision_reason = models.TextField(blank=True, help_text="Reason for the latest revision request")
+
 
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.project.title} - {self.title}"
+
+class MilestoneAttachment(models.Model):
+    milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='milestone_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for {self.milestone.title}"
+
 
 
 class Freelancer(models.Model):

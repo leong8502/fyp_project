@@ -12,6 +12,7 @@
     <div class="track-tabs-header">
         <nav class="tabs-nav">
             <a onclick="showTab('current')" id="tab-current" class="tab-link active">Current Project</a>
+            <a onclick="showTab('invitations')" id="tab-invitations" class="tab-link">Invitations {% if pending_applications.count > 0 %}<span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8em; margin-left: 5px;">{{ pending_applications.count }}</span>{% endif %}</a>
             <a onclick="showTab('pass')" id="tab-pass" class="tab-link">Pass Project</a>
         </nav>
 
@@ -50,6 +51,48 @@
                         <span class="info-label">Status:</span>
                         <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
                     </div>
+
+                    {% if project.status == 'in_progress' %}
+                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                        <h4 style="margin-bottom: 10px; font-size: 14px; color: #555;">Milestones:</h4>
+                        {% for milestone in project.milestones.all %}
+                        {% if milestone.status == 'in_progress' %}
+                            <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                    <div>
+                                        <strong style="display: block; font-size: 14px; color: #333;">{{ milestone.title }}</strong>
+                                        <span style="font-size: 12px; color: #888;">Due: {{ milestone.deadline|date:"M d, Y" }}</span>
+                                    </div>
+                                    <span style="font-weight: bold; color: #2e7d32;">RM {{ milestone.amount|floatformat:0 }}</span>
+                                </div>
+                                
+                                {% if milestone.revision_reason %}
+                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba;">
+                                    <strong>Client Revision Request:</strong> {{ milestone.revision_reason }}
+                                </div>
+                                {% endif %}
+
+                                <form action="{% url 'freelancer_submit_milestone' milestone.id %}" method="post" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div style="margin-bottom: 10px;">
+                                        <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: #555;">Upload Deliverables (You can select multiple files if supported by browser/form, otherwise zip them):</label>
+                                        <input type="file" name="attachments" multiple required style="width: 100%; padding: 8px; border: 1px dashed #ccc; border-radius: 6px; background: white; font-size: 13px;">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none;">Submit Milestone</button>
+                                </form>
+                            </div>
+                        {% elif milestone.status == 'completed' %}
+                            <div style="background: #ebf5fb; border: 1px solid #bce8f1; border-radius: 8px; padding: 10px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <strong style="font-size: 13px; color: #31708f;">{{ milestone.title }}</strong>
+                                    <span style="display: block; font-size: 11px; color: #31708f;">Submitted on {{ milestone.completed_at|date:"M d, Y" }}</span>
+                                </div>
+                                <span style="font-size: 12px; font-weight: 600; color: #31708f; background: white; padding: 4px 8px; border-radius: 12px; border: 1px solid #bce8f1;">Waiting for Approval</span>
+                            </div>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% empty %}
@@ -57,6 +100,63 @@
                 <h3>No projects found at this moment</h3>
                 <p>You haven't joined any project yet. Start searching for jobs!</p>
                 <a href="{% url 'freelancer_search_job' %}" class="btn btn-primary mt-3">Find Jobs</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Invitations Section -->
+    <div id="section-invitations" class="projects-section" style="display: none;">
+        <div class="projects-grid">
+            {% for app in pending_applications %}
+            <div class="track-card">
+                {% if app.project.client.profile_image %}
+                <img src="{{ app.project.client.profile_image.url }}" class="track-card-image">
+                {% else %}
+                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
+                {% endif %}
+                <div class="track-card-content">
+                    <h3 class="track-card-title">{{ app.project.title }}</h3>
+                    <div class="info-row">
+                        <span class="info-label">Client:</span>
+                        <span class="info-value">{{ app.project.client.company_name }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Budget:</span>
+                        <span class="info-value">RM {{ app.project.budget|floatformat:0 }}</span>
+                    </div>
+                    
+                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                        {% if app.application_type == 'invite' %}
+                            <h4 style="margin-bottom: 5px; font-size: 14px; color: #1976d2;"><i class="fas fa-envelope"></i> Invitation Received</h4>
+                        {% else %}
+                            <h4 style="margin-bottom: 5px; font-size: 14px; color: #888;">Your Application</h4>
+                        {% endif %}
+                        <p style="font-size: 13px; color: #555; background: #f9f9f9; padding: 10px; border-radius: 6px;">{{ app.message|default:"No message provided." }}</p>
+                        
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            {% if app.application_type == 'invite' %}
+                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success" style="width: 100%; border: none; cursor: pointer; padding: 8px;">Accept</button>
+                            </form>
+                            <form action="{% url 'reject_application' app.id %}" method="post" style="flex: 1;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-secondary" style="width: 100%; border: none; cursor: pointer; padding: 8px; background-color: #dc3545; color: white;">Decline</button>
+                            </form>
+                            {% else %}
+                            <span style="font-size: 13px; color: #e65100; font-weight: 500; display: block; width: 100%; text-align: center; padding: 10px; background: #fff3e0; border-radius: 6px;">
+                                <i class="fas fa-clock"></i> Waiting for client review
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <h3>No pending invitations or applications</h3>
+                <p>Send more applications to land your next project!</p>
             </div>
             {% endfor %}
         </div>
@@ -102,11 +202,13 @@
     function showTab(tabName) {
         // Toggle tabs
         document.getElementById('tab-current').classList.remove('active');
+        document.getElementById('tab-invitations').classList.remove('active');
         document.getElementById('tab-pass').classList.remove('active');
         document.getElementById('tab-' + tabName).classList.add('active');
 
         // Toggle sections
         document.getElementById('section-current').style.display = tabName === 'current' ? 'block' : 'none';
+        document.getElementById('section-invitations').style.display = tabName === 'invitations' ? 'block' : 'none';
         document.getElementById('section-pass').style.display = tabName === 'pass' ? 'block' : 'none';
     }
 </script>
