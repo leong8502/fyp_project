@@ -204,8 +204,12 @@
 
             {% elif project.status == 'in_progress' %}
             <!-- In Progress: Message, Release Payment, Revision, Download -->
-            <a href="{% url 'client_chat' %}" style="text-decoration:none; color:white;"><button
+            {% if project.assigned_freelancer %}
+            <a href="{% url 'start_chat' project.assigned_freelancer.user.id %}" style="text-decoration:none; color:white;"><button
                     class="btn-primary">Message Freelancer</button></a>
+            {% else %}
+            <button class="btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;">No Freelancer Assigned</button>
+            {% endif %}
             <button class="btn-success">Release Milestone Payment</button>
             <button class="btn-secondary">Request Revision</button>
             <button class="btn-secondary">Download All Files</button>
