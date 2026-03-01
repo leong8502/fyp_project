@@ -24,7 +24,7 @@ from django.core.mail import EmailMessage
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
-from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary, Ticket, AdminLog, ProjectApplication, MilestoneAttachment
+from .models import Client, Freelancer, Project, Milestone, ProjectCategory, Industry, Wallet, Transaction, UserSecurity, Escrow, ProjectMatch, Conversation, ChatParticipant, Message, FreelancerPortfolio, FreelancerWorkExperience, FreelancerCertification, Review, RatingSummary, Ticket, AdminLog, ProjectApplication, MilestoneAttachment, ProjectActivity
 from django.contrib.auth.hashers import make_password, check_password
 from django.db import transaction
 from django.db.models import Q, ProtectedError
@@ -757,15 +757,40 @@ def client_projectCreate(request):
 
 @client_required
 def client_projectInfo(request, project_id):
-    project = Project.objects.get(id=project_id, client=request.user.client)
+    project = get_object_or_404(Project, id=project_id, client=request.user.client)
     
     review = None
     if project.status == 'completed':
         review = Review.objects.filter(project=project, reviewer=request.user).first()
-        
+    
+    # Financial details
+    escrow = getattr(project, 'escrow', None)
+    
+    # Contract started date (when application was accepted)
+    contract_started = None
+    if project.assigned_freelancer:
+        accepted_app = project.applications.filter(status='accepted', freelancer=project.assigned_freelancer).first()
+        if accepted_app:
+            contract_started = accepted_app.updated_at
+
+    # Progress Calculation
+    milestones = project.milestones.all()
+    total_milestones = milestones.count()
+    approved_milestones = milestones.filter(status='approved').count()
+    progress_percentage = 0
+    if total_milestones > 0:
+        progress_percentage = int((approved_milestones / total_milestones) * 100)
+
+    # Recent Activity
+    activities = project.activities.all()[:10]  # Get latest 10 activities
+
     return render(request, 'core/client_projectInfo.html', {
         'project': project,
-        'review': review
+        'review': review,
+        'escrow': escrow,
+        'contract_started': contract_started,
+        'progress_percentage': progress_percentage,
+        'activities': activities
     })
 
 @client_required
@@ -1055,6 +1080,11 @@ def freelancer_track_project(request):
     current_projects = Project.objects.filter(assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing'])
     # Fetch passed/completed projects
     pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
+    
+    # Check if reviews already exist for passed projects
+    for project in pass_projects:
+        project.has_reviewed = Review.objects.filter(project=project, reviewer=request.user).exists()
+
     # Fetch pending applications/invitations
     pending_applications = ProjectApplication.objects.filter(freelancer=freelancer, status='pending').order_by('-created_at')
 
@@ -1062,6 +1092,7 @@ def freelancer_track_project(request):
         'current_projects': current_projects,
         'pass_projects': pass_projects,
         'pending_applications': pending_applications,
+        'active_tab': request.GET.get('tab', 'current'),
     }
     return render(request, 'core/freelancer_trackProject.html', context)
 
@@ -1430,8 +1461,8 @@ def submit_review(request, project_id):
         if hasattr(reviewer, 'client'): 
             return redirect('client_projectInfo', project_id=project.id)
         else:
-            # waiting for freelancer page
-            return redirect('freelancer_home') 
+            # Redirect to freelancer tracking page, pass projects tab
+            return redirect(reverse('freelancer_track_project') + '?tab=pass') 
 
     # Determine base template
     base_template = None
@@ -1487,7 +1518,7 @@ def submit_review(request, project_id):
                 if hasattr(reviewer, 'client'):
                      return redirect('client_projectInfo', project_id=project.id)
                 else:
-                     return redirect('freelancer_home') # Or specific project view
+                     return redirect(reverse('freelancer_track_project') + '?tab=pass')
 
             except Exception as e:
                 print(e)
@@ -2150,11 +2181,18 @@ def accept_application(request, app_id):
             # Reject all other pending applications for this project
             ProjectApplication.objects.filter(project=project, status='pending').exclude(id=application.id).update(status='rejected')
             
-            # Change first milestone status to in_progress
             first_milestone = project.milestones.order_by('order').first()
             if first_milestone:
                 first_milestone.status = 'in_progress'
                 first_milestone.save()
+
+            # Record Activity
+            ProjectActivity.objects.create(
+                project=project,
+                user=request.user,
+                activity_type='proposal_accepted',
+                description=f"Proposal from {application.freelancer.full_name or application.freelancer.user.username} was accepted. Project is now 'In Progress'."
+            )
                 
         messages.success(request, f"Application accepted! Project '{project.title}' has started.")
     except Exception as e:
@@ -2171,6 +2209,15 @@ def reject_application(request, app_id):
     if getattr(request.user, 'client', None) == application.project.client or getattr(request.user, 'freelancer', None) == application.freelancer:
         application.status = 'rejected'
         application.save()
+        
+        # Record Activity
+        ProjectActivity.objects.create(
+            project=application.project,
+            user=request.user,
+            activity_type='proposal_rejected',
+            description=f"Proposal from {application.freelancer.full_name or application.freelancer.user.username} was rejected."
+        )
+
         messages.success(request, "Application rejected.")
     else:
         messages.error(request, "Unauthorized to reject this application.")
@@ -2188,16 +2235,29 @@ def freelancer_submit_milestone(request, milestone_id):
         
     if request.method == 'POST':
         files = request.FILES.getlist('attachments')
-        if not files and milestone.attachments.count() == 0:
+        
+        # If new files are uploaded, we clear the old ones to avoid duplicates/confusion
+        if files:
+            milestone.attachments.all().delete()
+            for f in files:
+                MilestoneAttachment.objects.create(milestone=milestone, file=f)
+        elif milestone.attachments.count() == 0:
             messages.error(request, "Please upload at least one file to submit the milestone.")
             return redirect('freelancer_track_project')
             
-        for f in files:
-            MilestoneAttachment.objects.create(milestone=milestone, file=f)
-            
         milestone.status = 'completed'
         milestone.completed_at = timezone.now()
+        milestone.revision_requested = False  # Reset revision flag after submission
         milestone.save()
+
+        # Record Activity
+        ProjectActivity.objects.create(
+            project=milestone.project,
+            user=request.user,
+            activity_type='milestone_submitted',
+            description=f"Milestone '{milestone.title}' was submitted by the freelancer."
+        )
+
         messages.success(request, "Milestone submitted successfully! Waiting for client approval.")
         
     return redirect('freelancer_track_project')
@@ -2216,6 +2276,15 @@ def client_request_revision(request, milestone_id):
         milestone.revision_count += 1
         milestone.revision_reason = reason
         milestone.save()
+
+        # Record Activity
+        ProjectActivity.objects.create(
+            project=milestone.project,
+            user=request.user,
+            activity_type='revision_requested',
+            description=f"Revision requested for milestone '{milestone.title}'. Reason: {reason}"
+        )
+
         messages.success(request, "Revision requested.")
         
     return redirect('client_projectInfo', project_id=milestone.project.id)
@@ -2265,6 +2334,24 @@ def client_release_milestone_payment(request, milestone_id):
                 
                 milestone.status = 'approved'
                 milestone.save()
+
+                # Record Activity (Payment Released)
+                ProjectActivity.objects.create(
+                    project=project,
+                    user=request.user,
+                    activity_type='payment_released',
+                    description=f"Milestone '{milestone.title}' was approved and payment of ${milestone.amount} was released."
+                )
+
+                if escrow.status == 'released':
+                    ProjectActivity.objects.create(
+                        project=project,
+                        user=request.user,
+                        activity_type='status_updated',
+                        description="All milestones completed. Project status updated to 'Completed'."
+                    )
+                    project.status = 'completed'
+                    project.save()
                 
                 # Activate next milestone or complete project
                 next_milestone = project.milestones.filter(order__gt=milestone.order).order_by('order').first()

@@ -7,6 +7,74 @@
 <link rel="stylesheet" href="{% static 'core/css/client_projectInfo.css' %}">
 {% endblock %}
 
+{% block extra_js %}
+<script>
+    function openModalV2(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            // Auto-focus PIN input if it exists
+            const pinInput = modal.querySelector('.modern-pin-input-v2');
+            if (pinInput) setTimeout(() => pinInput.focus(), 300);
+        }
+    }
+
+    function closeModalV2(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+
+    function validatePIN(form) {
+        const pinInput = form.querySelector('.modern-pin-input-v2');
+        if (pinInput && pinInput.value.length !== 6) {
+            alert('Please enter a complete 6-digit PIN');
+            return false;
+        }
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        }
+        return true;
+    }
+
+    function switchTab(event, tabId) {
+        // Hide all tab content
+        const tabContents = document.querySelectorAll('.tab-content-v2');
+        tabContents.forEach(content => content.classList.remove('active'));
+
+        // Remove active class from all tab buttons
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+
+        // Show the specific tab content
+        document.getElementById(tabId).classList.add('active');
+
+        // Add active class to the clicked button
+        event.currentTarget.classList.add('active');
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const activeModal = document.querySelector('.modal-v2.active');
+            if (activeModal) closeModalV2(activeModal.id);
+        }
+    });
+
+    // PIN Input numeric filter
+    document.addEventListener('input', function (e) {
+        if (e.target.classList.contains('modern-pin-input-v2')) {
+            e.target.value = e.target.value.replace(/[^0-9]/g, '');
+        }
+    });
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="header">
@@ -74,10 +142,10 @@
             {% if project.status == 'in_progress' or project.status == 'completed' %}
             <h2>Progress</h2>
             <div class="progress">
-                <!-- Placeholder progress bar logic, can be made dynamic later based on milestones completed -->
-                <div class="progress-bar" style="width: 50%;"></div>
+                <!-- Dynamic progress bar based on milestone completion -->
+                <div class="progress-bar" style="width: {{ progress_percentage }}%;"></div>
             </div>
-            <p><strong>In Progress</strong></p>
+            <p><strong>{{ progress_percentage }}% Complete</strong></p>
             {% endif %}
 
 
@@ -133,58 +201,132 @@
             {% if project.status == 'open' %}
             <h2>Manage Proposals</h2>
             {% if project.applications.exists %}
-                {% for app in project.applications.all %}
-                    {% if app.status == 'pending' %}
-                    <div class="proposal-card" style="border: 1px solid #e0e0e0; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                            <div>
-                                <h4 style="margin: 0 0 5px 0;">{{ app.freelancer.user.username }}</h4>
-                                <span style="font-size: 0.85em; color: #666; font-weight: 500;">
-                                    {% if app.application_type == 'apply' %}Application{% else %}Invitation Sent{% endif %}
-                                </span>
+                <div class="proposals-list">
+                    {% for app in project.applications.all %}
+                        {% if app.status == 'pending' %}
+                        <div class="proposal-card-v2">
+                            <div class="proposal-header">
+                                <!-- Freelancer Profile Image -->
+                                <div class="proposal-avatar-container">
+                                    {% if app.freelancer.profile_image %}
+                                        <img src="{{ app.freelancer.profile_image.url }}" alt="{{ app.freelancer.user.username }}" class="proposal-avatar">
+                                    {% else %}
+                                        <div class="proposal-avatar-placeholder">
+                                            {{ app.freelancer.user.username|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Proposal Details -->
+                                <div class="proposal-info">
+                                    <div class="proposal-top-row">
+                                        <h4 class="proposal-name">
+                                            {{ app.freelancer.full_name|default:app.freelancer.user.username }}
+                                            <span class="proposal-rating">
+                                                <i class="fas fa-star"></i> {{ app.freelancer.user.rating_summary.average_rating|default:"0.0" }}
+                                            </span>
+                                        </h4>
+                                        <span class="proposal-date">{{ app.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                    
+                                    <p class="proposal-tagline">{{ app.freelancer.tagline|default:"Freelancer" }}</p>
+                                    
+                                    <a href="{% url 'client_freelancerProfile' app.freelancer.id %}" target="_blank" class="view-profile-link">
+                                        View Profile <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                </div>
                             </div>
-                            <span style="font-size: 0.85em; color: #888;">{{ app.created_at|date:"M d, Y" }}</span>
-                        </div>
-                        <p style="margin-top: 10px; font-size: 0.95em;">{{ app.message|linebreaksbr|default:"No message attached." }}</p>
-                        
-                        {% if app.attachment %}
-                        <div style="margin-top: 10px;">
-                            <a href="{{ app.attachment.url }}" target="_blank" style="text-decoration: none; color: #1976d2; font-size: 0.9em;">
-                                <i class="fas fa-paperclip"></i> View Attached Resume/File
-                            </a>
+
+                            <!-- Application Message -->
+                            <div class="proposal-message-box">
+                                <p class="proposal-message-text">
+                                    {{ app.message|linebreaksbr|default:"No message attached." }}
+                                </p>
+                            </div>
+
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    {% if app.attachment %}
+                                        <a href="{{ app.attachment.url }}" target="_blank" class="proposal-attachment-link">
+                                            <i class="fas fa-file-pdf"></i> Attachment
+                                        </a>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="proposal-actions" style="border-top: none; padding-top: 0;">
+                                    {% if app.application_type == 'apply' %}
+                                        <form action="{% url 'accept_application' app.id %}" method="post" 
+                                              onsubmit="return confirm('Accept this freelancer? This will assign them to the project and reject all other proposals.');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-accept-sm">Accept</button>
+                                        </form>
+                                        <form action="{% url 'reject_application' app.id %}" method="post">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn-decline-sm">Decline</button>
+                                        </form>
+                                    {% else %}
+                                        <span class="waiting-badge">
+                                            <i class="fas fa-clock"></i> Invited
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
-
-                        <div style="margin-top: 15px; display: flex; gap: 10px;">
-                            {% if app.application_type == 'apply' %}
-                                <!-- Form to Accept Application -->
-                                <form action="{% url 'accept_application' app.id %}" method="post" onsubmit="return confirm('Are you sure you want to accept this freelancer? This will assign them to the project and reject all other proposals.');">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-success" style="padding: 6px 16px; font-size: 13px;">Accept Freelancer</button>
-                                </form>
-                                <form action="{% url 'reject_application' app.id %}" method="post">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn-secondary" style="padding: 6px 16px; font-size: 13px; background-color: #dc3545; color: white;">Reject</button>
-                                </form>
-                            {% else %}
-                                <span style="color: #f57f17; font-weight: 500; font-size: 0.9em;"><i class="fas fa-clock"></i> Waiting for freelancer to accept</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                {% endfor %}
+                    {% endfor %}
+                </div>
             {% else %}
             <p style="color: #888; font-style: italic;">No proposals received yet.</p>
             {% endif %}
             {% endif %}
 
             {% if project.status == 'in_progress' or project.status == 'completed' %}
-            <h2>Recent Activity / Messages</h2>
-            <p style="color: #888; font-style: italic;">No recent activity.</p>
-            {% endif %}
+            <div class="info-tabs">
+                <button class="tab-btn active" onclick="switchTab(event, 'activity-tab')">
+                    <i class="fas fa-history"></i> Recent Activity
+                </button>
+                {% if project.status == 'completed' %}
+                <button class="tab-btn" onclick="switchTab(event, 'reviews-tab')">
+                    <i class="fas fa-star"></i> Reviews
+                </button>
+                {% endif %}
+            </div>
+
+            <div id="activity-tab" class="tab-content-v2 active">
+                <h2>Recent Activity</h2>
+                {% if activities %}
+                <div class="activity-timeline">
+                    {% for activity in activities %}
+                    <div class="activity-item type-{{ activity.activity_type }}">
+                        <div class="activity-dot"></div>
+                        <div class="activity-content">
+                            <div class="activity-header">
+                                <span class="activity-title">{{ activity.get_activity_type_display }}</span>
+                                <span class="activity-time">{{ activity.created_at|timesince }} ago</span>
+                            </div>
+                            <p class="activity-desc">{{ activity.description }}</p>
+                            <div class="activity-user">
+                                by 
+                                {% if activity.user.client %}
+                                    {{ activity.user.client.company_name }}
+                                {% elif activity.user.freelancer %}
+                                    {{ activity.user.freelancer.full_name }}
+                                {% else %}
+                                    {{ activity.user.username }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #888; font-style: italic;">No recent activity.</p>
+                {% endif %}
+            </div>
 
             {% if project.status == 'completed' %}
-            <div style="margin-top: 30px;">
+            <div id="reviews-tab" class="tab-content-v2">
                 <h2>Review</h2>
                 {% if review %}
                 <div class="review-card">
@@ -228,7 +370,6 @@
                         {% endfor %}
                     </div>
                     {% endif %}
-
                 </div>
                 {% else %}
                 <div class="no-review-box">
@@ -237,6 +378,7 @@
                 </div>
                 {% endif %}
             </div>
+            {% endif %}
             {% endif %}
         </div>
 
@@ -262,7 +404,7 @@
             <a href="{% url 'client_projectMatches' project.id %}" style="text-decoration: none;">
                 <button class="btn-primary">Find Matches (AI)</button>
             </a>
-            <button class="btn-secondary" style="background-color: #dc3545; color: white;">Cancel Project</button>
+            <button class="btn-danger">Cancel Project</button>
 
             {% elif project.status == 'in_progress' %}
             <!-- In Progress: Message, Release Payment, Revision, Download -->
@@ -276,17 +418,21 @@
             {% for milestone in project.milestones.all %}
                 {% if milestone.status == 'completed' %}
                 <!-- Actions for Completed Milestone waiting for client approval -->
-                <button class="btn-success" onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='block'">Release Milestone Payment</button>
-                <button class="btn-secondary" onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='block'">Request Revision</button>
+                <button class="btn-success" onclick="openModalV2('releasePaymentModal_{{ milestone.id }}')"><i class="fas fa-check-circle"></i> Release Milestone Payment</button>
+                <button class="btn-secondary" onclick="openModalV2('requestRevisionModal_{{ milestone.id }}')"><i class="fas fa-undo"></i> Request Revision</button>
                 {% endif %}
             {% endfor %}
 
 
             {% elif project.status == 'completed' %}
             <!-- Completed: Rate -->
+            {% if review %}
+            <button class="btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;"><i class="fas fa-check-circle"></i> Rating Submitted</button>
+            {% else %}
             <a href="{% url 'submit_review' project.id %}" style="text-decoration:none; color:white;"><button
-                    class="btn-primary">Rate Freelancer</button></a>
-            <button class="btn-secondary">View Invoice</button>
+                    class="btn-primary"><i class="fas fa-star"></i> Rate Freelancer</button></a>
+            {% endif %}
+            <button class="btn-secondary"><i class="fas fa-file-invoice"></i> View Invoice</button>
 
             {% elif project.status == 'cancelled' %}
             <!-- Cancelled: Disabled actions -->
@@ -297,18 +443,20 @@
             <div style="margin-top: 30px;">
                 <h2>Project Info</h2>
                 <p><strong>Created:</strong> {{ project.created_at|date:"M d, Y" }}</p>
-                {% if not project.published_at %}
-                <p><strong>Published:</strong> -</p>
-                {% endif %}
-                {% if project.published_at %}
-                <p><strong>Published:</strong> {{ project.published_at|date:"M d, Y" }}</p>
-                {% endif %}
+                <p><strong>Published:</strong> {{ project.published_at|date:"M d, Y"|default:"-" }}</p>
                 <p><strong>Category:</strong> {{ project.category.name|default:"General" }}</p>
                 <p><strong>Experience Level:</strong> {{ project.get_experience_level_display }}</p>
-                <p><strong>Contract Started:</strong> -</p>
-                <p><strong>Amount Paid:</strong> -</p>
-                <p><strong>Remaining:</strong> -</p>
+                <p><strong>Contract Started:</strong> 
+                    {% if contract_started %}{{ contract_started|date:"M d, Y" }}{% else %}-{% endif %}
+                </p>
+                <p><strong>Amount Paid:</strong> 
+                    {% if escrow %}RM {{ escrow.released_amount|floatformat:2 }}{% else %}-{% endif %}
+                </p>
+                <p><strong>Remaining:</strong> 
+                    {% if escrow %}RM {{ escrow.remaining_amount|floatformat:2 }}{% else %}-{% endif %}
+                </p>
             </div>
+
         </div>
     </div>
 </div>
@@ -318,57 +466,76 @@
     {% for milestone in project.milestones.all %}
         {% if milestone.status == 'completed' %}
             <!-- Request Revision Modal -->
-            <div id="requestRevisionModal_{{ milestone.id }}" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
-                <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0;">Request Revision</h2>
-                        <span onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+            <div id="requestRevisionModal_{{ milestone.id }}" class="modal-v2">
+                <div class="modal-overlay-v2" onclick="closeModalV2('requestRevisionModal_{{ milestone.id }}')"></div>
+                <div class="modal-content-v2">
+                    <div class="modal-header-v2">
+                        <h2><i class="fas fa-undo"></i> Request Revision</h2>
+                        <button type="button" class="modal-close-v2" onclick="closeModalV2('requestRevisionModal_{{ milestone.id }}')">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
-                    <p style="color: #666; margin-bottom: 20px;">Please provide details on what needs to be revised for the milestone "<strong>{{ milestone.title }}</strong>". The status will change back to 'In Progress'.</p>
                     
-                    <form action="{% url 'client_request_revision' milestone.id %}" method="post">
-                        {% csrf_token %}
-                        <div style="margin-bottom: 20px;">
-                            <label for="reason" style="display: block; font-weight: 500; margin-bottom: 8px;">Revision Reason:</label>
-                            <textarea name="reason" id="reason" rows="4" style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; resize: vertical;" required placeholder="E.g., The logo colors don't match our branding guidelines..."></textarea>
-                        </div>
-                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                            <button type="button" class="btn-secondary" onclick="document.getElementById('requestRevisionModal_{{ milestone.id }}').style.display='none'">Cancel</button>
-                            <button type="submit" class="btn-primary" style="background-color: #f57f17; border-color: #f57f17;">Submit Revision Request</button>
-                        </div>
-                    </form>
+                    <div class="modal-body-v2">
+                        <p class="modal-instruction-v2">Please provide details on what needs to be revised for the milestone "<strong>{{ milestone.title }}</strong>". The status will change back to 'In Progress'.</p>
+                        
+                        <form action="{% url 'client_request_revision' milestone.id %}" method="post">
+                            {% csrf_token %}
+                            <div style="margin-bottom: 20px;">
+                                <label for="reason" style="display: block; font-weight: 600; margin-bottom: 8px; color: #475569;">Revision Reason:</label>
+                                <textarea name="reason" id="reason" rows="4" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: inherit; resize: vertical; background: #f8fafc;" required placeholder="E.g., The logo colors don't match our branding guidelines..."></textarea>
+                            </div>
+                            <div class="modal-footer-v2">
+                                <button type="button" class="btn-secondary" onclick="closeModalV2('requestRevisionModal_{{ milestone.id }}')">Cancel</button>
+                                <button type="submit" class="btn-warning">Submit Revision Request</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
             <!-- Release Payment Modal -->
-            <div id="releasePaymentModal_{{ milestone.id }}" class="modal" style="display:none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5);">
-                <div class="modal-content" style="background-color: #fefefe; margin: 10% auto; padding: 25px; border-radius: 12px; max-width: 450px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                        <h2 style="margin: 0;">Release Payment</h2>
-                        <span onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='none'" style="cursor: pointer; font-size: 24px; color: #888;">&times;</span>
+            <div id="releasePaymentModal_{{ milestone.id }}" class="modal-v2">
+                <div class="modal-overlay-v2" onclick="closeModalV2('releasePaymentModal_{{ milestone.id }}')"></div>
+                <div class="modal-content-v2">
+                    <div class="modal-header-v2">
+                        <h2><i class="fas fa-shield-check"></i> Release Payment</h2>
+                        <button type="button" class="modal-close-v2" onclick="closeModalV2('releasePaymentModal_{{ milestone.id }}')">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                     
-                    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="margin: 0 0 10px 0;">Milestone: {{ milestone.title }}</h4>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="color: #666;">Amount to Release:</span>
-                            <strong style="font-size: 1.2rem; color: #2e7d32;">RM {{ milestone.amount|floatformat:2 }}</strong>
+                    <div class="modal-body-v2">
+                        <p class="modal-instruction-v2">Enter your 6-digit Secure PIN to authorize the payment release for this milestone.</p>
+                        
+                        <div class="payment-summary-v2">
+                            <div class="summary-row-v2">
+                                <span>Milestone:</span>
+                                <span>{{ milestone.title }}</span>
+                            </div>
+                            <div class="summary-row-v2 total-v2">
+                                <span>Amount:</span>
+                                <span class="amount-v2">RM {{ milestone.amount|floatformat:2 }}</span>
+                            </div>
                         </div>
+                        
+                        <form action="{% url 'client_release_milestone_payment' milestone.id %}" method="post" onsubmit="return validatePIN(this)">
+                            {% csrf_token %}
+                            <div class="pin-input-group-v2">
+                                <input type="password" name="secure_pin" class="modern-pin-input-v2" maxlength="6" 
+                                    placeholder="••••••" autocomplete="off" inputmode="numeric" pattern="[0-9]*" required>
+                            </div>
+                            
+                            <p style="color: #64748b; margin-bottom: 20px; font-size: 0.85rem; text-align: center;">
+                                <i class="fas fa-info-circle"></i> This will release funds from escrow to the freelancer.
+                            </p>
+                            
+                            <div class="modal-footer-v2">
+                                <button type="button" class="btn-secondary" onclick="closeModalV2('releasePaymentModal_{{ milestone.id }}')">Cancel</button>
+                                <button type="submit" class="btn-success">Confirm & Release</button>
+                            </div>
+                        </form>
                     </div>
-                    
-                    <p style="color: #666; margin-bottom: 20px; font-size: 0.95rem;">By releasing this payment, you confirm that the work meets your requirements. This action cannot be undone.</p>
-                    
-                    <form action="{% url 'client_release_milestone_payment' milestone.id %}" method="post">
-                        {% csrf_token %}
-                        <div style="margin-bottom: 25px;">
-                            <label for="secure_pin" style="display: block; font-weight: 500; margin-bottom: 8px;">Enter 6-Digit Secure PIN:</label>
-                            <input type="password" name="secure_pin" id="secure_pin" maxlength="6" pattern="\d{6}" title="Please enter exactly 6 digits" required style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1.2rem; text-align: center; letter-spacing: 0.5em;">
-                        </div>
-                        <div style="display: flex; justify-content: flex-end; gap: 10px;">
-                            <button type="button" class="btn-secondary" onclick="document.getElementById('releasePaymentModal_{{ milestone.id }}').style.display='none'">Cancel</button>
-                            <button type="submit" class="btn-success" style="padding: 10px 20px;">Confirm & Release RM {{ milestone.amount|floatformat:0 }}</button>
-                        </div>
-                    </form>
                 </div>
             </div>
         {% endif %}

@@ -186,6 +186,14 @@
                         <span class="info-label">Status:</span>
                         <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
                     </div>
+                    
+                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+                        {% if project.has_reviewed %}
+                            <button class="btn btn-secondary" disabled style="width: 100%; padding: 8px; border-radius: 6px; font-size: 13px; cursor: not-allowed; border: none; background-color: #ccc; color: #666;">Review Submitted</button>
+                        {% else %}
+                            <a href="{% url 'submit_review' project.id %}" class="btn btn-primary" style="display: block; width: 100%; text-align: center; padding: 8px; border-radius: 6px; font-size: 13px; text-decoration: none; font-weight: 500;">Review Client</a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             {% empty %}
@@ -211,5 +219,14 @@
         document.getElementById('section-invitations').style.display = tabName === 'invitations' ? 'block' : 'none';
         document.getElementById('section-pass').style.display = tabName === 'pass' ? 'block' : 'none';
     }
+
+    // Initialize tab from URL parameter
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab') || '{{ active_tab|default:"current" }}';
+        if (activeTab && ['current', 'invitations', 'pass'].includes(activeTab)) {
+            showTab(activeTab);
+        }
+    });
 </script>
 {% endblock %}

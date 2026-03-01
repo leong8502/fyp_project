@@ -609,6 +609,31 @@ class Ticket(models.Model):
     class Meta:
         ordering = ['-created_at']
 
+class ProjectActivity(models.Model):
+    ACTIVITY_TYPES = [
+        ('proposal_accepted', 'Proposal Accepted'),
+        ('proposal_rejected', 'Proposal Rejected'),
+        ('milestone_submitted', 'Milestone Submitted'),
+        ('milestone_approved', 'Milestone Approved'),
+        ('revision_requested', 'Revision Requested'),
+        ('payment_released', 'Payment Released'),
+        ('status_updated', 'Status Updated'),
+        ('other', 'Other'),
+    ]
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='activities')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='project_activities')
+    activity_type = models.CharField(max_length=50, choices=ACTIVITY_TYPES)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.project.title} - {self.get_activity_type_display()} - {self.created_at}"
+
+
 class AdminLog(models.Model):
     ACTION_CHOICES = [
         ('create', 'Create'),
