@@ -216,6 +216,24 @@ def api_send_message(request, conversation_id):
             attachment_type=attachment_type,
             attachment_size=attachment_size,
         )
+        from core.services import NotificationService
+        
+        # Determine sender's professional name
+        sender_name = request.user.username
+        if hasattr(request.user, 'client') and request.user.client.company_name:
+            sender_name = request.user.client.company_name
+        elif hasattr(request.user, 'freelancer') and request.user.freelancer.full_name:
+            sender_name = request.user.freelancer.full_name
+
+        for participant in conversation.participants.exclude(id=request.user.id):
+            NotificationService.create_notification(
+                recipient=participant,
+                notification_type='chat_message',
+                title='New Message',
+                message=f"You have a new message from {sender_name}.",
+                link=reverse('chat') + f"?conversation_id={conversation.id}"
+            )
+
         conversation.save()
 
         sender_name = "Me"

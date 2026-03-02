@@ -45,6 +45,8 @@ from core.views.client import (
     client_request_revision,
     client_release_milestone_payment,
     submit_review,
+    client_notifications,
+    api_unread_notifications_count,
 )
 
 from core.views.freelancer import (

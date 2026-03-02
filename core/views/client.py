@@ -803,3 +803,43 @@ def submit_review(request, project_id):
         'base_template': base_template,
         'form': form,
     })
+@login_required
+def client_notifications(request):
+    """View to list all notifications for the user."""
+    from core.models import Notification
+    from core.services import NotificationService
+    
+    notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
+    
+    # Mark all as read when viewing the page
+    NotificationService.mark_all_as_read(request.user)
+    
+    base_template = 'core/client_master.html'
+    if hasattr(request.user, 'freelancer'):
+        base_template = 'core/freelancer_master.html'
+    
+    return render(request, 'core/client_notifications.html', {
+        'notifications': notifications,
+        'base_template': base_template
+    })
+
+
+@login_required
+def api_unread_notifications_count(request):
+    """API to get unread notifications and messages count."""
+    from core.services import NotificationService
+    from core.models import Message
+    
+    notification_count = NotificationService.get_unread_count(request.user)
+    
+    # Message unread count
+    message_count = Message.objects.filter(
+        conversation__participants=request.user,
+        is_read=False
+    ).exclude(sender=request.user).count()
+    
+    return JsonResponse({
+        'notification_count': notification_count,
+        'message_count': message_count,
+        'total_count': notification_count + message_count
+    })

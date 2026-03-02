@@ -288,3 +288,60 @@ img.logo {
     background-color: #d4edda;
     border-color: #c3e6cb;
 }
+/* Notifications Styles */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.notification-menu {
+    position: relative;
+    margin-right: -5px;
+}
+
+.notification-trigger {
+    color: #4a4a4a;
+    font-size: 1.2rem;
+    text-decoration: none;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.notification-trigger:hover {
+    background-color: #f5f5f5;
+    color: #1a1a1a;
+}
+
+.notification-trigger .badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background-color: #ff3b30;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 2px solid white;
+    display: none;
+}
+
+.header-right-group {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1002;
+}

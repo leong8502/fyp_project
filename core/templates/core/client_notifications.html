@@ -1,0 +1,151 @@
+{% extends base_template %}
+{% load static %}
+
+{% block title %}Notifications - TalentSync{% block blocktitle_extra %}{% endblock %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notifications-container {
+        max-width: 1000px;
+        margin: 40px auto;
+        padding: 0 20px;
+        min-height: 60vh;
+    }
+
+    .notifications-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+    .notifications-header h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin: 0;
+    }
+
+    .notification-list {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+
+    .notification-item {
+        padding: 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        gap: 16px;
+        transition: background 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .notification-item:last-child {
+        border-bottom: none;
+    }
+
+    .notification-item:hover {
+        background-color: #f9f9f9;
+    }
+
+    .notification-item.unread {
+        background-color: #f0f7ff;
+    }
+
+    .notification-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .icon-project { background: #e3f2fd; color: #1976d2; }
+    .icon-payment { background: #e8f5e9; color: #2e7d32; }
+    .icon-message { background: #fff3e0; color: #ef6c00; }
+    .icon-wallet { background: #f3e5f5; color: #7b1fa2; }
+    .icon-review { background: #fce4ec; color: #c2185b; }
+
+    .notification-content {
+        flex-grow: 1;
+    }
+
+    .notification-title {
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 4px;
+        color: #1a1a1a;
+    }
+
+    .notification-message {
+        font-size: 0.9rem;
+        color: #666;
+        line-height: 1.4;
+        margin-bottom: 6px;
+    }
+
+    .notification-time {
+        font-size: 0.8rem;
+        color: #999;
+    }
+
+    .empty-notifications {
+        text-align: center;
+        padding: 60px 20px;
+        color: #888;
+    }
+
+    .empty-notifications i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        color: #ddd;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notifications-container">
+    <div class="notifications-header">
+        <h1>Notifications</h1>
+    </div>
+
+    <div class="notification-list">
+        {% for notification in notifications %}
+        <a href="{{ notification.link|default:'#' }}" class="notification-item {% if not notification.is_read %}unread{% endif %}">
+            <div class="notification-icon 
+                {% if notification.notification_type == 'chat_message' %}icon-message
+                {% elif 'payment' in notification.notification_type or 'topup' in notification.notification_type or 'withdrawal' in notification.notification_type %}icon-wallet
+                {% elif 'project' in notification.notification_type or 'milestone' in notification.notification_type or 'proposal' in notification.notification_type %}icon-project
+                {% elif 'review' in notification.notification_type %}icon-review
+                {% else %}icon-project{% endif %}">
+                <i class="fas 
+                    {% if notification.notification_type == 'chat_message' %}fa-comment-alt
+                    {% elif 'payment' in notification.notification_type %}fa-file-invoice-dollar
+                    {% elif 'topup' in notification.notification_type %}fa-plus-circle
+                    {% elif 'withdrawal' in notification.notification_type %}fa-university
+                    {% elif 'project' in notification.notification_type %}fa-project-diagram
+                    {% elif 'milestone' in notification.notification_type %}fa-check-circle
+                    {% elif 'proposal' in notification.notification_type %}fa-paper-plane
+                    {% elif 'review' in notification.notification_type %}fa-star
+                    {% else %}fa-bell{% endif %}"></i>
+            </div>
+            <div class="notification-content">
+                <div class="notification-title">{{ notification.title }}</div>
+                <div class="notification-message">{{ notification.message }}</div>
+                <div class="notification-time">{{ notification.created_at|timesince }} ago</div>
+            </div>
+        </a>
+        {% empty %}
+        <div class="empty-notifications">
+            <i class="fas fa-bell-slash"></i>
+            <p>No notifications yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

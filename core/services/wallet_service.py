@@ -31,6 +31,7 @@ class WalletService:
     @staticmethod
     def withdraw(wallet, amount, bank_name, account_number):
         """Deduct from wallet balance and create a withdrawal transaction."""
+        from core.services import NotificationService
         with transaction.atomic():
             wallet.balance -= decimal.Decimal(amount)
             wallet.save()
@@ -43,6 +44,14 @@ class WalletService:
                 status='pending',
                 description=f"Withdrawal to {bank_name} ({account_number})",
                 reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
+            )
+
+            NotificationService.create_notification(
+                recipient=wallet.user,
+                notification_type='withdrawal_processed',
+                title='Withdrawal Requested',
+                message=f"Your withdrawal request of RM{amount} to {bank_name} has been received and is pending.",
+                link=reverse('client_wallet') if hasattr(wallet.user, 'client') else reverse('freelancer_wallet')
             )
 
     @staticmethod
@@ -65,6 +74,7 @@ class WalletService:
     @staticmethod
     def complete_topup(reference_id):
         """Complete a pending top-up transaction and credit the wallet."""
+        from core.services import NotificationService
         try:
             txn = Transaction.objects.get(reference_id=reference_id, status='pending')
             with transaction.atomic():
@@ -73,6 +83,14 @@ class WalletService:
                 wallet = txn.wallet
                 wallet.balance += txn.amount
                 wallet.save()
+
+                NotificationService.create_notification(
+                    recipient=wallet.user,
+                    notification_type='topup_success',
+                    title='Top-up Successful',
+                    message=f"RM{txn.amount} has been added to your wallet successfully.",
+                    link=reverse('client_wallet') if hasattr(wallet.user, 'client') else reverse('freelancer_wallet')
+                )
             return True, txn
         except Transaction.DoesNotExist:
             return False, None
@@ -80,6 +98,7 @@ class WalletService:
     @staticmethod
     def cancel_topup(transaction_id, user):
         """Cancel a pending top-up transaction."""
+        from core.services import NotificationService
         wallet = getattr(user, 'wallet', None)
         if not wallet:
             return False
@@ -87,6 +106,14 @@ class WalletService:
             txn = Transaction.objects.get(id=transaction_id, wallet=wallet, status='pending', transaction_type='top_up')
             txn.status = 'cancelled'
             txn.save()
+
+            NotificationService.create_notification(
+                recipient=user,
+                notification_type='topup_cancelled',
+                title='Top-up Cancelled',
+                message=f"Your wallet top-up of RM{txn.amount} was cancelled.",
+                link=reverse('client_wallet') if hasattr(user, 'client') else reverse('freelancer_wallet')
+            )
             return True
         except Transaction.DoesNotExist:
             return False

@@ -1,6 +1,8 @@
 import decimal
 from django.db import transaction
+from django.urls import reverse
 from core.models import Review, RatingSummary
+from core.services.notification_service import NotificationService
 
 
 class ReviewService:
@@ -16,9 +18,18 @@ class ReviewService:
             review.feedback_tags = tags
             review.save()
 
+            rating = review.rating # Moved this line up to be available for notification
+            
+            NotificationService.create_notification(
+                recipient=reviewee,
+                notification_type='review_submitted',
+                title='New Review Received',
+                message=f"You have received a {rating}-star review for project '{project.title}'.",
+                link=reverse('client_profile') if hasattr(reviewee, 'client') else reverse('freelancer_profile')
+            )
+
             summary, _ = RatingSummary.objects.get_or_create(user=reviewee)
 
-            rating = review.rating
             if rating == 5:
                 summary.five_star_count += 1
             elif rating == 4:

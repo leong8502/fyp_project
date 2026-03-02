@@ -1,6 +1,7 @@
 import uuid
 import decimal
 from django.db import transaction
+from django.urls import reverse
 from django.utils import timezone
 from core.models import (
     Project, Milestone, ProjectApplication,
@@ -74,6 +75,7 @@ class ProjectService:
     @staticmethod
     def publish_project(project, wallet):
         """Pay from wallet, create escrow, and publish the project."""
+        from core.services import NotificationService
         with transaction.atomic():
             wallet.balance -= project.budget
             wallet.save()
@@ -101,9 +103,18 @@ class ProjectService:
             project.published_at = timezone.now()
             project.save()
 
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='project_published',
+                title='Project Published',
+                message=f"Your project '{project.title}' is now live!",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+
     @staticmethod
     def accept_application(application, actor_user):
         """Accept a project application, start first milestone, reject others."""
+        from core.services import NotificationService
         with transaction.atomic():
             application.status = 'accepted'
             application.save()
@@ -132,6 +143,23 @@ class ProjectService:
                 )
             )
 
+            # Notify Freelancer
+            NotificationService.create_notification(
+                recipient=application.freelancer.user,
+                notification_type='project_started',
+                title='Project Started',
+                message=f"Your application for '{project.title}' was accepted! Time to get to work.",
+                link=reverse('freelancer_track_project')
+            )
+            # Notify Client
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='project_started',
+                title='Project Started',
+                message=f"Project '{project.title}' has officially started with {application.freelancer.full_name or application.freelancer.user.username}.",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+
     @staticmethod
     def reject_application(application, actor_user):
         """Reject a project application."""
@@ -152,6 +180,7 @@ class ProjectService:
     def submit_milestone(milestone, files, actor_user):
         """Submit a milestone with optional attachments."""
         from core.models import MilestoneAttachment
+        from core.services import NotificationService
         if files:
             milestone.attachments.all().delete()
             for f in files:
@@ -169,9 +198,19 @@ class ProjectService:
             description=f"Milestone '{milestone.title}' was submitted by the freelancer."
         )
 
+        # Notify Client
+        NotificationService.create_notification(
+            recipient=milestone.project.client.user,
+            notification_type='milestone_submitted',
+            title='Milestone Submitted',
+            message=f"Freelancer {milestone.project.assigned_freelancer.full_name or milestone.project.assigned_freelancer.user.username} has submitted milestone '{milestone.title}' for project '{milestone.project.title}'.",
+            link=reverse('client_projectInfo', kwargs={'project_id': milestone.project.id})
+        )
+
     @staticmethod
     def request_revision(milestone, reason, actor_user):
         """Request a revision from the freelancer on a submitted milestone."""
+        from core.services import NotificationService
         milestone.status = 'in_progress'
         milestone.revision_requested = True
         milestone.revision_count += 1
@@ -185,9 +224,19 @@ class ProjectService:
             description=f"Revision requested for milestone '{milestone.title}'. Reason: {reason}"
         )
 
+        # Notify Freelancer
+        NotificationService.create_notification(
+            recipient=milestone.project.assigned_freelancer.user,
+            notification_type='project_started', # Re-using or could add revision_requested
+            title='Revision Requested',
+            message=f"Revision requested for milestone '{milestone.title}' in '{milestone.project.title}'.",
+            link=reverse('freelancer_track_project')
+        )
+
     @staticmethod
     def release_milestone_payment(milestone, actor_user):
         """Release escrow funds to freelancer for an approved milestone."""
+        from core.services import NotificationService
         with transaction.atomic():
             project = milestone.project
             freelancer_wallet, _ = Wallet.objects.get_or_create(
@@ -227,6 +276,15 @@ class ProjectService:
                     f"Milestone '{milestone.title}' was approved and "
                     f"payment of RM{milestone.amount} was released."
                 )
+            )
+
+            # Notify Freelancer
+            NotificationService.create_notification(
+                recipient=project.assigned_freelancer.user,
+                notification_type='payment_released',
+                title='Payment Received',
+                message=f"Payment of RM{milestone.amount} released for milestone '{milestone.title}'.",
+                link=reverse('freelancer_wallet')
             )
 
             next_milestone = project.milestones.filter(

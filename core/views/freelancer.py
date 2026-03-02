@@ -3,6 +3,7 @@ Freelancer views – home, job search, project tracking, wallet, profile, settin
 """
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from django.contrib import messages
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
@@ -114,13 +115,22 @@ def freelancer_apply_project(request, project_id):
                 application.attachment = attachment
             application.save()
         else:
-            ProjectApplication.objects.create(
+            application = ProjectApplication.objects.create(
                 project=project,
                 freelancer=request.user.freelancer,
                 application_type='apply',
                 message=message,
                 attachment=attachment,
             )
+
+        from core.services import NotificationService
+        NotificationService.create_notification(
+            recipient=project.client.user,
+            notification_type='proposal_received',
+            title='New Proposal Received',
+            message=f"Freelancer {request.user.freelancer.full_name or request.user.username} has applied for your project '{project.title}'.",
+            link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+        )
 
         messages.success(request, "Application sent successfully!")
         return redirect('freelancer_track_project')

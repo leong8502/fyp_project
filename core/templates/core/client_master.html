@@ -31,16 +31,27 @@
                 <a href="{% url 'chat' %}">Messages</a>
             </nav>
 
-            <!-- Small company/user logo on the right -->
-            <div class="user-menu">
-                <div class="user-logo" onclick="toggleDropdown()">
-                    <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}https://via.placeholder.com/150?text=Logo{% endif %}"
-                        alt="Company">
+            <div class="header-right-group">
+                <div class="header-right">
+                    <!-- Notifications -->
+                    <div class="notification-menu">
+                        <a href="{% url 'client_notifications' %}" class="notification-trigger">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationBadge" class="badge">0</span>
+                        </a>
+                    </div>
                 </div>
-                <div id="userDropdown" class="dropdown-content">
+
+                <!-- Small company/user logo on the right -->
+                <div class="user-menu">
+                    <div class="user-logo" onclick="toggleDropdown()">
+                        <img src="{% if user.client.profile_image %}{{ user.client.profile_image.url }}{% else %}https://via.placeholder.com/150?text=Logo{% endif %}"
+                            alt="Company">
+                    </div>
+                    <div id="userDropdown" class="dropdown-content">
                     <a href="{% url 'client_profile' %}"><i class="fas fa-user-circle"></i> Profile</a>
-                    <a href="{% url 'client_wallet' %}"><i class="fas fa-wallet"></i> My Wallet</a>
-                    <a href="{% url 'client_settings' %}"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="{% url 'client_wallet' %}"><i class="fas fa-wallet"></i> My Wallet</a>
+                        <a href="{% url 'client_settings' %}"><i class="fas fa-cog"></i> Settings</a>
                     <a href="{% url 'client_support' %}"><i class="fas fa-headset"></i> Support</a>
                     <a href="{% url 'logout' %}"><i class="fas fa-sign-out-alt"></i> Logout</a>
                 </div>
@@ -132,6 +143,26 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
         crossorigin="anonymous"></script>
+    <script>
+        function updateUnreadCounts() {
+            fetch("{% url 'api_unread_count' %}")
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('notificationBadge');
+                    if (data.total_count > 0) {
+                        badge.textContent = data.total_count > 99 ? '99+' : data.total_count;
+                        badge.style.display = 'flex';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error fetching unread counts:', error));
+        }
+
+        // Update every 30 seconds
+        updateUnreadCounts();
+        setInterval(updateUnreadCounts, 30000);
+    </script>
     {% block extra_js %}{% endblock %}
 </body>
 

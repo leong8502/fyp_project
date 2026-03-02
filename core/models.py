@@ -659,3 +659,30 @@ class AdminLog(models.Model):
         verbose_name = "Admin Activity Log"
         verbose_name_plural = "Admin Activity Logs"
 
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('project_published', 'Project Published'),
+        ('proposal_received', 'Proposal Received'),
+        ('project_started', 'Project Started'),
+        ('milestone_submitted', 'Milestone Submitted'),
+        ('topup_success', 'Top-up Success'),
+        ('topup_cancelled', 'Top-up Cancelled'),
+        ('withdrawal_processed', 'Withdrawal Processed'),
+        ('payment_released', 'Payment Released'),
+        ('review_submitted', 'Review Submitted'),
+        ('chat_message', 'New Message'),
+    ]
+
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=50, choices=NOTIFICATION_TYPES)
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    link = models.CharField(max_length=255, blank=True, null=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.notification_type} for {self.recipient.username}"
