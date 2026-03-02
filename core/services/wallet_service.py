@@ -41,7 +41,7 @@ class WalletService:
                 amount=amount,
                 direction='debit',
                 transaction_type='withdrawal',
-                status='pending',
+                status='completed',
                 description=f"Withdrawal to {bank_name} ({account_number})",
                 reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper()
             )

@@ -4,7 +4,25 @@ from django.urls import reverse
 class NotificationService:
     @staticmethod
     def create_notification(recipient, notification_type, title, message, link=None):
-        """Create a notification for a user."""
+        """Create a notification for a user if their settings allow it."""
+        from core.models import NotificationSetting
+        
+        # Get or create settings for the user
+        settings, _ = NotificationSetting.objects.get_or_create(user=recipient)
+        
+        # Map notification type to setting field
+        should_send = True
+        
+        if 'payment' in notification_type or 'topup' in notification_type or 'withdrawal' in notification_type:
+            should_send = settings.payment_notifications
+        elif 'project' in notification_type or 'milestone' in notification_type or 'proposal' in notification_type:
+            should_send = settings.project_updates
+        elif 'review' in notification_type:
+            should_send = settings.review_notifications
+            
+        if not should_send:
+            return None
+
         return Notification.objects.create(
             recipient=recipient,
             notification_type=notification_type,

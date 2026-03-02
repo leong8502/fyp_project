@@ -670,7 +670,6 @@ class Notification(models.Model):
         ('withdrawal_processed', 'Withdrawal Processed'),
         ('payment_released', 'Payment Released'),
         ('review_submitted', 'Review Submitted'),
-        ('chat_message', 'New Message'),
     ]
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -686,3 +685,12 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.notification_type} for {self.recipient.username}"
+
+class NotificationSetting(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='notification_settings')
+    project_updates = models.BooleanField(default=True)
+    payment_notifications = models.BooleanField(default=True)
+    review_notifications = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"Settings for {self.user.username}"

@@ -65,8 +65,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         print(f"[WebSocket] ACCEPTED: User {self.user.username} connected to conversation {self.conversation_id}")
         await self.accept()
         
-        # Mark messages as read when user connects
-        await self.mark_messages_read()
+        # Mark messages as read when user connects and notify for badge update
+        await self.notify_mark_read()
     
     async def disconnect(self, close_code):
         """Handle WebSocket disconnection"""
@@ -76,8 +76,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 self.room_group_name,
                 self.channel_name
             )
-        
-        # Leave user-specific room group
         
         # Leave user-specific room group
         if hasattr(self, 'user_group_name'):
@@ -93,10 +91,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
             message_type = data.get('type')
             
             if message_type == 'mark_read':
-                # Mark messages as read
-                await self.mark_messages_read()
+                # Mark messages as read and notify for badge update
+                await self.notify_mark_read()
                 
-                # Notify other participants that messages were read
+                # Notify other participants that messages were read (for UI receipts)
                 await self.channel_layer.group_send(
                     self.room_group_name,
                     {
@@ -106,6 +104,18 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
         except json.JSONDecodeError:
             pass
+
+    async def notify_mark_read(self):
+        """Mark messages as read and notify user group for badge update"""
+        has_unread = await self._mark_messages_read_db()
+        
+        # Always broadcast to user group to ensure header badge stays sync
+        await self.channel_layer.group_send(
+            self.user_group_name,
+            {
+                'type': 'conversation_updated'
+            }
+        )
     
     async def chat_message(self, event):
         """Send chat message to WebSocket (called by group_send)"""
@@ -135,14 +145,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
             return conversation.participants.filter(id=self.user.id).exists()
         except Conversation.DoesNotExist:
             return False
-    
+
     @database_sync_to_async
-    def mark_messages_read(self):
-        """Mark all unread messages in this conversation as read"""
+    def _mark_messages_read_db(self):
+        """Mark unread messages in database"""
         try:
             conversation = Conversation.objects.get(id=self.conversation_id)
-            conversation.messages.filter(is_read=False).exclude(
-                sender=self.user
-            ).update(is_read=True)
+            unread_qs = conversation.messages.filter(is_read=False).exclude(sender=self.user)
+            has_unread = unread_qs.exists()
+            if has_unread:
+                unread_qs.update(is_read=True)
+            return has_unread
         except Conversation.DoesNotExist:
-            pass
+            return False

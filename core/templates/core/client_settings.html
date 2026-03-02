@@ -88,55 +88,33 @@
 
                 <div class="toggle-group">
                     <div class="toggle-info">
-                        <h3>Email Notifications</h3>
-                        <p>Receive updates about your projects via email</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="email_notifications" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
                         <h3>Project Updates</h3>
-                        <p>Get notified when there are updates to your projects</p>
+                        <p>Get notified when there are updates to your projects, new applications, or milestone submissions.</p>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" name="project_updates" checked>
+                        <input type="checkbox" name="project_updates" {% if notification_settings.project_updates %}checked{% endif %}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
 
                 <div class="toggle-group">
                     <div class="toggle-info">
-                        <h3>Proposal Notifications</h3>
-                        <p>Receive alerts when freelancers submit proposals</p>
+                        <h3>Payment Notifications</h3>
+                        <p>Receive alerts for project payments, wallet top-ups, and withdrawals.</p>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" name="proposal_notifications" checked>
+                        <input type="checkbox" name="payment_notifications" {% if notification_settings.payment_notifications %}checked{% endif %}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
 
                 <div class="toggle-group">
                     <div class="toggle-info">
-                        <h3>Payment Reminders</h3>
-                        <p>Get reminded about upcoming payment deadlines</p>
+                        <h3>Review Notifications</h3>
+                        <p>Get notified when a freelancer leaves you a review or rates your project.</p>
                     </div>
                     <label class="toggle-switch">
-                        <input type="checkbox" name="payment_reminders" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="toggle-group">
-                    <div class="toggle-info">
-                        <h3>Marketing Emails</h3>
-                        <p>Receive newsletters and promotional content</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" name="marketing_emails">
+                        <input type="checkbox" name="review_notifications" {% if notification_settings.review_notifications %}checked{% endif %}>
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -210,14 +188,8 @@
 
         // Form submission handlers (placeholder for future backend integration)
         const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-            if (form.id !== 'security-form') {
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    alert('This feature will be implemented soon!');
-                });
-            }
-        });
+        // No longer needed as backend implementation is complete
     });
+
 </script>
 {% endblock %}

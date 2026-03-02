@@ -133,20 +133,37 @@ def client_support(request):
 @client_required
 def client_settings(request):
     user_security, _ = UserSecurity.objects.get_or_create(user=request.user)
+    from core.models import NotificationSetting
+    notification_settings, _ = NotificationSetting.objects.get_or_create(user=request.user)
 
     if request.method == 'POST':
-        form = SecurePinForm(request.POST, user_security=user_security)
-        if form.is_valid():
-            user_security.secure_pin = make_password(form.cleaned_data['new_pin'])
-            user_security.save()
-            messages.success(request, "Secure PIN updated successfully.")
-            return redirect('client_settings')
-        else:
-            messages.error(request, "Please correct the errors below.")
+        section = request.POST.get('section')
+        
+        if section == 'security':
+            form = SecurePinForm(request.POST, user_security=user_security)
+            if form.is_valid():
+                user_security.secure_pin = make_password(form.cleaned_data['new_pin'])
+                user_security.save()
+                messages.success(request, "Secure PIN updated successfully.")
+                return redirect('client_settings')
+            else:
+                messages.error(request, "Please correct the errors below.")
+        
+        elif section == 'notifications':
+            notification_settings.project_updates = 'project_updates' in request.POST
+            notification_settings.payment_notifications = 'payment_notifications' in request.POST
+            notification_settings.review_notifications = 'review_notifications' in request.POST
+            notification_settings.save()
+            messages.success(request, "Notification preferences updated.")
+            return redirect(reverse('client_settings') + '#notifications')
+
     else:
         form = SecurePinForm(user_security=user_security)
 
-    return render(request, 'core/client_settings.html', {'form': form})
+    return render(request, 'core/client_settings.html', {
+        'form': form,
+        'notification_settings': notification_settings
+    })
 
 
 # ---------------------------------------------------------------------------
