@@ -33,7 +33,7 @@
         overflow: hidden;
     }
 
-    .notification-item {
+    .notification-items {
         padding: 20px;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
@@ -43,55 +43,77 @@
         color: inherit;
     }
 
-    .notification-item:last-child {
+    .notification-items:last-child {
         border-bottom: none;
     }
 
-    .notification-item:hover {
+    .notification-items:hover {
         background-color: #f9f9f9;
     }
 
-    .notification-item.unread {
+    .notification-items.unread {
         background-color: #f0f7ff;
+        border-left: 4px solid #007bff;
     }
 
     .notification-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+        font-size: 1.2rem;
     }
 
-    .icon-project { background: #e3f2fd; color: #1976d2; }
-    .icon-payment { background: #e8f5e9; color: #2e7d32; }
-    .icon-message { background: #fff3e0; color: #ef6c00; }
-    .icon-wallet { background: #f3e5f5; color: #7b1fa2; }
-    .icon-review { background: #fce4ec; color: #c2185b; }
+    .icon-project { background: #eef2ff; color: #4338ca; }
+    .icon-payment { background: #ecfdf5; color: #059669; }
+    .icon-message { background: #fff7ed; color: #ea580c; }
+    .icon-wallet { background: #faf5ff; color: #7c3aed; }
+    .icon-review { background: #fff1f2; color: #e11d48; }
 
     .notification-content {
         flex-grow: 1;
     }
 
     .notification-title {
-        font-weight: 600;
-        font-size: 1rem;
+        font-weight: 700;
+        font-size: 1.05rem;
         margin-bottom: 4px;
-        color: #1a1a1a;
+        color: #111827;
     }
 
     .notification-message {
-        font-size: 0.9rem;
-        color: #666;
-        line-height: 1.4;
-        margin-bottom: 6px;
+        font-size: 0.95rem;
+        color: #4b5563;
+        line-height: 1.5;
+        margin-bottom: 8px;
     }
 
     .notification-time {
-        font-size: 0.8rem;
-        color: #999;
+        font-size: 0.85rem;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .notification-time i {
+        font-size: 0.75rem;
+    }
+
+    .mark-read-btn {
+        transition: all 0.2s;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-weight: 600;
+    }
+
+    .mark-read-btn:hover {
+        background-color: #007bff;
+        color: white;
+        transform: translateY(-1px);
     }
 
     .empty-notifications {
@@ -112,11 +134,16 @@
 <div class="notifications-container">
     <div class="notifications-header">
         <h1>Notifications</h1>
+        {% if notifications %}
+        <button class="btn btn-outline-primary btn-sm" onclick="markAllNotificationsAsReadOnPage(event)">
+            <i class="fas fa-check-double me-1"></i> Mark all as read
+        </button>
+        {% endif %}
     </div>
 
     <div class="notification-list">
         {% for notification in notifications %}
-        <a href="{{ notification.link|default:'#' }}" class="notification-item {% if not notification.is_read %}unread{% endif %}">
+        <a href="{{ notification.link|default:'#' }}" class="notification-items {% if not notification.is_read %}unread{% endif %}">
             <div class="notification-icon 
                 {% if notification.notification_type == 'chat_message' %}icon-message
                 {% elif 'payment' in notification.notification_type or 'topup' in notification.notification_type or 'withdrawal' in notification.notification_type %}icon-wallet
@@ -137,7 +164,10 @@
             <div class="notification-content">
                 <div class="notification-title">{{ notification.title }}</div>
                 <div class="notification-message">{{ notification.message }}</div>
-                <div class="notification-time">{{ notification.created_at|timesince }} ago</div>
+                <div class="notification-time">
+                    <i class="far fa-clock"></i>
+                    {{ notification.created_at|timesince }} ago
+                </div>
             </div>
         </a>
         {% empty %}
@@ -148,4 +178,32 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+    function markAllNotificationsAsReadOnPage(event) {
+        event.preventDefault();
+        fetch("{% url 'api_mark_all_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update Badge in header if present
+                if (typeof updateUnreadCounts === 'function') {
+                    updateUnreadCounts();
+                }
+                // Update UI on page
+                document.querySelectorAll('.notification-items.unread').forEach(item => {
+                    item.classList.remove('unread');
+                });
+                // Remove the button
+                event.target.closest('button').remove();
+            }
+        })
+        .catch(error => console.error('Error marking all as read:', error));
+    }
+</script>
 {% endblock %}

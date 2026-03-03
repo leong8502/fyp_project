@@ -38,10 +38,23 @@
                 <div class="header-right">
                     <!-- Notifications -->
                     <div class="notification-menu">
-                        <a href="{% url 'client_notifications' %}" class="notification-trigger">
+                        <div class="notification-trigger" id="notificationTrigger" onclick="toggleNotificationDropdown(event)">
                             <i class="fas fa-bell"></i>
                             <span id="notificationBadge" class="badge">0</span>
-                        </a>
+                        </div>
+                        <div id="notificationDropdown" class="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button class="mark-all-read" onclick="markAllNotificationsAsRead(event)">Mark all as read</button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <!-- Notifications will be loaded here -->
+                                <div class="empty-notifications">Loading...</div>
+                            </div>
+                            <div class="notification-footer">
+                                <a href="{% url 'client_notifications' %}">View all notifications</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -63,19 +76,79 @@
             <script>
                 function toggleDropdown() {
                     document.getElementById("userDropdown").classList.toggle("show");
+                    document.getElementById("notificationDropdown").classList.remove("show");
+                }
+
+                function toggleNotificationDropdown(event) {
+                    event.preventDefault();
+                    const dropdown = document.getElementById("notificationDropdown");
+                    const isShowing = dropdown.classList.contains("show");
+                    
+                    // Close other dropdowns
+                    document.getElementById("userDropdown").classList.remove("show");
+                    
+                    dropdown.classList.toggle("show");
+                    
+                    if (!isShowing) {
+                        fetchRecentNotifications();
+                    }
+                }
+
+                function fetchRecentNotifications() {
+                    const listContainer = document.getElementById("notificationList");
+                    
+                    fetch("{% url 'api_get_recent_notifications' %}")
+                        .then(response => response.json())
+                        .then(data => {
+                            listContainer.innerHTML = '';
+                            if (data.notifications && data.notifications.length > 0) {
+                                data.notifications.forEach(notif => {
+                                    const item = document.createElement('a');
+                                    item.href = notif.link || '#';
+                                    item.className = `notification-item ${notif.is_read ? '' : 'unread'}`;
+                                    item.innerHTML = `
+                                        <div class="notif-title">${notif.title}</div>
+                                        <div class="notif-msg">${notif.message}</div>
+                                        <div class="notif-time">${notif.created_at}</div>
+                                    `;
+                                    listContainer.appendChild(item);
+                                });
+                            } else {
+                                listContainer.innerHTML = '<div class="empty-notifications">No notifications found.</div>';
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching notifications:', error);
+                            listContainer.innerHTML = '<div class="empty-notifications">Failed to load notifications.</div>';
+                        });
+                }
+
+                function markAllNotificationsAsRead(event) {
+                    event.stopPropagation();
+                    fetch("{% url 'api_mark_all_read' %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            updateUnreadCounts();
+                            fetchRecentNotifications();
+                        }
+                    })
+                    .catch(error => console.error('Error marking all as read:', error));
                 }
 
                 // Close the dropdown if the user clicks outside of it
                 window.onclick = function (event) {
-                    if (!event.target.closest('.user-menu')) {
+                    if (!event.target.closest('.user-menu') && !event.target.closest('.notification-menu')) {
                         var dropdowns = document.getElementsByClassName("dropdown-content");
-                        var i;
-                        for (i = 0; i < dropdowns.length; i++) {
-                            var openDropdown = dropdowns[i];
-                            if (openDropdown.classList.contains('show')) {
-                                openDropdown.classList.remove('show');
-                            }
+                        for (var i = 0; i < dropdowns.length; i++) {
+                            dropdowns[i].classList.remove('show');
                         }
+                        document.getElementById("notificationDropdown").classList.remove('show');
                     }
                 }
             </script>

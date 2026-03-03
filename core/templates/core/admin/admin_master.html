@@ -27,9 +27,17 @@
                 <a href="{% url 'admin_user_management' %}" class="{% if request.resolver_match.url_name == 'admin_user_management' %}active{% endif %}">
                     <i class="fas fa-users"></i> User Management
                 </a>
+                <a href="{% url 'admin_project_management' %}" class="{% if request.resolver_match.url_name == 'admin_project_management' %}active{% endif %}">
+                    <i class="fas fa-project-diagram"></i> Project Management
+                </a>
                 <a href="{% url 'admin_reference_data' %}" class="{% if request.resolver_match.url_name == 'admin_reference_data' %}active{% endif %}">
                     <i class="fas fa-database"></i> Reference Data
                 </a>
+                {% if user.is_superuser %}
+                <a href="{% url 'admin_staff_management' %}" class="{% if request.resolver_match.url_name == 'admin_staff_management' %}active{% endif %}">
+                    <i class="fas fa-user-tie"></i> Staff Management
+                </a>
+                {% endif %}
                 <a href="{% url 'admin_activity_log' %}" class="{% if request.resolver_match.url_name == 'admin_activity_log' %}active{% endif %}">
                     <i class="fas fa-clipboard-list"></i> Activity Log
                 </a>

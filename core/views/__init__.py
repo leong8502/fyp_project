@@ -40,6 +40,8 @@ from core.views.client import (
     client_projectPublish,
     client_confirmPayment,
     client_invite_freelancer,
+    client_request_cancellation,
+    report_project,
     accept_application,
     reject_application,
     client_request_revision,
@@ -47,6 +49,8 @@ from core.views.client import (
     submit_review,
     client_notifications,
     api_unread_notifications_count,
+    api_get_recent_notifications,
+    api_mark_all_notifications_as_read,
 )
 
 from core.views.freelancer import (
@@ -58,6 +62,7 @@ from core.views.freelancer import (
     freelancer_wallet,
     freelancer_settings,
     freelancer_profile,
+    freelancer_respond_cancellation,
 )
 
 from core.views.chat import (
@@ -78,4 +83,8 @@ from core.views.admin import (
     admin_update_user,
     admin_activity_log,
     admin_reference_data,
+    admin_staff_management,
+    admin_update_staff,
+    admin_project_management,
+    admin_update_project_status,
 )

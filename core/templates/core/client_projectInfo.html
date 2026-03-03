@@ -100,7 +100,12 @@
 
     <div class="sections">
         <div class="section">
-            <h2>Project Description</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <h2 style="margin-bottom: 0;">Project Description</h2>
+                <button type="button" class="btn-report" onclick="openModalV2('reportProjectModal')">
+                    <i class="fas fa-flag"></i> Report
+                </button>
+            </div>
             <p>{{ project.description|linebreaks }}</p>
 
             <p><strong>Required skills:</strong>
@@ -400,14 +405,16 @@
             </form>
 
             {% elif project.status == 'open' %}
-            <!-- Open: Apply AI Matching, Cancel, Manage Proposals -->
+            <!-- Open: Apply AI Matching, Cancel -->
             <a href="{% url 'client_projectMatches' project.id %}" style="text-decoration: none;">
                 <button class="btn-primary">Find Matches (AI)</button>
             </a>
-            <button class="btn-danger">Cancel Project</button>
+            <button class="btn-danger" onclick="openModalV2('cancelOpenModal')">
+                <i class="fas fa-times-circle"></i> Cancel Project
+            </button>
 
             {% elif project.status == 'in_progress' %}
-            <!-- In Progress: Message, Release Payment, Revision, Download -->
+            <!-- In Progress: Message, Release Payment, Revision, Request Cancellation -->
             {% if project.assigned_freelancer %}
             <a href="{% url 'start_chat' project.assigned_freelancer.user.id %}" style="text-decoration:none; color:white;"><button
                     class="btn-primary">Message Freelancer</button></a>
@@ -422,6 +429,18 @@
                 <button class="btn-secondary" onclick="openModalV2('requestRevisionModal_{{ milestone.id }}')"><i class="fas fa-undo"></i> Request Revision</button>
                 {% endif %}
             {% endfor %}
+
+            <!-- Cancellation Request Section -->
+            {% if pending_cancellation %}
+            <div style="margin-top: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 12px 16px; font-size: 0.9rem; color: #856404;">
+                <i class="fas fa-clock"></i> <strong>Cancellation request pending.</strong><br>
+                Waiting for freelancer's response.
+            </div>
+            {% else %}
+            <button class="btn-danger" style="margin-top: 8px;" onclick="openModalV2('requestCancellationModal')">
+                <i class="fas fa-ban"></i> Request Cancellation
+            </button>
+            {% endif %}
 
 
             {% elif project.status == 'completed' %}
@@ -542,4 +561,118 @@
     {% endfor %}
 {% endif %}
 
+<!-- Cancel Open Project Modal -->
+{% if project.status == 'open' %}
+<div id="cancelOpenModal" class="modal-v2">
+    <div class="modal-overlay-v2" onclick="closeModalV2('cancelOpenModal')"></div>
+    <div class="modal-content-v2">
+        <div class="modal-header-v2">
+            <h2><i class="fas fa-exclamation-triangle" style="color: #dc3545;"></i> Cancel Project</h2>
+            <button type="button" class="modal-close-v2" onclick="closeModalV2('cancelOpenModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body-v2">
+            <p class="modal-instruction-v2">
+                Are you sure you want to cancel <strong>{{ project.title }}</strong>?
+                This action <strong>cannot be undone</strong>.
+            </p>
+            {% if escrow %}
+            <div class="payment-summary-v2">
+                <div class="summary-row-v2">
+                    <span>Escrow Held:</span>
+                    <span>RM {{ escrow.total_amount|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row-v2 total-v2">
+                    <span>Refund to Wallet:</span>
+                    <span class="amount-v2" style="color: #16a34a;">RM {{ escrow.remaining_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+            {% endif %}
+            <form action="{% url 'client_projectDelete' project.id %}" method="post">
+                {% csrf_token %}
+                <div class="modal-footer-v2">
+                    <button type="button" class="btn-secondary" onclick="closeModalV2('cancelOpenModal')">Keep Project</button>
+                    <button type="submit" class="btn-danger"><i class="fas fa-times-circle"></i> Confirm Cancel &amp; Refund</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Request Cancellation Modal (In-Progress) -->
+{% if project.status == 'in_progress' and not pending_cancellation %}
+<div id="requestCancellationModal" class="modal-v2">
+    <div class="modal-overlay-v2" onclick="closeModalV2('requestCancellationModal')"></div>
+    <div class="modal-content-v2">
+        <div class="modal-header-v2">
+            <h2><i class="fas fa-ban" style="color: #dc3545;"></i> Request Cancellation</h2>
+            <button type="button" class="modal-close-v2" onclick="closeModalV2('requestCancellationModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body-v2">
+            <p class="modal-instruction-v2">
+                This will send a <strong>cancellation request</strong> to the freelancer.
+                The project will only be cancelled if the freelancer <strong>agrees</strong>.
+            </p>
+            {% if escrow %}
+            <div class="payment-summary-v2">
+                <div class="summary-row-v2">
+                    <span>Released to Freelancer:</span>
+                    <span>RM {{ escrow.released_amount|floatformat:2 }}</span>
+                </div>
+                <div class="summary-row-v2 total-v2">
+                    <span>Potential Refund to You:</span>
+                    <span class="amount-v2" style="color: #16a34a;">RM {{ escrow.remaining_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+            {% endif %}
+            <form action="{% url 'client_request_cancellation' project.id %}" method="post">
+                {% csrf_token %}
+                <div style="margin-bottom: 20px;">
+                    <label for="cancel_reason" style="display: block; font-weight: 600; margin-bottom: 8px; color: #475569;">Reason (Optional):</label>
+                    <textarea name="reason" id="cancel_reason" rows="3"
+                        style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: inherit; resize: vertical; background: #f8fafc;"
+                        placeholder="E.g., Project scope has changed significantly..."></textarea>
+                </div>
+                <div class="modal-footer-v2">
+                    <button type="button" class="btn-secondary" onclick="closeModalV2('requestCancellationModal')">Back</button>
+                    <button type="submit" class="btn-danger"><i class="fas fa-paper-plane"></i> Send Request</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Report Project Modal -->
+<div id="reportProjectModal" class="modal-v2">
+    <div class="modal-overlay-v2" onclick="closeModalV2('reportProjectModal')"></div>
+    <div class="modal-content-v2" style="max-width: 500px;">
+        <div class="modal-header-v2">
+            <h2>Report Project</h2>
+            <button type="button" class="modal-close-v2" onclick="closeModalV2('reportProjectModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form action="{% url 'report_project' project.id %}" method="POST">
+            {% csrf_token %}
+            <div class="modal-body-v2">
+                <p style="color: #64748b; margin-bottom: 20px; font-size: 0.95rem; line-height: 1.6;">
+                    Please provide a reason for reporting this project. Our team will review your report and take appropriate action.
+                </p>
+                <div class="form-group-v2">
+                    <label>Reason for Report</label>
+                    <textarea name="reason" rows="4" class="form-control-v2" placeholder="Describe why you are reporting this project..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer-v2">
+                <button type="button" class="btn-secondary-v2" onclick="closeModalV2('reportProjectModal')">Cancel</button>
+                <button type="submit" class="btn-danger-v2">Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

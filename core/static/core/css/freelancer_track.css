@@ -155,6 +155,11 @@
     color: #1976d2;
 }
 
+.status-cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
 /* Empty State */
 .empty-state {
     text-align: center;

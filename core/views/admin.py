@@ -18,6 +18,7 @@ from core.models import (
     Client, Freelancer, Project, Transaction,
     Ticket, AdminLog, Industry, ProjectCategory
 )
+from core.forms import StaffCreationForm
 
 
 @admin_required
@@ -111,7 +112,8 @@ def admin_update_ticket(request, ticket_id):
 
 @admin_required
 def admin_user_management(request):
-    users = User.objects.all().order_by('-date_joined')
+    # Only show clients and freelancers (exclude staff and superusers)
+    users = User.objects.filter(is_staff=False, is_superuser=False).order_by('-date_joined')
 
     search = request.GET.get('search', '')
     if search:
@@ -127,8 +129,6 @@ def admin_user_management(request):
         users = users.filter(client__isnull=False)
     elif role_filter == 'freelancer':
         users = users.filter(freelancer__isnull=False)
-    elif role_filter == 'admin':
-        users = users.filter(is_superuser=True)
 
     status_filter = request.GET.get('status', '')
     if status_filter == 'active':
@@ -296,3 +296,129 @@ def admin_reference_data(request):
         'categories': categories,
         'active_menu': 'reference',
     })
+
+
+@admin_required
+def admin_staff_management(request):
+    if not request.user.is_superuser:
+        messages.error(request, "Access denied. Superuser privileges required.")
+        return redirect('admin_dashboard')
+
+    staff_users = User.objects.filter(is_staff=True, is_superuser=False).order_by('-date_joined')
+    
+    if request.method == 'POST':
+        form = StaffCreationForm(request.POST)
+        if form.is_valid():
+            staff = form.save()
+            messages.success(request, f"Staff account for {staff.username} created successfully.")
+            
+            AdminLog.objects.create(
+                admin_user=request.user,
+                action='create',
+                target_model='User',
+                target_id=str(staff.id),
+                description=f"Created staff account '{staff.username}' ({staff.email})."
+            )
+            return redirect('admin_staff_management')
+        else:
+            for field, field_errors in form.errors.items():
+                for error in field_errors:
+                    field_label = form.fields[field].label if field in form.fields else field.replace('_', ' ').capitalize()
+                    messages.error(request, f"{field_label}: {error}")
+    else:
+        form = StaffCreationForm()
+
+    return render(request, 'core/admin/admin_staff.html', {
+        'staff_users': staff_users,
+        'form': form,
+        'active_menu': 'staff',
+    })
+
+
+@admin_required
+def admin_update_staff(request, staff_id):
+    if not request.user.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Superuser privileges required.'}, status=403)
+
+    staff = get_object_or_404(User, id=staff_id, is_staff=True, is_superuser=False)
+    
+    if request.method == 'POST':
+        is_active = request.POST.get('is_active') == 'true'
+
+        staff.is_active = is_active
+        staff.save()
+
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model='User',
+            target_id=str(staff.id),
+            description=f"Updated status for staff account '{staff.username}' to {'Active' if is_active else 'Inactive'}."
+        )
+
+        return JsonResponse({'status': 'success', 'message': f'Status for {staff.username} updated successfully.'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+
+@admin_required
+def admin_project_management(request):
+    projects = Project.objects.all().select_related(
+        'client', 'category', 'assigned_freelancer__user', 'escrow'
+    ).order_by('-created_at')
+
+    search = request.GET.get('search', '')
+    if search:
+        projects = projects.filter(
+            Q(title__icontains=search) |
+            Q(description__icontains=search) |
+            Q(client__company_name__icontains=search)
+        )
+
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        projects = projects.filter(status=status_filter)
+
+    paginator = Paginator(projects, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/admin/admin_project.html', {
+        'projects': page_obj,
+        'search': search,
+        'status_filter': status_filter,
+        'active_menu': 'projects',
+    })
+
+
+@admin_required
+def admin_update_project_status(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        
+        # Validate status choice
+        valid_statuses = [choice[0] for choice in Project.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return JsonResponse({'status': 'error', 'message': 'Invalid status choice.'})
+
+        old_status = project.status
+        project.status = new_status
+        
+        # If moving to open, set published_at if not already set
+        if new_status == 'open' and not project.published_at:
+            project.published_at = timezone.now()
+            
+        project.save()
+
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model='Project',
+            target_id=str(project.id),
+            description=f"Updated project '{project.title}' status from '{old_status}' to '{new_status}'."
+        )
+
+        return JsonResponse({'status': 'success', 'message': f'Project status updated to {project.get_status_display()} successfully.'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)

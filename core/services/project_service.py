@@ -26,6 +26,7 @@ class ProjectService:
 
             project.save()
 
+            valid_milestones_count = 0
             for i in range(len(m_titles)):
                 if m_titles[i] and m_amounts[i] and m_deadlines[i]:
                     Milestone.objects.create(
@@ -36,6 +37,10 @@ class ProjectService:
                         deadline=m_deadlines[i],
                         order=i + 1
                     )
+                    valid_milestones_count += 1
+            
+            if valid_milestones_count == 0:
+                raise ValueError("At least one valid milestone is required.")
         return project
 
     @staticmethod
@@ -60,6 +65,7 @@ class ProjectService:
 
             project.milestones.all().delete()
 
+            valid_milestones_count = 0
             for i in range(len(m_titles)):
                 if m_titles[i] and m_amounts[i] and m_deadlines[i]:
                     Milestone.objects.create(
@@ -70,6 +76,10 @@ class ProjectService:
                         deadline=m_deadlines[i],
                         order=i + 1
                     )
+                    valid_milestones_count += 1
+            
+            if valid_milestones_count == 0:
+                raise ValueError("At least one valid milestone is required.")
         return project
 
     @staticmethod
@@ -305,3 +315,109 @@ class ProjectService:
                     description="All milestones completed. Project status updated to 'Completed'."
                 )
                 return None, True  # (next_milestone, is_project_complete)
+
+    @staticmethod
+    def cancel_open_project(project, actor_user):
+        """Cancel an open project and refund the full escrow back to the client."""
+        from core.services import NotificationService
+        with transaction.atomic():
+            escrow = project.escrow
+            client_wallet, _ = Wallet.objects.get_or_create(
+                user=project.client.user
+            )
+            refund_amount = escrow.remaining_amount
+
+            # Refund escrow to client wallet
+            client_wallet.balance += refund_amount
+            client_wallet.save()
+
+            # Record refund transaction
+            Transaction.objects.create(
+                wallet=client_wallet,
+                amount=refund_amount,
+                direction='credit',
+                transaction_type='refund',
+                status='completed',
+                description=f"Refund for cancelled project: {project.title}",
+                reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                related_project=project
+            )
+
+            # Update escrow
+            escrow.remaining_amount = 0
+            escrow.status = 'refunded'
+            escrow.save()
+
+            # Cancel project
+            project.status = 'cancelled'
+            project.save()
+
+            ProjectActivity.objects.create(
+                project=project,
+                user=actor_user,
+                activity_type='status_updated',
+                description=f"Project cancelled by client. RM{refund_amount} refunded from escrow."
+            )
+
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='project_cancelled',
+                title='Project Cancelled',
+                message=f"Your project '{project.title}' has been cancelled. RM{refund_amount:.2f} has been refunded to your wallet.",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+
+    @staticmethod
+    def confirm_cancellation(cancellation_request, actor_user):
+        """Freelancer agrees to cancellation. Cancel project and refund remaining escrow."""
+        from core.services import NotificationService
+        project = cancellation_request.project
+        with transaction.atomic():
+            escrow = project.escrow
+            client_wallet, _ = Wallet.objects.get_or_create(
+                user=project.client.user
+            )
+            refund_amount = escrow.remaining_amount
+
+            # Refund remaining escrow to client
+            client_wallet.balance += refund_amount
+            client_wallet.save()
+
+            Transaction.objects.create(
+                wallet=client_wallet,
+                amount=refund_amount,
+                direction='credit',
+                transaction_type='refund',
+                status='completed',
+                description=f"Partial refund for cancelled in-progress project: {project.title}",
+                reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                related_project=project
+            )
+
+            escrow.remaining_amount = 0
+            escrow.status = 'refunded'
+            escrow.save()
+
+            # Cancel all pending/in-progress milestones
+            project.milestones.filter(status__in=['pending', 'in_progress']).update(status='cancelled')
+
+            project.status = 'cancelled'
+            project.save()
+
+            cancellation_request.status = 'agreed'
+            cancellation_request.save()
+
+            ProjectActivity.objects.create(
+                project=project,
+                user=actor_user,
+                activity_type='status_updated',
+                description=f"Freelancer agreed to cancellation. Project cancelled. RM{refund_amount} refunded."
+            )
+
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='project_cancelled',
+                title='Project Cancelled',
+                message=f"Freelancer agreed to cancel '{project.title}'. RM{refund_amount:.2f} refunded to your wallet.",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )

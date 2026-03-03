@@ -1,0 +1,311 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block title %}Staff Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_user.css' %}">
+<style>
+    .staff-container {
+        padding: 20px;
+    }
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+    }
+    .btn-add-staff {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, #3730a3 0%, #1e3a8a 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+    }
+    .btn-add-staff:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(55, 48, 163, 0.3);
+    }
+    .text-danger {
+        color: #dc3545;
+        font-size: 0.85rem;
+        margin-top: 5px;
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="header-actions">
+        <h1 class="page-title" style="margin-bottom: 0;">Staff Management</h1>
+        <button type="button" class="btn-add-staff" onclick="openStaffModal()">
+            <i class="fas fa-plus"></i> Add Staff Account
+        </button>
+    </div>
+
+    <!-- Staff Table -->
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Name</th>
+                    <th>Joined</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_users %}
+                <tr data-staff-id="{{ staff.id }}" 
+                    data-username="{{ staff.username }}" 
+                    data-email="{{ staff.email }}" 
+                    data-first-name="{{ staff.first_name }}" 
+                    data-last-name="{{ staff.last_name }}" 
+                    data-is-active="{{ staff.is_active|yesno:'true,false' }}">
+                    <td>#{{ staff.id }}</td>
+                    <td><strong>{{ staff.username }}</strong></td>
+                    <td>{{ staff.email }}</td>
+                    <td>{{ staff.first_name }} {{ staff.last_name }}</td>
+                    <td>{{ staff.date_joined|date:"M d, Y" }}</td>
+                    <td>
+                        {% if staff.is_active %}
+                        <span class="badge badge-status-active">Active</span>
+                        {% else %}
+                        <span class="badge badge-status-inactive">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button type="button" class="btn-action btn-edit" title="Edit" onclick="openEditStaffModal(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="no-data">No staff accounts found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Staff Modal -->
+<div id="staffModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Create Staff Account</h2>
+            <button type="button" class="btn-close" onclick="closeStaffModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form method="post" id="staffForm">
+                {% csrf_token %}
+                
+                <div class="form-group">
+                    <label for="{{ form.username.id_for_label }}">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}
+                        <small class="text-danger">{{ form.username.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.email.id_for_label }}">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <small class="text-danger">{{ form.email.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                        {{ form.last_name }}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.password.id_for_label }}">Password</label>
+                    {{ form.password }}
+                    {% if form.password.errors %}
+                        <small class="text-danger">{{ form.password.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.confirm_password.id_for_label }}">Confirm Password</label>
+                    {{ form.confirm_password }}
+                    {% if form.confirm_password.errors %}
+                        <small class="text-danger">{{ form.confirm_password.errors.0 }}</small>
+                    {% endif %}
+                </div>
+
+                <div class="modal-footer" style="padding-bottom: 0; background: none; border-top: none;">
+                    <button type="button" class="btn-cancel" onclick="closeStaffModal()">Cancel</button>
+                    <button type="submit" class="btn-save"><i class="fas fa-user-plus"></i> Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Staff Modal -->
+<div id="editStaffModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Edit Staff Account</h2>
+            <button type="button" class="btn-close" onclick="closeEditStaffModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="editStaffForm">
+                <input type="hidden" id="editStaffId">
+                <div class="form-group">
+                    <label for="editUsername">Username</label>
+                    <input type="text" id="editUsername" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email Address</label>
+                    <input type="email" id="editEmail" class="form-control" readonly>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label for="editFirstName">First Name</label>
+                        <input type="text" id="editFirstName" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLastName">Last Name</label>
+                        <input type="text" id="editLastName" class="form-control" readonly>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Status</label>
+                    <select id="editStatus" class="form-control">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+                <div class="modal-footer" style="padding-bottom: 0; background: none; border-top: none;">
+                    <button type="button" class="btn-cancel" onclick="closeEditStaffModal()">Cancel</button>
+                    <button type="button" class="btn-save" onclick="saveStaffEdit()"><i class="fas fa-save"></i> Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="has-errors" value="{% if form.errors %}true{% else %}false{% endif %}">
+
+<script>
+    function openStaffModal() {
+        document.getElementById('staffModal').style.display = 'flex';
+    }
+
+    function closeStaffModal() {
+        document.getElementById('staffModal').style.display = 'none';
+        document.getElementById('staffForm').reset();
+        const errorMessages = document.querySelectorAll('#staffForm .text-danger');
+        errorMessages.forEach(el => el.remove());
+        document.getElementById('has-errors').value = 'false';
+    }
+
+    function openEditStaffModal(btn) {
+        const row = btn.closest('tr');
+        document.getElementById('editStaffId').value = row.dataset.staffId;
+        document.getElementById('editUsername').value = row.dataset.username;
+        document.getElementById('editEmail').value = row.dataset.email;
+        document.getElementById('editFirstName').value = row.dataset.firstName;
+        document.getElementById('editLastName').value = row.dataset.lastName;
+        document.getElementById('editStatus').value = row.dataset.isActive;
+        
+        document.getElementById('editStaffModal').style.display = 'flex';
+    }
+
+    function closeEditStaffModal() {
+        document.getElementById('editStaffModal').style.display = 'none';
+        document.getElementById('editStaffForm').reset();
+    }
+
+    function saveStaffEdit() {
+        const staffId = document.getElementById('editStaffId').value;
+        const formData = new FormData();
+        formData.append('username', document.getElementById('editUsername').value);
+        formData.append('email', document.getElementById('editEmail').value);
+        formData.append('first_name', document.getElementById('editFirstName').value);
+        formData.append('last_name', document.getElementById('editLastName').value);
+        formData.append('is_active', document.getElementById('editStatus').value);
+
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        };
+
+        fetch(`/panel/staff/update/${staffId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error updating staff.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the staff account.');
+        });
+    }
+
+    // Prevent "Confirm Form Resubmission" dialog on refresh
+    if (window.history.replaceState) {
+        window.history.replaceState(null, null, window.location.href);
+    }
+
+    // Keep modal open if there are errors
+    window.onload = function() {
+        if (document.getElementById('has-errors').value === 'true') {
+            openStaffModal();
+        }
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const staffModal = document.getElementById('staffModal');
+        const editModal = document.getElementById('editStaffModal');
+        if (event.target == staffModal) {
+            closeStaffModal();
+        } else if (event.target == editModal) {
+            closeEditStaffModal();
+        }
+    }
+</script>
+{% endblock %}

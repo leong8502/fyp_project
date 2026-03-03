@@ -215,6 +215,11 @@ td {
     color: #856404;
 }
 
+.cancelled {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
 .delete {
     background: #f8d7da;
     color: #721c24;

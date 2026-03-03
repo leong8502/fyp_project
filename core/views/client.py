@@ -17,7 +17,7 @@ from core.decorators import client_required, freelancer_required
 from core.models import (
     Project, Milestone, ProjectApplication, Review,
     Wallet, Transaction, UserSecurity, Escrow, Freelancer,
-    Ticket, ProjectActivity
+    Ticket, ProjectActivity, CancellationRequest
 )
 from core.forms import (
     ClientProfileForm, ProjectForm, SecurePinForm, PaymentPinForm,
@@ -123,7 +123,12 @@ def client_support(request):
     else:
         form = SupportForm(user=request.user)
 
-    return render(request, 'core/client_support.html', {'form': form})
+    user_tickets = Ticket.objects.filter(user=request.user).order_by('-created_at')
+
+    return render(request, 'core/client_support.html', {
+        'form': form,
+        'user_tickets': user_tickets
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -423,6 +428,9 @@ def client_projectCreate(request):
                 messages.error(request, f"Error creating project: {str(e)}")
         else:
             messages.error(request, "Please correct the errors below.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = ProjectForm()
 
@@ -454,6 +462,15 @@ def client_projectInfo(request, project_id):
 
     activities = project.activities.all()[:10]
 
+    # Pending cancellation request (for in-progress projects)
+    pending_cancellation = None
+    try:
+        cr = project.cancellation_request
+        if cr.status == 'pending':
+            pending_cancellation = cr
+    except CancellationRequest.DoesNotExist:
+        pass
+
     return render(request, 'core/client_projectInfo.html', {
         'project': project,
         'review': review,
@@ -461,6 +478,7 @@ def client_projectInfo(request, project_id):
         'contract_started': contract_started,
         'progress_percentage': progress_percentage,
         'activities': activities,
+        'pending_cancellation': pending_cancellation,
     })
 
 
@@ -522,18 +540,79 @@ def client_projectEdit(request, project_id):
 def client_projectDelete(request, project_id):
     project = Project.objects.get(id=project_id, client=request.user.client)
 
-    if project.status != 'draft':
-        messages.error(request, "Only draft projects can be deleted.")
+    if project.status == 'draft':
+        if request.method == 'POST':
+            try:
+                project.delete()
+                messages.success(request, "Project deleted successfully.")
+                return redirect('client_project')
+            except Exception as e:
+                messages.error(request, f"Error deleting project: {str(e)}")
+                return redirect('client_projectInfo', project_id=project.id)
+        return redirect('client_projectInfo', project_id=project.id)
+
+    elif project.status == 'open':
+        if request.method == 'POST':
+            try:
+                ProjectService.cancel_open_project(project, request.user)
+                messages.success(
+                    request,
+                    f"Project '{project.title}' has been cancelled. Your escrow payment has been refunded to your wallet."
+                )
+                return redirect('client_project')
+            except Exception as e:
+                messages.error(request, f"Error cancelling project: {str(e)}")
+                return redirect('client_projectInfo', project_id=project.id)
+        return redirect('client_projectInfo', project_id=project.id)
+
+    else:
+        messages.error(request, "Only draft or open projects can be cancelled here.")
+        return redirect('client_projectInfo', project_id=project.id)
+
+
+@client_required
+def client_request_cancellation(request, project_id):
+    """Client requests cancellation of an in-progress project."""
+    project = get_object_or_404(Project, id=project_id, client=request.user.client)
+
+    if project.status != 'in_progress':
+        messages.error(request, "Only in-progress projects can be requested for cancellation.")
+        return redirect('client_projectInfo', project_id=project.id)
+
+    # Check if there's already a pending request
+    existing = CancellationRequest.objects.filter(project=project, status='pending').first()
+    if existing:
+        messages.warning(request, "A cancellation request is already pending for this project.")
         return redirect('client_projectInfo', project_id=project.id)
 
     if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
         try:
-            project.delete()
-            messages.success(request, "Project deleted successfully.")
-            return redirect('client_project')
-        except Exception as e:
-            messages.error(request, f"Error deleting project: {str(e)}")
-            return redirect('client_projectInfo', project_id=project.id)
+            from core.services import NotificationService
+            # Use update_or_create to handle cases where a previous (declined/agreed) request exists
+            CancellationRequest.objects.update_or_create(
+                project=project,
+                defaults={
+                    'requested_by': request.user,
+                    'reason': reason,
+                    'status': 'pending',
+                }
+            )
+            # Notify the freelancer
+            if project.assigned_freelancer:
+                NotificationService.create_notification(
+                    recipient=project.assigned_freelancer.user,
+                    notification_type='cancellation_request',
+                    title='Cancellation Request',
+                    message=f"Client has requested to cancel project '{project.title}'. Please review and respond.",
+                    link=reverse('freelancer_track_project')
+                )
+            messages.success(
+                request,
+                "Cancellation request sent to the freelancer. You will be notified once they respond."
+            )
+        except Exception:
+            messages.error(request, "Failed to send cancellation request. Please try again.")
 
     return redirect('client_projectInfo', project_id=project.id)
 
@@ -825,10 +904,10 @@ def client_notifications(request):
     """View to list all notifications for the user."""
     from core.models import Notification
     from core.services import NotificationService
+    # Get notifications as a list to preserve unread state for this specific view
+    notifications_list = list(Notification.objects.filter(recipient=request.user).order_by('-created_at'))
     
-    notifications = Notification.objects.filter(recipient=request.user).order_by('-created_at')
-    
-    # Mark all as read when viewing the page
+    # Mark all as read so the header badge clears
     NotificationService.mark_all_as_read(request.user)
     
     base_template = 'core/client_master.html'
@@ -836,7 +915,7 @@ def client_notifications(request):
         base_template = 'core/freelancer_master.html'
     
     return render(request, 'core/client_notifications.html', {
-        'notifications': notifications,
+        'notifications': notifications_list,
         'base_template': base_template
     })
 
@@ -860,3 +939,58 @@ def api_unread_notifications_count(request):
         'message_count': message_count,
         'total_count': notification_count + message_count
     })
+
+
+@login_required
+def api_get_recent_notifications(request):
+    """API to get the latest 5 notifications."""
+    from core.services import NotificationService
+    notifications = NotificationService.get_recent_notifications(request.user)
+    
+    data = []
+    for n in notifications:
+        data.append({ 
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'link': n.link,
+            'is_read': n.is_read,
+            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
+            'type': n.notification_type
+        })
+    
+    return JsonResponse({'notifications': data})
+
+
+@login_required
+def api_mark_all_notifications_as_read(request):
+    """API to mark all notifications as read."""
+    from core.services import NotificationService
+    if request.method == 'POST':
+        NotificationService.mark_all_as_read(request.user)
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def report_project(request, project_id):
+    """View to report a project and create a support ticket."""
+    project = get_object_or_404(Project, id=project_id)
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for reporting.")
+            return redirect('client_projectInfo', project_id=project.id)
+            
+        # Create a support ticket
+        Ticket.objects.create(
+            user=request.user,
+            title=f"Report Project: {project.title} (ID: {project.id})",
+            category='projects',
+            description=f"{reason}",
+            status='open'
+        )
+        
+        messages.success(request, "Project report submitted successfully. Our team will review it.")
+        
+    return redirect('client_projectInfo', project_id=project.id)

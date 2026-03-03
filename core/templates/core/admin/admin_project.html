@@ -1,0 +1,254 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block admin_title %}Project Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_project.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="user-container">
+    <h1 class="page-title">Project Management</h1>
+
+    <!-- Search and Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="filter-form">
+            <input type="text" name="search" class="search-input" placeholder="Search by title or description..." value="{{ search|default:'' }}">
+            
+            <select name="status" class="filter-select">
+                <option value="">All Statuses</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+            
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            
+            <a href="{% url 'admin_project_management' %}" class="btn-reset">
+                <i class="fas fa-redo"></i> Reset
+            </a>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="width: 30%;">Title</th>
+                    <th style="width: 15%;">Client</th>
+                    <th style="width: 12%;">Budget</th>
+                    <th style="width: 12%;">Posted</th>
+                    <th style="width: 12%;">Status</th>
+                    <th style="width: 9%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for project in projects %}
+                <tr data-project-id="{{ project.id }}" 
+                    data-title="{{ project.title }}" 
+                    data-client="{{ project.client.company_name }}" 
+                    data-status="{{ project.status }}"
+                    data-description="{{ project.description }}"
+                    data-budget="RM {{ project.budget }}"
+                    data-date="{{ project.created_at|date:'M d, Y' }}"
+                    data-escrow-total="{% if project.escrow %}RM {{ project.escrow.total_amount }}{% else %}N/A{% endif %}"
+                    data-escrow-remaining="{% if project.escrow %}RM {{ project.escrow.remaining_amount }}{% else %}N/A{% endif %}"
+                    data-freelancer="{% if project.assigned_freelancer %}{{ project.assigned_freelancer.user.username }}{% else %}None{% endif %}">
+                    <td>#{{ project.id }}</td>
+                    <td>
+                        <div style="font-weight: 600;">{{ project.title }}</div>
+                        <div style="font-size: 0.8rem; color: #64748b;">{{ project.category.name|default:"No Category" }}</div>
+                    </td>
+                    <td>{{ project.client.company_name }}</td>
+                    <td>RM {{ project.budget }}</td>
+                    <td>{{ project.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-status-{{ project.status }}">
+                            {{ project.get_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn-action btn-edit" title="Manage Status" onclick="openEditProjectModal(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="no-data">No projects found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if projects.has_other_pages %}
+    <div class="pagination">
+        {% if projects.has_previous %}
+            <a href="?page={{ projects.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ projects.number }} of {{ projects.paginator.num_pages }}</span>
+        
+        {% if projects.has_next %}
+            <a href="?page={{ projects.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" class="page-link">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Project Status Modal -->
+<div id="editProjectModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Project Details & Status</h2>
+            <button type="button" class="btn-close" onclick="closeEditProjectModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <form id="editProjectForm">
+                <input type="hidden" id="editProjectId">
+                
+                <div class="form-group">
+                    <label>Project Title</label>
+                    <input type="text" id="displayProjectTitle" class="form-control" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="displayDescription" class="form-control" rows="3" readonly style="resize: none;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Client</label>
+                        <input type="text" id="displayProjectClient" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigned Freelancer</label>
+                        <input type="text" id="displayFreelancer" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Budget</label>
+                        <input type="text" id="displayBudget" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Posted Date</label>
+                        <input type="text" id="displayDate" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Total Escrow</label>
+                        <input type="text" id="displayEscrowTotal" class="form-control" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Remaining Escrow</label>
+                        <input type="text" id="displayEscrowRemaining" class="form-control" readonly>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
+                    <label for="editProjectStatus" style="color: #3730a3; font-weight: 700;">Update Project Status</label>
+                    <select id="editProjectStatus" class="form-control" style="border-color: #3730a3;">
+                        <option value="draft">Draft</option>
+                        <option value="open">Open</option>
+                        <option value="in_progress">In Progress</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-cancel" onclick="closeEditProjectModal()">Cancel</button>
+            <button type="button" class="btn-save" onclick="saveProjectStatus()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openEditProjectModal(btn) {
+        const row = btn.closest('tr');
+        document.getElementById('editProjectId').value = row.dataset.projectId;
+        document.getElementById('displayProjectTitle').value = row.dataset.title;
+        document.getElementById('displayProjectClient').value = row.dataset.client;
+        document.getElementById('displayDescription').value = row.dataset.description;
+        document.getElementById('displayBudget').value = row.dataset.budget;
+        document.getElementById('displayDate').value = row.dataset.date;
+        document.getElementById('displayEscrowTotal').value = row.dataset.escrowTotal;
+        document.getElementById('displayEscrowRemaining').value = row.dataset.escrowRemaining;
+        document.getElementById('displayFreelancer').value = row.dataset.freelancer;
+        document.getElementById('editProjectStatus').value = row.dataset.status;
+        
+        document.getElementById('editProjectModal').style.display = 'flex';
+    }
+
+    function closeEditProjectModal() {
+        document.getElementById('editProjectModal').style.display = 'none';
+    }
+
+    function saveProjectStatus() {
+        const projectId = document.getElementById('editProjectId').value;
+        const status = document.getElementById('editProjectStatus').value;
+        const formData = new FormData();
+        formData.append('status', status);
+
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    }
+                }
+            }
+            return cookieValue;
+        };
+
+        fetch(`/panel/projects/update-status/${projectId}/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert(data.message);
+                window.location.reload();
+            } else {
+                alert(data.message || 'Error updating project status.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating the project.');
+        });
+    }
+
+    window.onclick = function(event) {
+        const modal = document.getElementById('editProjectModal');
+        if (event.target == modal) {
+            closeEditProjectModal();
+        }
+    }
+</script>
+{% endblock %}

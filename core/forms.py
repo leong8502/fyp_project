@@ -250,18 +250,39 @@ class WithdrawForm(forms.Form):
 class SecurePinForm(forms.Form):
     current_pin = forms.CharField(
         required=False, 
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter current PIN', 'maxlength': '6'}),
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Enter current PIN', 
+            'maxlength': '6',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'oninput': "this.value = this.value.replace(/[^0-9]/g, '')"
+        }),
         label="Current PIN"
     )
     new_pin = forms.CharField(
         required=True, 
         validators=[RegexValidator(r'^\d{6}$', 'PIN must be exactly 6 digits.')],
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter new 6-digit PIN', 'maxlength': '6'}),
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Enter new 6-digit PIN', 
+            'maxlength': '6',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'oninput': "this.value = this.value.replace(/[^0-9]/g, '')"
+        }),
         label="New PIN"
     )
     confirm_pin = forms.CharField(
         required=True, 
-        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm new PIN', 'maxlength': '6'}),
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control', 
+            'placeholder': 'Confirm new PIN', 
+            'maxlength': '6',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'oninput': "this.value = this.value.replace(/[^0-9]/g, '')"
+        }),
         label="Confirm New PIN"
     )
 
@@ -300,7 +321,10 @@ class PaymentPinForm(forms.Form):
             'class': 'form-control',
             'placeholder': 'Enter your 6-digit PIN',
             'maxlength': '6',
-            'autocomplete': 'off'
+            'autocomplete': 'off',
+            'inputmode': 'numeric',
+            'pattern': '[0-9]*',
+            'oninput': "this.value = this.value.replace(/[^0-9]/g, '')"
         }),
         label="Secure PIN"
     )
@@ -462,4 +486,54 @@ class SupportForm(forms.Form):
         
         if user:
             self.fields['sender'].initial = user.email
+
+class StaffCreationForm(forms.ModelForm):
+    password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter password'}))
+    confirm_password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Confirm password'}))
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']
+        labels = {
+            'username': 'Username',
+            'email': 'Email Address',
+            'first_name': 'First Name',
+            'last_name': 'Last Name',
+        }
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Staff Username'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Staff Email'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
+        }
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email').lower()
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Email is already registered.")
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError("Username is already taken.")
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get("password")
+        confirm_password = cleaned_data.get("confirm_password")
+
+        if password and confirm_password and password != confirm_password:
+            self.add_error('confirm_password', "Passwords do not match.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.set_password(self.cleaned_data["password"])
+        user.is_staff = True
+        user.is_active = True
+        if commit:
+            user.save()
+        return user
 

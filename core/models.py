@@ -365,6 +365,24 @@ class Escrow(models.Model):
         verbose_name = "Escrow Account"
         verbose_name_plural = "Escrow Accounts"
 
+
+class CancellationRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('agreed', 'Agreed'),
+        ('declined', 'Declined'),
+    ]
+
+    project = models.OneToOneField('Project', on_delete=models.CASCADE, related_name='cancellation_request')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cancellation_requests')
+    reason = models.TextField(blank=True, help_text="Optional reason for cancellation")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Cancellation Request for {self.project.title} ({self.status})"
+
 class ProjectMatch(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='matches')
     freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='project_matches')
@@ -670,6 +688,8 @@ class Notification(models.Model):
         ('withdrawal_processed', 'Withdrawal Processed'),
         ('payment_released', 'Payment Released'),
         ('review_submitted', 'Review Submitted'),
+        ('project_cancelled', 'Project Cancelled'),
+        ('cancellation_request', 'Cancellation Request'),
     ]
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

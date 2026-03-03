@@ -11,7 +11,7 @@ from django.utils import timezone
 from core.decorators import freelancer_required
 from core.models import (
     Project, ProjectApplication, Review, Wallet, Transaction,
-    UserSecurity, Milestone, MilestoneAttachment
+    UserSecurity, Milestone, MilestoneAttachment, CancellationRequest
 )
 from core.forms import (
     SecurePinForm,
@@ -81,12 +81,65 @@ def freelancer_track_project(request):
         freelancer=freelancer, status='pending'
     ).order_by('-created_at')
 
+    # Attach pending cancellation request (if any) to each current project
+    pending_cancellations = CancellationRequest.objects.filter(
+        project__assigned_freelancer=freelancer,
+        status='pending'
+    ).select_related('project')
+    pending_cancellation_map = {cr.project_id: cr for cr in pending_cancellations}
+    for project in current_projects:
+        project.pending_cancellation = pending_cancellation_map.get(project.id)
+
     return render(request, 'core/freelancer_trackProject.html', {
         'current_projects': current_projects,
         'pass_projects': pass_projects,
         'pending_applications': pending_applications,
         'active_tab': request.GET.get('tab', 'current'),
     })
+
+
+@freelancer_required
+def freelancer_respond_cancellation(request, cancellation_id):
+    """Freelancer responds to a cancellation request: agree or decline."""
+    cancellation_req = get_object_or_404(
+        CancellationRequest,
+        id=cancellation_id,
+        project__assigned_freelancer=request.user.freelancer,
+        status='pending'
+    )
+    project = cancellation_req.project
+
+    if request.method == 'POST':
+        response = request.POST.get('response')  # 'agree' or 'decline'
+        if response == 'agree':
+            try:
+                ProjectService.confirm_cancellation(cancellation_req, request.user)
+                messages.success(
+                    request,
+                    f"You agreed to cancel project '{project.title}'. The client's remaining escrow has been refunded."
+                )
+            except Exception as e:
+                messages.error(request, f"Error processing cancellation: {str(e)}")
+        elif response == 'decline':
+            cancellation_req.status = 'declined'
+            cancellation_req.save()
+            # Notify client
+            from core.services import NotificationService
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='cancellation_request',
+                title='Cancellation Request Declined',
+                message=f"Freelancer declined your cancellation request for '{project.title}'. The project continues.",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+            messages.info(
+                request,
+                f"You declined the cancellation request for '{project.title}'. The project continues."
+            )
+        else:
+            messages.error(request, "Invalid response.")
+
+    return redirect('freelancer_track_project')
 
 
 @freelancer_required

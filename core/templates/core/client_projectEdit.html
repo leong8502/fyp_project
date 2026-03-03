@@ -103,11 +103,15 @@
 
             <div class="form-group">
                 <label>Skills Required</label>
-                <div class="skills-input-container" id="skills-visual-container">
-                    <!-- Dynamic chips will go here -->
-                    <input type="text" id="skill-input" placeholder="Type a skill and press Enter..."
-                        style="border:none; outline:none; flex-grow: 1; min-width: 150px; background:transparent;">
+                <div style="display: flex; gap: 10px;">
+                    <div class="skills-input-container" id="skills-visual-container" style="flex: 1;">
+                        <!-- Dynamic chips will go here -->
+                        <input type="text" id="skill-input" placeholder="Type a skill..."
+                            style="border:none; outline:none; flex-grow: 1; min-width: 150px; background:transparent;">
+                    </div>
+                    <button type="button" onclick="handleSkillAddBtn()" class="btn-add-skill">ADD</button>
                 </div>
+                <p style="font-size:12px; color:#666; margin-top:4px;">Type a skill and press Enter or click ADD</p>
                 <input type="hidden" id="required_skills" name="required_skills" value="{{ project.required_skills }}">
             </div>
 
@@ -302,6 +306,14 @@
         }
     }
 
+    window.handleSkillAddBtn = function () {
+        const val = skillInput.value;
+        if (val) {
+            addSkill(val);
+            skillInput.value = '';
+        }
+    };
+
     window.removeSkill = function (index) {
         skills.splice(index, 1);
         renderSkills();
@@ -320,6 +332,12 @@
 
     // Handle form submit with validation
     document.getElementById('create-project-form').addEventListener('submit', function (e) {
+        // Auto-add any text left in the input field
+        if (skillInput.value.trim()) {
+            addSkill(skillInput.value);
+            skillInput.value = '';
+        }
+
         skillsHidden.value = skills.join(',');
         langHidden.value = languages.join(',');
 
@@ -373,6 +391,25 @@
             }
             previousDeadline = currentDeadline;
         }
+
+        // 3. Attachment Validation
+        const attachmentInput = document.getElementById('attachment');
+        const file = attachmentInput.files[0];
+        if (file && !file.name.toLowerCase().endsWith('.pdf')) {
+            e.preventDefault();
+            alert("Only PDF files are allowed.");
+            attachmentInput.value = ''; // Clear the input
+            return;
+        }
+    });
+
+    // Instant validation for attachment
+    document.getElementById('attachment').addEventListener('change', function() {
+        const file = this.files[0];
+        if (file && !file.name.toLowerCase().endsWith('.pdf')) {
+            alert("Only PDF files are allowed.");
+            this.value = ''; // Clear the input
+        }
     });
 
     // --- Milestone Handling ---
@@ -406,7 +443,12 @@
     }
 
     window.removeMilestone = function (btn) {
-        btn.closest('.milestone-item').remove();
+        const milestones = document.querySelectorAll('.milestone-item');
+        if (milestones.length > 1) {
+            btn.closest('.milestone-item').remove();
+        } else {
+            alert("At least one milestone is required.");
+        }
     }
 </script>
 {% endblock %}

@@ -62,6 +62,8 @@ urlpatterns = [
     path('client/edit_profile/', views.client_editProfile, name='client_editProfile'),
     path('client/notifications/', views.client_notifications, name='client_notifications'),
     path('api/unread_count/', views.api_unread_notifications_count, name='api_unread_count'),
+    path('api/notifications/recent/', views.api_get_recent_notifications, name='api_get_recent_notifications'),
+    path('api/notifications/mark-all-read/', views.api_mark_all_notifications_as_read, name='api_mark_all_read'),
     path('client/wallet/', views.client_wallet, name='client_wallet'),
     path('client/wallet/transaction/', views.client_transaction, name='client_transaction'),
     path('client/invite/<int:freelancer_id>/', views.client_invite_freelancer, name='client_invite_freelancer'),
@@ -74,6 +76,8 @@ urlpatterns = [
     path('client/project/delete/<int:project_id>/', views.client_projectDelete, name='client_projectDelete'),
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
+    path('client/project/<int:project_id>/request-cancel/', views.client_request_cancellation, name='client_request_cancellation'),
+    path('client/project/<int:project_id>/report/', views.report_project, name='report_project'),
 
     # ── Chat ───────────────────────────────────────────────────────────────
     path('chat/', views.chat_view, name='chat'),
@@ -92,13 +96,18 @@ urlpatterns = [
     path('freelancer/track-project/', views.freelancer_track_project, name='freelancer_track_project'),
     path('freelancer/wallet/', views.freelancer_wallet, name='freelancer_wallet'),
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),
+    path('freelancer/cancellation/<int:cancellation_id>/respond/', views.freelancer_respond_cancellation, name='freelancer_respond_cancellation'),
 
     # ── Admin ──────────────────────────────────────────────────────────────
     path('panel/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('panel/support/', views.admin_support, name='admin_support'),
     path('panel/support/update/<int:ticket_id>/', views.admin_update_ticket, name='admin_update_ticket'),
     path('panel/users/', views.admin_user_management, name='admin_user_management'),
-    path('panel/users/update/<int:user_id>/', views.admin_update_user, name='admin_update_user'),
+    path('panel/projects/', views.admin_project_management, name='admin_project_management'),
+    path('panel/projects/update-status/<int:project_id>/', views.admin_update_project_status, name='admin_update_project_status'),
+    path('panel/staff/', views.admin_staff_management, name='admin_staff_management'),
+    path('panel/staff/update/<int:staff_id>/', views.admin_update_staff, name='admin_update_staff'),
+    path('panel/users/<int:user_id>/update/', views.admin_update_user, name='admin_update_user'),
     path('panel/activity-log/', views.admin_activity_log, name='admin_activity_log'),
     path('panel/reference-data/', views.admin_reference_data, name='admin_reference_data'),
 ]

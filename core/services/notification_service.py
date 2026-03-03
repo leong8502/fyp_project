@@ -45,3 +45,8 @@ class NotificationService:
     def mark_all_as_read(user):
         """Mark all notifications of a user as read."""
         Notification.objects.filter(recipient=user, is_read=False).update(is_read=True)
+
+    @staticmethod
+    def get_recent_notifications(user, limit=5):
+        """Get the latest notifications for a user."""
+        return Notification.objects.filter(recipient=user).order_by('-created_at')[:limit]

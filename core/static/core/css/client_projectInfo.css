@@ -44,6 +44,7 @@
 
 .status-cancelled {
     color: #dc3545;
+    font-weight: 700;
 }
 
 .sections {
@@ -178,6 +179,7 @@
 
 .status-cancelled {
     color: #dc3545;
+    font-weight: 700;
 }
 
 
@@ -870,7 +872,11 @@
 
 .modal-footer-v2 {
     display: flex;
+    justify-content: flex-end;
     gap: 12px;
+    padding: 1.25rem 2rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
 }
 
 .modal-footer-v2 .btn-secondary,
@@ -943,4 +949,93 @@
 /* Adjust heading styles when inside tabs */
 .tab-content-v2 h2 {
     display: none; /* Hide old headings as they are now in tabs */
+}
+
+/* Report Button & Modal */
+.btn-report {
+    background: none;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-report:hover {
+    background: #fff5f5;
+    color: #dc3545;
+    border-color: #fee2e2;
+}
+
+.btn-report i {
+    font-size: 0.8rem;
+}
+
+.form-group-v2 {
+    margin-bottom: 1.5rem;
+}
+
+.form-group-v2 label {
+    display: block;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 0.5rem;
+    font-size: 0.95rem;
+}
+
+.form-control-v2 {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.form-control-v2:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.btn-danger-v2 {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger-v2:hover {
+    background: #dc2626;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);
+}
+
+.btn-secondary-v2 {
+    background: #fff;
+    color: #64748b;
+    border: 1.5px solid #e2e8f0;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-secondary-v2:hover {
+    background: #f8fafc;
+    color: #0f172a;
+    border-color: #cbd5e1;
 }

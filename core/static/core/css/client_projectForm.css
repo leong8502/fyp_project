@@ -187,6 +187,22 @@ button[type="submit"] {
     align-items: center;
 }
 
+.btn-add-skill {
+    background: #4e54c8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0 20px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.btn-add-skill:hover {
+    background: #3f44a3;
+}
+
 .skill-chip {
     background: #e9ecef;
     color: #333;

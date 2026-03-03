@@ -443,3 +443,120 @@ img.logo {
     box-shadow: 0 2px 4px rgba(0,0,0,0.15);
     z-index: 10;
 }
+
+/* Notification Dropdown Panel */
+.notification-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 50px;
+    width: 350px;
+    background-color: #ffffff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 1001;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid #eee;
+    animation: fadeIn 0.2s ease;
+}
+
+.notification-dropdown.show {
+    display: block;
+}
+
+.notification-header {
+    padding: 15px 20px;
+    background-color: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notification-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    color: #333;
+}
+
+.mark-all-read {
+    font-size: 14px;
+    color: #007bff;
+    text-decoration: none;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.mark-all-read:hover {
+    text-decoration: underline;
+}
+
+.notification-dropdown .notification-list {
+    max-height: 450px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    padding: 15px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    display: block;
+    text-decoration: none;
+    color: #333;
+    transition: background 0.2s;
+}
+
+.notification-item:hover {
+    background-color: #f8f8f8;
+}
+
+.notification-item.unread {
+    background-color: #ffffff; /* Mockup shows white/clean background even for new ones, but maybe a hint? */
+}
+
+.notification-item .notif-title {
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: #000;
+}
+
+.notification-item .notif-msg {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.4;
+    margin-bottom: 6px;
+}
+
+.notification-item .notif-time {
+    font-size: 13px;
+    color: #999;
+}
+
+.notification-footer {
+    padding: 12px;
+    text-align: center;
+    border-top: 1px solid #eee;
+    background-color: #fff;
+}
+
+.notification-footer a {
+    font-size: 14px;
+    color: #007bff;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.notification-footer a:hover {
+    text-decoration: underline;
+}
+
+.empty-notifications {
+    padding: 30px 20px;
+    text-align: center;
+    color: #888;
+    font-style: italic;
+}
