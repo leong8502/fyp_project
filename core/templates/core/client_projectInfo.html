@@ -98,6 +98,27 @@
         </div>
     </div>
 
+    {% if today and project.deadline < today and project.status != 'completed' and project.status != 'cancelled' %}
+    <div class="deadline-warning-banner {% if project.status == 'in_progress' %}deadline-banner-danger{% else %}deadline-banner-warning{% endif %}">
+        <i class="fas fa-exclamation-triangle deadline-banner-icon"></i>
+        <div>
+            {% if project.status == 'draft' %}
+                <strong>Deadline has passed.</strong>
+                This project's deadline ({{ project.deadline|date:"M d, Y" }}) has already passed.
+                You cannot publish it until you <a href="{% url 'client_projectEdit' project.id %}" class="deadline-banner-link">update the deadline</a>.
+            {% elif project.status == 'open' %}
+                <strong>Deadline has passed.</strong>
+                This project's deadline ({{ project.deadline|date:"M d, Y" }}) has passed.
+                It will be <strong>automatically cancelled and refunded</strong> on the next system check.
+            {% elif project.status == 'in_progress' %}
+                <strong>Project is overdue.</strong>
+                The deadline ({{ project.deadline|date:"M d, Y" }}) has passed.
+                Please communicate with your freelancer to agree on next steps, or use the <em>Request Cancellation</em> flow if needed.
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="sections">
         <div class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
@@ -170,9 +191,20 @@
                     {% endif %}
 
                     <div class="ms-footer">
-                        <span class="ms-status status-{{ milestone.status }}">
-                            <span class="status-dot"></span> {{ milestone.get_status_display }}
-                        </span>
+                        <div style="display: flex; align-items: center;">
+                            <span class="ms-status status-{{ milestone.status }}">
+                                <span class="status-dot"></span> {{ milestone.get_status_display }}
+                            </span>
+                            {% if milestone.is_late %}
+                            <span class="ms-badge status-late">
+                                <i class="fas fa-clock"></i> Late
+                            </span>
+                            {% elif milestone.was_completed_late %}
+                            <span class="ms-badge status-completed-late">
+                                <i class="fas fa-history"></i> Completed Late
+                            </span>
+                            {% endif %}
+                        </div>
                         <span class="ms-deadline">
                             <i class="fas fa-calendar-alt"></i> Due: {{ milestone.deadline|date:"M d, Y" }}
                         </span>

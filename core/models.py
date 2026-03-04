@@ -116,6 +116,7 @@ class Project(models.Model):
     attachment = models.FileField(upload_to='project_attachments/', blank=True, null=True, help_text="Single PDF attachment")
     created_at = models.DateTimeField(auto_now_add=True)
     published_at = models.DateTimeField(null=True, blank=True)
+    deadline_notified = models.BooleanField(default=False, help_text="True after deadline-expired notification sent for in_progress projects")
     def __str__(self):
         return self.title
 
@@ -177,6 +178,21 @@ class Milestone(models.Model):
 
     def __str__(self):
         return f"{self.project.title} - {self.title}"
+
+    @property
+    def is_late(self):
+        """Returns True if the milestone is in_progress and past its deadline."""
+        if self.status == 'in_progress' and self.deadline:
+            from django.utils import timezone
+            return self.deadline < timezone.now().date()
+        return False
+
+    @property
+    def was_completed_late(self):
+        """Returns True if the milestone was completed/approved after its deadline."""
+        if self.status in ['completed', 'approved'] and self.deadline and self.completed_at:
+            return self.completed_at.date() > self.deadline
+        return False
 
 class MilestoneAttachment(models.Model):
     milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='attachments')
@@ -690,6 +706,8 @@ class Notification(models.Model):
         ('review_submitted', 'Review Submitted'),
         ('project_cancelled', 'Project Cancelled'),
         ('cancellation_request', 'Cancellation Request'),
+        ('project_auto_cancelled', 'Project Auto Cancelled'),
+        ('project_deadline_expired', 'Project Deadline Expired'),
     ]
 
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

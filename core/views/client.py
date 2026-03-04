@@ -11,6 +11,7 @@ from django.contrib.auth.hashers import make_password, check_password
 from django.core.paginator import Paginator
 from django.urls import reverse
 from django.db.models import Sum
+from django.utils import timezone
 
 from django.contrib.auth.decorators import login_required
 from core.decorators import client_required, freelancer_required
@@ -479,6 +480,7 @@ def client_projectInfo(request, project_id):
         'progress_percentage': progress_percentage,
         'activities': activities,
         'pending_cancellation': pending_cancellation,
+        'today': timezone.now().date(),
     })
 
 
@@ -626,6 +628,15 @@ def client_projectPublish(request, project_id):
         messages.error(request, "Only draft projects can be published.")
         return redirect('client_projectInfo', project_id=project.id)
 
+    # Block publishing if the deadline has already passed
+    if project.deadline < timezone.now().date():
+        messages.error(
+            request,
+            "Cannot publish: the project deadline has already passed. "
+            "Please edit the project and set a future deadline first."
+        )
+        return redirect('client_projectEdit', project_id=project.id)
+
     user_security = getattr(request.user, 'security', None)
     if not user_security or not user_security.secure_pin:
         messages.warning(request, "Please set up your Secure PIN before publishing a project.")
@@ -663,6 +674,15 @@ def client_confirmPayment(request, project_id):
     if project.status != 'draft':
         messages.error(request, "Only draft projects can be published.")
         return redirect('client_projectInfo', project_id=project.id)
+
+    # Defence-in-depth: block publish if deadline has passed
+    if project.deadline < timezone.now().date():
+        messages.error(
+            request,
+            "Cannot publish: the project deadline has already passed. "
+            "Please edit the project and set a future deadline first."
+        )
+        return redirect('client_projectEdit', project_id=project.id)
 
     user_security = getattr(request.user, 'security', None)
     if not user_security or not user_security.secure_pin:

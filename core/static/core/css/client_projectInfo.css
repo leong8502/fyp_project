@@ -1,3 +1,43 @@
+/* ===== Deadline Warning Banner ===== */
+.deadline-warning-banner {
+    margin-bottom: 20px;
+    padding: 14px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.deadline-banner-warning {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    color: #856404;
+}
+
+.deadline-banner-danger {
+    background: #f8d7da;
+    border: 1px solid #f5c2c7;
+    color: #842029;
+}
+
+.deadline-banner-icon {
+    font-size: 1.1rem;
+    margin-top: 3px;
+    flex-shrink: 0;
+}
+
+.deadline-banner-link {
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.deadline-banner-link:hover {
+    opacity: 0.8;
+}
+
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -177,11 +217,36 @@
     color: #28a745;
 }
 
-.status-cancelled {
-    color: #dc3545;
+/* Lateness Badges */
+.ms-badge {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
     font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 8px;
+    white-space: nowrap;
 }
 
+.status-late {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid rgba(133, 100, 4, 0.2);
+}
+
+.status-completed-late {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid rgba(71, 85, 105, 0.2);
+}
+
+.status-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid rgba(153, 27, 27, 0.2);
+}
 
 .ms-deadline {
     color: #888;

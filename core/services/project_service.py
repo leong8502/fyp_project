@@ -368,6 +368,135 @@ class ProjectService:
             )
 
     @staticmethod
+    def cancel_expired_open_projects():
+        """Auto-cancel open projects whose deadline has passed, refunding escrow to client.
+        
+        Returns the number of projects cancelled.
+        """
+        from core.services import NotificationService
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        expired_projects = Project.objects.filter(status='open', deadline__lt=today)
+        count = 0
+
+        for project in expired_projects:
+            try:
+                with transaction.atomic():
+                    escrow = project.escrow
+                    client_wallet, _ = Wallet.objects.get_or_create(user=project.client.user)
+                    refund_amount = escrow.remaining_amount
+
+                    client_wallet.balance += refund_amount
+                    client_wallet.save()
+
+                    Transaction.objects.create(
+                        wallet=client_wallet,
+                        amount=refund_amount,
+                        direction='credit',
+                        transaction_type='refund',
+                        status='completed',
+                        description=f"Auto-refund for expired project: {project.title}",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                        related_project=project
+                    )
+
+                    escrow.remaining_amount = 0
+                    escrow.status = 'refunded'
+                    escrow.save()
+
+                    project.status = 'cancelled'
+                    project.save()
+
+                    from core.models import ProjectActivity
+                    ProjectActivity.objects.create(
+                        project=project,
+                        user=None,
+                        activity_type='status_updated',
+                        description=f"Project auto-cancelled: deadline ({project.deadline}) has passed. RM{refund_amount} refunded from escrow."
+                    )
+
+                    NotificationService.create_notification(
+                        recipient=project.client.user,
+                        notification_type='project_auto_cancelled',
+                        title='Project Auto-Cancelled',
+                        message=(
+                            f"Your project '{project.title}' was automatically cancelled because its deadline "
+                            f"({project.deadline.strftime('%d %b %Y')}) has passed. "
+                            f"RM{refund_amount:.2f} has been refunded to your wallet."
+                        ),
+                        link=f"/client/projects/{project.id}/"
+                    )
+                    count += 1
+            except Exception as e:
+                # Log but continue processing other projects
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Failed to auto-cancel project {project.id} ('{project.title}'): {e}"
+                )
+
+        return count
+
+    @staticmethod
+    def notify_expired_in_progress_projects():
+        """Send a one-time notification to both client and freelancer when an
+        in-progress project's deadline has passed. Does NOT cancel the project.
+        
+        Returns the number of projects notified.
+        """
+        from core.services import NotificationService
+        from django.utils import timezone
+
+        today = timezone.now().date()
+        expired_projects = Project.objects.filter(
+            status='in_progress',
+            deadline__lt=today,
+            deadline_notified=False
+        )
+        count = 0
+
+        for project in expired_projects:
+            try:
+                with transaction.atomic():
+                    deadline_str = project.deadline.strftime('%d %b %Y')
+
+                    # Notify client
+                    NotificationService.create_notification(
+                        recipient=project.client.user,
+                        notification_type='project_deadline_expired',
+                        title='Project Deadline Passed',
+                        message=(
+                            f"The deadline ({deadline_str}) for your in-progress project '{project.title}' has passed. "
+                            f"Please communicate with your freelancer to agree on next steps, or use the cancellation flow if needed."
+                        ),
+                        link=f"/client/projects/{project.id}/"
+                    )
+
+                    # Notify freelancer
+                    if project.assigned_freelancer:
+                        NotificationService.create_notification(
+                            recipient=project.assigned_freelancer.user,
+                            notification_type='project_deadline_expired',
+                            title='Project Deadline Passed',
+                            message=(
+                                f"The deadline ({deadline_str}) for project '{project.title}' has passed. "
+                                f"Please communicate with your client to agree on next steps."
+                            ),
+                            link='/freelancer/track-project/'
+                        )
+
+                    project.deadline_notified = True
+                    project.save(update_fields=['deadline_notified'])
+                    count += 1
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(
+                    f"Failed to send deadline notification for project {project.id} ('{project.title}'): {e}"
+                )
+
+        return count
+
+    @staticmethod
     def confirm_cancellation(cancellation_request, actor_user):
         """Freelancer agrees to cancellation. Cancel project and refund remaining escrow."""
         from core.services import NotificationService

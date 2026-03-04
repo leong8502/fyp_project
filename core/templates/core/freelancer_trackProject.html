@@ -62,6 +62,13 @@
                                     <div>
                                         <strong style="display: block; font-size: 14px; color: #333;">{{ milestone.title }}</strong>
                                         <span style="font-size: 12px; color: #888;">Due: {{ milestone.deadline|date:"M d, Y" }}</span>
+                                        {% if milestone.is_late %}
+                                        <div style="margin-top: 4px;">
+                                            <span class="status-late">
+                                                <i class="fas fa-clock"></i> Late
+                                            </span>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     <span style="font-weight: bold; color: #2e7d32;">RM {{ milestone.amount|floatformat:0 }}</span>
                                 </div>
@@ -86,6 +93,13 @@
                                 <div>
                                     <strong style="font-size: 13px; color: #31708f;">{{ milestone.title }}</strong>
                                     <span style="display: block; font-size: 11px; color: #31708f;">Submitted on {{ milestone.completed_at|date:"M d, Y" }}</span>
+                                    {% if milestone.was_completed_late %}
+                                    <div style="margin-top: 4px;">
+                                        <span class="status-completed-late">
+                                            <i class="fas fa-history"></i> Completed Late
+                                        </span>
+                                    </div>
+                                    {% endif %}
                                 </div>
                                 <span style="font-size: 12px; font-weight: 600; color: #31708f; background: white; padding: 4px 8px; border-radius: 12px; border: 1px solid #bce8f1;">Waiting for Approval</span>
                             </div>
