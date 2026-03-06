@@ -204,3 +204,10 @@ button:hover {
     /* Override generic button margin */
     font-size: 14px;
 }
+
+.field-error {
+    color: #dc2626;
+    font-size: 0.85rem;
+    margin-top: 4px;
+    font-weight: 500;
+}

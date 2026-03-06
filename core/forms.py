@@ -11,6 +11,11 @@ phone_validator = RegexValidator(
     message="Phone number can only contain numbers, '+', spaces, and hyphens."
 )
 
+phone_validator = RegexValidator(
+    regex=r'^[0-9\-]+$',
+    message="Phone number can only contain numbers and hyphens."
+)
+
 class SkillsForm(forms.Form):
     skills = forms.CharField(
         label="Your Skills",
@@ -95,7 +100,13 @@ class ClientProfileForm(forms.ModelForm):
             'company_name': forms.TextInput(attrs={'class': 'form-control', 'id': 'name'}),
             'tagline': forms.TextInput(attrs={'class': 'form-control', 'id': 'tagline', 'placeholder': 'e.g. Innovative Software Solutions for the Modern Enterprise'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'id': 'description'}),
-            'phone': forms.TextInput(attrs={'class': 'form-control', 'id': 'phone', 'placeholder': '+1 234 567 890'}),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'id': 'phone', 
+                'placeholder': 'e.g., 012-3456789',
+                'maxlength': '13',
+                'oninput': "this.value = this.value.replace(/[^0-9\-]/g, '')"
+            }),
             'address': forms.TextInput(attrs={'class': 'form-control', 'id': 'address', 'placeholder': 'Street, City, Country'}),
             'industry_type': forms.Select(attrs={'class': 'form-control', 'id': 'industry'}),
             'company_size': forms.Select(attrs={'class': 'form-control', 'id': 'company-size'}),
@@ -117,6 +128,11 @@ class ClientProfileForm(forms.ModelForm):
         self.fields['industry_type'].empty_label = "Select Industry..."
         self.fields['industry_type'].required = False
         self.fields['company_size'].required = False
+        
+        # Add phone validation
+        self.fields['phone'].validators.append(phone_validator)
+        from django.core.validators import MaxLengthValidator
+        self.fields['phone'].validators.append(MaxLengthValidator(13))
 
 class ProjectForm(forms.ModelForm):
 

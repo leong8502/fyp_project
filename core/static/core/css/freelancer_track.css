@@ -138,6 +138,7 @@
     font-size: 0.85rem;
     font-weight: 600;
     text-transform: capitalize;
+    white-space: nowrap;
 }
 
 .status-in_progress {

@@ -34,6 +34,7 @@
 </div>
 
 <section class="content">
+
     <div class="description">
         <h2>About Company</h2>
         {% if user.client.description %}
@@ -101,6 +102,79 @@
             <p><strong>Facebook:</strong> {% if user.client.facebook_url %}<a href="{{ user.client.facebook_url }}"
                     target="_blank">View Profile</a>{% else %}-{% endif %}</p>
         </div>
+    </div>
+
+        <!-- Reviews Section -->
+    <div class="profile-card reviews-section">
+        <h2>Freelancer Reviews ({{ user.received_reviews.count }})</h2>
+        <div class="reviews-list">
+            {% for review in reviews %}
+            <div class="review-card">
+                <div class="review-header">
+                    <div class="reviewer-info">
+                        {% if review.reviewer.freelancer.profile_image %}
+                        <img src="{{ review.reviewer.freelancer.profile_image.url }}" alt="Freelancer Profile"
+                            class="reviewer-avatar">
+                        {% else %}
+                        <img src="{% static 'core/images/default_profile.png' %}" alt="Default Profile"
+                            class="reviewer-avatar">
+                        {% endif %}
+                        <div class="reviewer-details">
+                            <h4>{{ review.reviewer.freelancer.full_name|default:review.reviewer.username }}</h4>
+                            <p>{{ review.project.title }}</p>
+                        </div>
+                    </div>
+                    <div class="review-meta">
+                        <div class="review-stars">
+                            {% with ''|center:5 as range %}
+                            {% for _ in range %}
+                            {% if forloop.counter <= review.rating %} <i class="fas fa-star"></i>
+                                {% else %}
+                                <i class="far fa-star"></i>
+                                {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                        </div>
+                        <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
+                    </div>
+                </div>
+
+                {% if review.comment %}
+                <p class="review-comment">{{ review.comment }}</p>
+                {% endif %}
+
+                {% if review.feedback_tags %}
+                <div class="review-tags">
+                    {% for tag in review.feedback_tags %}
+                    <span class="review-tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <p style="color: #888; font-style: italic;">No reviews received yet.</p>
+            {% endfor %}
+        </div>
+
+        {% if reviews.has_other_pages %}
+        <div class="pagination">
+            {% if reviews.has_previous %}
+            <a href="?page={{ reviews.previous_page_number }}" class="page-link">&laquo; Previous</a>
+            {% endif %}
+
+            {% for i in reviews.paginator.page_range %}
+            {% if reviews.number == i %}
+            <span class="page-link active">{{ i }}</span>
+            {% else %}
+            <a href="?page={{ i }}" class="page-link">{{ i }}</a>
+            {% endif %}
+            {% endfor %}
+
+            {% if reviews.has_next %}
+            <a href="?page={{ reviews.next_page_number }}" class="page-link">Next &raquo;</a>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 </section>
 

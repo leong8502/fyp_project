@@ -66,7 +66,7 @@
             <div class="profile-card">
                 <h2>Client Reviews ({{ freelancer.user.received_reviews.count }})</h2>
                 <div class="reviews-list">
-                    {% for review in freelancer.user.received_reviews.all %}
+                    {% for review in reviews %}
                     <div class="review-card">
                         <div class="review-header">
                             <div class="reviewer-info">
@@ -113,6 +113,26 @@
                     <p style="color: #888; font-style: italic;">No reviews received yet.</p>
                     {% endfor %}
                 </div>
+
+                {% if reviews.has_other_pages %}
+                <div class="pagination">
+                    {% if reviews.has_previous %}
+                    <a href="?page={{ reviews.previous_page_number }}" class="page-link">&laquo; Previous</a>
+                    {% endif %}
+
+                    {% for i in reviews.paginator.page_range %}
+                    {% if reviews.number == i %}
+                    <span class="page-link active">{{ i }}</span>
+                    {% else %}
+                    <a href="?page={{ i }}" class="page-link">{{ i }}</a>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if reviews.has_next %}
+                    <a href="?page={{ reviews.next_page_number }}" class="page-link">Next &raquo;</a>
+                    {% endif %}
+                </div>
+                {% endif %}
             </div>
         </div>
 

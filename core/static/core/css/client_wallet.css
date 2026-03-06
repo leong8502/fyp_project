@@ -425,6 +425,7 @@ body {
     font-size: 0.8rem;
     font-weight: 600;
     display: inline-block;
+    white-space: nowrap;
 }
 
 
@@ -512,6 +513,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     display: inline-block;
+    white-space: nowrap;
 }
 
 .status-tag.status-completed {

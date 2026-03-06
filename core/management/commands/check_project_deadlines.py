@@ -1,7 +1,7 @@
 """
 Management command: python manage.py check_project_deadlines
 
-Run this daily (via cron / task scheduler) to enforce project deadlines:
+Run this to enforce project deadlines:
   - Open projects past deadline  → auto-cancel + refund escrow to client
   - In-progress projects past deadline → one-time notification to both parties
 """

@@ -60,10 +60,7 @@ urlpatterns = [
     path('client/settings/', views.client_settings, name='client_settings'),
     path('client/profile/', views.client_profile, name='client_profile'),
     path('client/edit_profile/', views.client_editProfile, name='client_editProfile'),
-    path('client/notifications/', views.client_notifications, name='client_notifications'),
-    path('api/unread_count/', views.api_unread_notifications_count, name='api_unread_count'),
-    path('api/notifications/recent/', views.api_get_recent_notifications, name='api_get_recent_notifications'),
-    path('api/notifications/mark-all-read/', views.api_mark_all_notifications_as_read, name='api_mark_all_read'),
+
     path('client/wallet/', views.client_wallet, name='client_wallet'),
     path('client/wallet/transaction/', views.client_transaction, name='client_transaction'),
     path('client/invite/<int:freelancer_id>/', views.client_invite_freelancer, name='client_invite_freelancer'),
@@ -78,6 +75,12 @@ urlpatterns = [
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/project/<int:project_id>/request-cancel/', views.client_request_cancellation, name='client_request_cancellation'),
     path('client/project/<int:project_id>/report/', views.report_project, name='report_project'),
+
+    # ── Notifications ──────────────────────────────────────────────────────
+    path('notifications/', views.notifications, name='notifications'),
+    path('api/unread_count/', views.api_unread_notifications_count, name='api_unread_count'),
+    path('api/notifications/recent/', views.api_get_recent_notifications, name='api_get_recent_notifications'),
+    path('api/notifications/mark-all-read/', views.api_mark_all_notifications_as_read, name='api_mark_all_read'),
 
     # ── Chat ───────────────────────────────────────────────────────────────
     path('chat/', views.chat_view, name='chat'),

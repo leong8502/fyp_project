@@ -93,11 +93,22 @@ def client_search(request):
 
 @client_required
 def client_freelancerProfile(request, freelancer_id):
+    from django.core.paginator import Paginator
     freelancer = get_object_or_404(Freelancer, id=freelancer_id)
     open_projects = Project.objects.filter(client=request.user.client, status='open')
+    
+    # Fetch reviews for the freelancer
+    reviews_list = freelancer.user.received_reviews.all().order_by('-created_at')
+    
+    # Paginate reviews: 5 per page
+    paginator = Paginator(reviews_list, 5)
+    page_number = request.GET.get('page')
+    reviews = paginator.get_page(page_number)
+    
     return render(request, 'core/client_freelancerProfile.html', {
         'freelancer': freelancer,
         'open_projects': open_projects,
+        'reviews': reviews,
     })
 
 
@@ -178,7 +189,20 @@ def client_settings(request):
 
 @client_required
 def client_profile(request):
-    return render(request, 'core/client_profile.html')
+    from django.core.paginator import Paginator
+    
+    # Fetch reviews for the current user
+    reviews_list = request.user.received_reviews.all().order_by('-created_at')
+    
+    # Paginate reviews: 5 per page
+    paginator = Paginator(reviews_list, 5)
+    page_number = request.GET.get('page')
+    reviews = paginator.get_page(page_number)
+    
+    context = {
+        'reviews': reviews,
+    }
+    return render(request, 'core/client_profile.html', context)
 
 
 @client_required
@@ -192,10 +216,10 @@ def client_editProfile(request):
             messages.success(request, "Profile updated successfully!")
             return redirect('client_profile')
         else:
-            messages.error(request, "Please correct the errors below.")
             for field, errors in form.errors.items():
+                label = form.fields[field].label if field in form.fields else field
                 for error in errors:
-                    messages.error(request, f"{field}: {error}")
+                    messages.error(request, f"{label}: {error}")
     else:
         form = ClientProfileForm(instance=client)
 
@@ -853,143 +877,7 @@ def client_release_milestone_payment(request, milestone_id):
     return redirect('client_projectInfo', project_id=milestone.project.id)
 
 
-# ---------------------------------------------------------------------------
-# Reviews (shared, but triggered from client project page)
-# ---------------------------------------------------------------------------
-
-@login_required
-def submit_review(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    reviewer = request.user
-
-    reviewee = None
-    if hasattr(reviewer, 'client') and project.client == reviewer.client:
-        if project.assigned_freelancer:
-            reviewee = project.assigned_freelancer.user
-    elif hasattr(reviewer, 'freelancer') and project.assigned_freelancer == reviewer.freelancer:
-        reviewee = project.client.user
-
-    if not reviewee:
-        messages.error(request, "You cannot review this project.")
-        return redirect('client_project')
-
-    existing_review = Review.objects.filter(project=project, reviewer=reviewer).first()
-    if existing_review:
-        messages.info(request, "You have already reviewed this project.")
-        if hasattr(reviewer, 'client'):
-            return redirect('client_projectInfo', project_id=project.id)
-        return redirect(reverse('freelancer_track_project') + '?tab=pass')
-
-    base_template = None
-    if hasattr(reviewer, 'client'):
-        base_template = 'core/client_master.html'
-    elif hasattr(reviewer, 'freelancer'):
-        base_template = 'core/freelancer_master.html'
-
-    form = ReviewForm()
-
-    if request.method == 'POST':
-        form = ReviewForm(request.POST)
-        if form.is_valid():
-            try:
-                tags = request.POST.getlist('feedback_tags')
-                ReviewService.submit_review(project, reviewer, reviewee, form, tags)
-                messages.success(request, "Review submitted successfully!")
-                if hasattr(reviewer, 'client'):
-                    return redirect('client_projectInfo', project_id=project.id)
-                return redirect(reverse('freelancer_track_project') + '?tab=pass')
-            except Exception as e:
-                messages.error(request, f"Error submitting review: {str(e)}")
-        else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-
-    if hasattr(reviewee, 'freelancer'):
-        available_tags = ['High Quality Work', 'Fast Delivery', 'Great Communication', 'Skilled', 'Creative', 'Professional']
-    elif hasattr(reviewee, 'client'):
-        available_tags = ['Clear Requirements', 'Fast Payment', 'Good Communication', 'Respectful', 'Professional']
-    else:
-        available_tags = []
-
-    return render(request, 'core/review.html', {
-        'project': project,
-        'reviewee': reviewee,
-        'available_tags': available_tags,
-        'base_template': base_template,
-        'form': form,
-    })
-@login_required
-def client_notifications(request):
-    """View to list all notifications for the user."""
-    from core.models import Notification
-    from core.services import NotificationService
-    # Get notifications as a list to preserve unread state for this specific view
-    notifications_list = list(Notification.objects.filter(recipient=request.user).order_by('-created_at'))
     
-    # Mark all as read so the header badge clears
-    NotificationService.mark_all_as_read(request.user)
-    
-    base_template = 'core/client_master.html'
-    if hasattr(request.user, 'freelancer'):
-        base_template = 'core/freelancer_master.html'
-    
-    return render(request, 'core/client_notifications.html', {
-        'notifications': notifications_list,
-        'base_template': base_template
-    })
-
-
-@login_required
-def api_unread_notifications_count(request):
-    """API to get unread notifications and messages count."""
-    from core.services import NotificationService
-    from core.models import Message
-    
-    notification_count = NotificationService.get_unread_count(request.user)
-    
-    # Message unread count
-    message_count = Message.objects.filter(
-        conversation__participants=request.user,
-        is_read=False
-    ).exclude(sender=request.user).count()
-    
-    return JsonResponse({
-        'notification_count': notification_count,
-        'message_count': message_count,
-        'total_count': notification_count + message_count
-    })
-
-
-@login_required
-def api_get_recent_notifications(request):
-    """API to get the latest 5 notifications."""
-    from core.services import NotificationService
-    notifications = NotificationService.get_recent_notifications(request.user)
-    
-    data = []
-    for n in notifications:
-        data.append({ 
-            'id': n.id,
-            'title': n.title,
-            'message': n.message,
-            'link': n.link,
-            'is_read': n.is_read,
-            'created_at': n.created_at.strftime('%Y-%m-%d %H:%M'),
-            'type': n.notification_type
-        })
-    
-    return JsonResponse({'notifications': data})
-
-
-@login_required
-def api_mark_all_notifications_as_read(request):
-    """API to mark all notifications as read."""
-    from core.services import NotificationService
-    if request.method == 'POST':
-        NotificationService.mark_all_as_read(request.user)
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def report_project(request, project_id):

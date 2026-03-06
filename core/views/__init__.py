@@ -46,11 +46,17 @@ from core.views.client import (
     reject_application,
     client_request_revision,
     client_release_milestone_payment,
-    submit_review,
-    client_notifications,
+)
+
+from core.views.notification import (
+    notifications,
     api_unread_notifications_count,
     api_get_recent_notifications,
     api_mark_all_notifications_as_read,
+)
+
+from core.views.review import (
+    submit_review,
 )
 
 from core.views.freelancer import (

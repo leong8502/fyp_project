@@ -1,5 +1,11 @@
 body {
-    background: #fff;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+main {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
 }
 
 .container {
@@ -7,13 +13,16 @@ body {
     max-width: 520px;
     width: 90%;
     border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     overflow: hidden;
-    margin: 20px auto;
+    margin: 40px auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
 }
 
 .header {
-    background: #007bff;
+    background: #4f46e5;
     color: #fff;
     text-align: center;
     padding: 40px 20px;
@@ -64,8 +73,8 @@ select {
 input:focus,
 select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 /* Error styling */
@@ -84,23 +93,24 @@ select:focus {
 .submit-btn {
     width: 100%;
     padding: 16px;
-    background: #007bff;
+    background: #4f46e5;
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 18px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.3s;
+    transition: all 0.25s ease;
     margin-top: 10px;
 }
 
 .submit-btn:hover {
-    background: #0056b3;
+    background: #4338ca;
+    transform: translateY(-1px);
 }
 
 .submit-btn:disabled {
-    background: #a0c4ff;
+    background: #a5a2f3;
     cursor: not-allowed;
 }
 
@@ -112,9 +122,9 @@ select:focus {
 }
 
 .login-link a {
-    color: #007bff;
+    color: #4f46e5;
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .login-link a:hover {

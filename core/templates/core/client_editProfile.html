@@ -20,7 +20,7 @@
     <div class="content">
         <h1 id="title-display">Edit Profile</h1>
 
-        <form id="profile-form" method="POST" enctype="multipart/form-data">
+        <form id="profile-form" method="POST" enctype="multipart/form-data" novalidate>
             {% csrf_token %}
             <!-- Banner and Profile Image Uploads -->
             <div>
@@ -36,14 +36,23 @@
             <div>
                 <label for="name">Company Name</label>
                 {{ form.company_name }}
+                {% if form.company_name.errors %}
+                <div class="field-error">{{ form.company_name.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="tagline">Tagline</label>
                 {{ form.tagline }}
+                {% if form.tagline.errors %}
+                <div class="field-error">{{ form.tagline.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="description">Description</label>
                 {{ form.description }}
+                {% if form.description.errors %}
+                <div class="field-error">{{ form.description.errors.0 }}</div>
+                {% endif %}
             </div>
 
             <!-- Contact Info -->
@@ -54,30 +63,48 @@
             <div>
                 <label for="phone">Phone No</label>
                 {{ form.phone }}
+                {% if form.phone.errors %}
+                <div class="field-error">{{ form.phone.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="address">Address</label>
                 {{ form.address }}
+                {% if form.address.errors %}
+                <div class="field-error">{{ form.address.errors.0 }}</div>
+                {% endif %}
             </div>
 
             <!-- Company Specific -->
             <div>
                 <label for="industry">Industry Type</label>
                 {{ form.industry_type }}
+                {% if form.industry_type.errors %}
+                <div class="field-error">{{ form.industry_type.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="company-size">Company Size</label>
                 {{ form.company_size }}
+                {% if form.company_size.errors %}
+                <div class="field-error">{{ form.company_size.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="year-founded">Year Founded</label>
                 {{ form.year_founded }}
+                {% if form.year_founded.errors %}
+                <div class="field-error">{{ form.year_founded.errors.0 }}</div>
+                {% endif %}
             </div>
 
             <!-- Other -->
             <div>
                 <label for="website">Website URL</label>
                 {{ form.website_url }}
+                {% if form.website_url.errors %}
+                <div class="field-error">{{ form.website_url.errors.0 }}</div>
+                {% endif %}
             </div>
             <div>
                 <label for="achievements">Achievements</label>
@@ -124,14 +151,23 @@
                     <div class="social-link">
                         <span>LinkedIn:</span>
                         {{ form.linkedIn_url }}
+                        {% if form.linkedIn_url.errors %}
+                        <div class="field-error">{{ form.linkedIn_url.errors.0 }}</div>
+                        {% endif %}
                     </div>
                     <div class="social-link">
                         <span>Instagram:</span>
                         {{ form.instagram_url }}
+                        {% if form.instagram_url.errors %}
+                        <div class="field-error">{{ form.instagram_url.errors.0 }}</div>
+                        {% endif %}
                     </div>
                     <div class="social-link">
                         <span>Facebook:</span>
                         {{ form.facebook_url }}
+                        {% if form.facebook_url.errors %}
+                        <div class="field-error">{{ form.facebook_url.errors.0 }}</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
