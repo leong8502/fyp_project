@@ -425,18 +425,49 @@ def toggle_balance_privacy(request):
 
 @client_required
 def client_project(request):
-    projects = Project.objects.filter(client=request.user.client).order_by('-created_at')
-    active_count = projects.filter(status='open').count()
-    completed_count = projects.filter(status='completed').count()
-    in_progress_count = projects.filter(status='in_progress').count()
-    total_spent = projects.exclude(status='draft').aggregate(Sum('budget'))['budget__sum'] or 0
+    all_projects = Project.objects.filter(client=request.user.client).order_by('-created_at')
+    
+    # Stats (calculated from all client projects)
+    active_count = all_projects.filter(status='open').count()
+    completed_count = all_projects.filter(status='completed').count()
+    in_progress_count = all_projects.filter(status='in_progress').count()
+    total_spent = all_projects.exclude(status='draft').aggregate(Sum('budget'))['budget__sum'] or 0
+
+    # Filtering for the current view
+    projects = all_projects
+    
+    search = request.GET.get('search', '')
+    if search:
+        projects = projects.filter(title__icontains=search)
+        
+    status_filter = request.GET.get('status', '')
+    if status_filter and status_filter != 'all':
+        projects = projects.filter(status=status_filter)
+        
+    date_filter = request.GET.get('date', '')
+    if date_filter and date_filter != 'all':
+        now = timezone.now()
+        if date_filter == 'last30':
+            projects = projects.filter(created_at__gte=now - timezone.timedelta(days=30))
+        elif date_filter == 'last90':
+            projects = projects.filter(created_at__gte=now - timezone.timedelta(days=90))
+        elif date_filter == 'this-year':
+            projects = projects.filter(created_at__year=now.year)
+
+    # Paginator: 10 per page
+    paginator = Paginator(projects, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
 
     return render(request, 'core/client_project.html', {
-        'projects': projects,
+        'projects': page_obj,
         'active_count': active_count,
         'completed_count': completed_count,
         'in_progress_count': in_progress_count,
         'total_spent': total_spent,
+        'search': search,
+        'status_filter': status_filter,
+        'date_filter': date_filter,
     })
 
 
@@ -902,3 +933,125 @@ def report_project(request, project_id):
         messages.success(request, "Project report submitted successfully. Our team will review it.")
         
     return redirect('client_projectInfo', project_id=project.id)
+
+@client_required
+def client_scoreCalculate(request, match_id):
+    """View to show the dynamic freelancer match score breakdown."""
+    from core.models import ProjectMatch
+    
+    # We allow the client to view the match if they own the project
+    match = get_object_or_404(ProjectMatch, id=match_id, project__client=request.user.client)
+    
+    # Calculate percentage scores for the progress bars
+    bd = match.score_breakdown
+    
+    # These are based on the weights in ai_matching.py
+    # semantic (50%), skill_overlap (20%), experience (10%), reputation (10%), language (5%), availability (5%)
+    
+    # Prevent division by zero and format for progress bar (0-100)
+    percentages = {
+        'semantic': (bd.get('semantic', 0) / 1.0) * 100, # Weight is 0.5, but sim_score is 0-1. So bar shows the 0-1 value.
+        'skill_overlap': (bd.get('skill_overlap', 0) / 1.0) * 100,
+        'experience': (bd.get('experience', 0) / 1.0) * 100,
+        'reputation': (bd.get('reputation', 0) / 1.0) * 100,
+        'language': (bd.get('language', 0) / 1.0) * 100,
+        'availability': (bd.get('availability', 0) / 1.0) * 100,
+    }
+    
+    # --- Generate Dynamic Metric Insights ---
+    project = match.project
+    freelancer = match.freelancer
+    
+    insights = {}
+    
+    # 1. Semantic Match
+    sem_score = percentages['semantic']
+    if sem_score >= 80:
+        insights['semantic'] = "Strong alignment. The freelancer's profile and experience description highly match your project's context."
+    elif sem_score >= 50:
+        insights['semantic'] = "Moderate alignment. Some elements of the freelancer's profile match your project context."
+    else:
+        insights['semantic'] = "Low alignment. The freelancer's profile indicates focus in different technical domains or contexts."
+
+    # 2. Skill Overlap
+    req_skills_raw = [s.strip() for s in project.required_skills.split(',')] if project.required_skills else []
+    free_skills_raw = [s.strip() for s in freelancer.skills.split(',')] if freelancer.skills else []
+    
+    req_skills = set(s.lower() for s in req_skills_raw if s)
+    free_skills = set(s.lower() for s in free_skills_raw if s)
+    
+    overlap = req_skills.intersection(free_skills)
+    missing = req_skills.difference(free_skills)
+    
+    overlap_display = [s for s in req_skills_raw if s.lower() in overlap]
+    missing_display = [s for s in req_skills_raw if s.lower() in missing]
+    
+    if req_skills:
+        skill_text = ""
+        if overlap_display:
+            skill_text += f"<strong style='color: #2e7d32;'>Matched:</strong> {', '.join(overlap_display)}. "
+        if missing_display:
+             skill_text += f"<strong style='color: #c62828;'>Missing:</strong> {', '.join(missing_display)}."
+        if not overlap_display and not missing_display:
+            skill_text = "No required skills specified or parsed."
+        insights['skill_overlap'] = skill_text.strip()
+    else:
+        insights['skill_overlap'] = "You have not listed specific skill requirements for this project."
+
+    # 3. Experience
+    req_exp = project.get_experience_level_display()
+    free_exp = f"{freelancer.experience_years} year{'s' if freelancer.experience_years != 1 else ''}"
+    exp_pct = percentages['experience']
+    
+    if exp_pct == 100:
+        insights['experience'] = f"Fully satisfies requirement. You requested an <strong>{req_exp}</strong> level professional, and this freelancer has <strong>{free_exp}</strong> of experience."
+    elif exp_pct > 0:
+        insights['experience'] = f"Partial match. You requested an <strong>{req_exp}</strong> level professional, but this freelancer has <strong>{free_exp}</strong> of experience."
+    else:
+        insights['experience'] = f"Does not meet requirement. You requested an <strong>{req_exp}</strong> level professional. This freelancer lists {free_exp} of experience."
+
+    # 4. Reputation
+    avg_rating = 0.0
+    total_reviews = 0
+    try:
+        if hasattr(freelancer.user, 'rating_summary'):
+            avg_rating = float(freelancer.user.rating_summary.average_rating)
+            total_reviews = freelancer.user.rating_summary.total_reviews
+    except Exception:
+        pass
+    
+    if total_reviews > 0:
+        insights['reputation'] = f"Freelancer maintains a <strong>{avg_rating:.1f} star</strong> rating across <strong>{total_reviews}</strong> completed projects on the platform."
+    else:
+        insights['reputation'] = "Freelancer does not currently have enough project history or reviews to establish a reputation score."
+
+    # 5. Language
+    pref_lang = project.preferred_language
+    if pref_lang:
+        # Checking if freelancer has this language (basic check vs model logic)
+        lang_match = freelancer.languages.filter(language__icontains=pref_lang.lower().strip()).exists()
+        if lang_match:
+            insights['language'] = f"Freelancer is proficient in <strong>{pref_lang}</strong>, satisfying your language preference."
+        else:
+            insights['language'] = f"Freelancer did not list <strong>{pref_lang}</strong> in their recorded languages."
+    else:
+        insights['language'] = "You did not specify a preferred language for this project."
+
+    # 6. Availability
+    avail_status = freelancer.get_availability_status_display()
+    if percentages['availability'] == 100:
+        insights['availability'] = f"Excellent alignment. Freelancer is available for <strong>{avail_status}</strong> work, seamlessly fitting project timelines."
+    elif percentages['availability'] > 30:
+        insights['availability'] = f"Moderate alignment. Freelancer is available for <strong>{avail_status}</strong> work, which may require schedule coordination."
+    else:
+         insights['availability'] = f"Low alignment. Freelancer's current status is <strong>{avail_status}</strong>, which might impact delivery speed."
+
+    
+    context = {
+        'match': match,
+        'breakdown': bd,
+        'percentages': percentages,
+        'insights': insights
+    }
+    
+    return render(request, 'core/client_scoreCalculate.html', context)

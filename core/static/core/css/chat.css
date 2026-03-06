@@ -1,32 +1,28 @@
 :root {
-    --chat-bg: #ffffff;
+    --chat-bg: #f8f9fa;
     --sidebar-bg: #ffffff;
-    --active-contact-bg: #e6f7ff;
-    /* Light blue from mockup */
-    --hover-contact-bg: #f9f9f9;
-    --border-color: #eee;
-    --primary-color: #6c5ce7;
-    /* Adjust to match project primary if needed, using a placeholder for now */
-    --green-btn: #76c05d;
-    /* Green send button from mockup */
-    --green-btn-hover: #5da348;
-    --text-main: #333;
-    --text-sub: #666;
-    --msg-received-bg: #f0f2f5;
-    --msg-sent-bg: #e6f7ff;
-    /* Or primary color depending on preference, mockup looks like light gray for received */
+    --active-contact-bg: #eaf2ff;
+    --hover-contact-bg: #f5f8ff;
+    --border-color: #e6e9ef;
+    --primary-color: #4A90E2; /* Site Blue */
+    --primary-gradient: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    --green-btn: #4FC08D; /* Modern Green */
+    --green-btn-hover: #3ea576;
+    --text-main: #2c3e50;
+    --text-sub: #7f8c8d;
+    --msg-received-bg: #ffffff;
+    --msg-sent-bg: #eaf2ff;
 }
 
 /* Main Container */
 .chat-container {
     display: flex;
-    height: calc(100vh - 100px);
-    /* Adjust based on master template navbar height */
+    height: calc(100vh - 120px);
     max-width: 1400px;
-    margin: 1rem auto;
+    margin: 1.5rem auto;
     background: var(--chat-bg);
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     border: 1px solid var(--border-color);
 }
@@ -206,11 +202,24 @@
 
 /* Header */
 .chat-header {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    background: #fff;
+    min-height: 80px;
+}
+
+.btn-back {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    margin-right: 15px;
+    color: var(--primary-color);
+    padding: 5px;
 }
 
 .header-profile {
@@ -256,6 +265,7 @@
 
 /* Messages Area */
 .messages-area {
+    background: #f5f5fa;
     flex: 1;
     padding: 2rem;
     overflow-y: auto;
@@ -312,16 +322,20 @@
 .received .message-bubble {
     background-color: var(--msg-received-bg);
     color: var(--text-main);
+    border: 1px solid var(--border-color);
     border-bottom-left-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
 }
 
 .sent .message-bubble {
-    background-color: var(--msg-received-bg);
-    /* Mockup shows gray for sender too? usually sender is colored. Let's stick to gray or maybe light blue for sender to distinguish? Mockup actually shows the active contact's bubble as unique. Let's make received gray and sent... wait, in the mockup 'Hi, I am Alex' is received and is gray. The user hasn't sent anything in the mockup. I will make sent messages slightly different for better UX, or stick to a neutral look. */
-    background-color: #f0f7ff;
-    /* Light blue for sent */
-    color: var(--text-main);
+    background: var(--primary-gradient);
+    color: white;
     border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.2);
+}
+
+.sent .message-bubble * {
+    color: white !important;
 }
 
 .message-time {
@@ -365,7 +379,7 @@
 .btn-attach {
     background: none;
     border: none;
-    font-size: 2rem;
+    font-size: 1.8rem;
     cursor: pointer;
     color: #333;
     padding: 0;
@@ -388,22 +402,16 @@
     padding: 1rem 1.2rem;
     border: 1px solid #ccc;
     border-radius: 8px;
-    /* Slightly squared corners as per mockup */
     font-size: 1rem;
     outline: none;
     transition: border-color 0.2s;
     resize: none;
-    /* Disable manual resize, we'll auto-resize with JS */
     overflow-y: hidden;
-    /* Hide scrollbar for auto-resize effect */
     font-family: inherit;
-    /* Ensure font matches */
     line-height: 1.5;
     height: auto;
     min-height: 52px;
-    /* Roughly matches previous input height */
     max-height: 150px;
-    /* Limit max height */
 }
 
 .chat-input-field:focus {
@@ -547,21 +555,60 @@
 }
 
 /* Responsiveness */
+@media (max-width: 992px) {
+    .chat-sidebar {
+        width: 300px;
+    }
+}
+
 @media (max-width: 768px) {
     .chat-container {
-        flex-direction: column;
-        height: auto;
+        height: calc(100vh - 80px);
+        margin: 0;
+        border-radius: 0;
+        border: none;
     }
 
     .chat-sidebar {
         width: 100%;
-        height: 300px;
-        /* Collapsed height */
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
+        position: absolute;
+        height: 100%;
+        z-index: 20;
+        transition: transform 0.3s ease;
+    }
+
+    .chat-container.chat-selected .chat-sidebar {
+        transform: translateX(-100%);
     }
 
     .chat-main {
-        height: 600px;
+        width: 100%;
+        height: 100%;
+    }
+
+    .btn-back {
+        display: block;
+    }
+
+    .chat-header {
+        padding: 0.8rem 1rem;
+    }
+
+    .contact-avatar.large {
+        width: 40px;
+        height: 40px;
+        margin-right: 10px;
+    }
+
+    .header-info h3 {
+        font-size: 1rem;
+    }
+
+    .messages-area {
+        padding: 1rem;
+    }
+
+    .message-row {
+        max-width: 85%;
     }
 }

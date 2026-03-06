@@ -75,6 +75,7 @@ urlpatterns = [
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/project/<int:project_id>/request-cancel/', views.client_request_cancellation, name='client_request_cancellation'),
     path('client/project/<int:project_id>/report/', views.report_project, name='report_project'),
+    path('client/match/<int:match_id>/score/', views.client_scoreCalculate, name='client_scoreCalculate'),
 
     # ── Notifications ──────────────────────────────────────────────────────
     path('notifications/', views.notifications, name='notifications'),
@@ -90,6 +91,7 @@ urlpatterns = [
     path('api/chat/send/<int:conversation_id>/', views.api_send_message, name='api_send_message'),
     path('api/chat/download/<int:message_id>/', views.api_download_attachment, name='api_download_attachment'),
     path('api/chat/mute/<int:conversation_id>/', views.api_toggle_mute, name='api_toggle_mute'),
+    path('api/chat/remove/<int:conversation_id>/', views.api_remove_chat, name='api_remove_chat'),
 
     # ── Freelancer ─────────────────────────────────────────────────────────
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),

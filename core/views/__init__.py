@@ -46,6 +46,7 @@ from core.views.client import (
     reject_application,
     client_request_revision,
     client_release_milestone_payment,
+    client_scoreCalculate,
 )
 
 from core.views.notification import (
@@ -79,6 +80,7 @@ from core.views.chat import (
     api_download_attachment,
     api_send_message,
     api_toggle_mute,
+    api_remove_chat,
 )
 
 from core.views.admin import (

@@ -33,12 +33,13 @@
                     </span>
                 </div>
             </div>
-            <div class="match-score" style="text-align: right;">
+            <div class="match-score" style="text-align: right; display: flex; flex-direction: column; align-items: flex-end;">
                 <div class="{% if match.final_score > 0.7 %}text-score-high{% elif match.final_score > 0.5 %}text-score-medium{% else %}text-score-low{% endif %}"
                     style="font-size: 24px; font-weight: bold;">
                     {% widthratio match.final_score 1 100 %}%
                 </div>
-                <div style="font-size: 12px; color: #888;">Match Score</div>
+                <div style="font-size: 12px; color: #888; margin-bottom: 2px;">Match Score</div>
+                <a href="{% url 'client_scoreCalculate' match.id %}" style="font-size: 11px; color: #888; text-decoration: underline; transition: color 0.2s;" onmouseover="this.style.color='#007bff'" onmouseout="this.style.color='#888'">How is this score calculated?</a>
             </div>
         </div>
 

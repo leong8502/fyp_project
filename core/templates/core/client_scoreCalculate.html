@@ -1,0 +1,417 @@
+{% extends 'core/client_master.html' %}
+{% load static %}
+{% block title %}Match Score Breakdown{% endblock %}
+
+{% block extra_css %}
+<style>
+    .calc-container {
+        max-width: 800px;
+        margin: 40px auto;
+        padding: 0 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .calc-header {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .calc-header h1 {
+        color: #2c3e50;
+        font-size: 2.2rem;
+        margin-bottom: 10px;
+    }
+
+    .calc-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    .freelancer-info {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+        padding: 15px;
+        background: #f8fafc;
+        border-radius: 12px;
+        display: inline-flex;
+    }
+
+    .freelancer-info img, .freelancer-info .avatar-placeholder {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .freelancer-info .avatar-placeholder {
+         background: #ddd;
+         display: flex;
+         align-items: center;
+         justify-content: center;
+         font-size: 20px;
+         font-weight: bold;
+         color: #555;
+    }
+
+    .freelancer-info div {
+        text-align: left;
+    }
+
+    .freelancer-info h4 {
+        margin: 0;
+        color: #334155;
+        font-size: 1.1rem;
+    }
+
+    .freelancer-info span {
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .calc-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 30px;
+        margin-bottom: 30px;
+        border: 1px solid #eef2f6;
+    }
+
+    .calc-section {
+        margin-bottom: 25px;
+        padding-bottom: 25px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .calc-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+
+    .icon-semantic { background: #f3e8ff; color: #9333ea; }
+    .icon-skills { background: #e0f2fe; color: #0284c7; }
+    .icon-exp { background: #fef3c7; color: #d97706; }
+    .icon-rating { background: #fef08a; color: #ca8a04; }
+    .icon-lang { background: #ffe4e6; color: #e11d48; }
+    .icon-avail { background: #dcfce7; color: #16a34a; }
+
+    .calc-content {
+        flex-grow: 1;
+    }
+
+    .calc-content h3 {
+        margin: 0 0 5px 0;
+        color: #1e293b;
+        font-size: 1.2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .weight-badge {
+        font-size: 0.85rem;
+        background: #f1f5f9;
+        color: #475569;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+    
+    .score-badge {
+        font-size: 0.9rem;
+        background: #e0f2fe;
+        color: #0369a1;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-weight: bold;
+    }
+
+    .calc-content p {
+        margin: 5px 0 15px 0;
+        color: #64748b;
+        line-height: 1.5;
+        font-size: 0.95rem;
+    }
+
+    .progress-container {
+        width: 100%;
+        background-color: #f1f5f9;
+        border-radius: 8px;
+        overflow: hidden;
+        height: 12px;
+        margin-top: 10px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #4A90E2 0%, #357ABD 100%);
+        transition: width 1s ease-in-out;
+    }
+    
+    .total-score {
+        background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+        color: white;
+        text-align: center;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(74, 144, 226, 0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .total-score h2 {
+        margin: 0 0 5px 0;
+        font-size: 1.5rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    .total-score .huge-score {
+        font-size: 4rem;
+        font-weight: 800;
+        margin: 0 0 15px 0;
+        line-height: 1;
+    }
+
+    .total-score p {
+        margin: 0;
+        font-size: 1.1rem;
+        max-width: 500px;
+        opacity: 0.9;
+        line-height: 1.5;
+    }
+
+    .btn-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #4A90E2;
+        text-decoration: none;
+        font-weight: 600;
+        margin-bottom: 20px;
+        transition: color 0.2s;
+    }
+
+    .btn-back:hover {
+        color: #357ABD;
+        text-decoration: underline;
+    }
+
+    .reasons-box {
+        background: #f8fafc;
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 30px;
+        border-left: 4px solid #4A90E2;
+    }
+
+    .reasons-box h4 {
+        margin: 0 0 15px 0;
+        color: #1e293b;
+        font-size: 1.1rem;
+    }
+
+    .reasons-box ul {
+        margin: 0;
+        padding-left: 20px;
+        color: #475569;
+        line-height: 1.6;
+    }
+    
+    .reasons-box li {
+        margin-bottom: 8px;
+    }
+    .reasons-box li:last-child {
+        margin-bottom: 0;
+    }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+{% endblock %}
+
+{% block content %}
+<div class="calc-container">
+    <a href="javascript:history.back()" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Back to Recommendations
+    </a>
+
+    <div class="calc-header">
+        <h1>Match Score Breakdown</h1>
+        <p>Detailed analysis of how this freelancer aligns with your project requirements.</p>
+        
+        <div class="freelancer-info">
+            {% if match.freelancer.profile_image %}
+                <img src="{{ match.freelancer.profile_image.url }}" alt="{{ match.freelancer.full_name }}">
+            {% else %}
+                <div class="avatar-placeholder">{{ match.freelancer.full_name|slice:":1"|default:"F" }}</div>
+            {% endif %}
+            <div>
+                <h4>{{ match.freelancer.full_name|default:match.freelancer.user.username }}</h4>
+                <span>Matched for: {{ match.project.title }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="total-score">
+        <h2>Overall Compatibility</h2>
+        <div class="huge-score">{% widthratio match.final_score 1 100 %}%</div>
+        <p>This score is a weighted combination of semantic context, skill overlap, experience level, and platform reliability.</p>
+    </div>
+
+    <div class="reasons-box">
+        <h4>Key Matching Highlights</h4>
+        <ul>
+            {% if breakdown.reasons %}
+                {% for reason in breakdown.reasons %}
+                    <li>{{ reason|safe }}</li>
+                {% endfor %}
+            {% else %}
+                <li>Overall strong fit for the project parameters.</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <h2 style="color: #1e293b; margin: 40px 0 20px 0; font-size: 1.5rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;">Scoring Metrics</h2>
+
+    <div class="calc-card">
+        
+        <!-- Semantic Match -->
+        <div class="calc-section">
+            <div class="icon-box icon-semantic">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Context Match <span class="weight-badge">50% Weight</span></div>
+                    <span class="score-badge">{{ percentages.semantic|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.semantic|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.semantic }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skills Match -->
+        <div class="calc-section">
+            <div class="icon-box icon-skills">
+                <i class="fas fa-laptop-code"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Skill Overlap <span class="weight-badge">20% Weight</span></div>
+                    <span class="score-badge">{{ percentages.skill_overlap|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.skill_overlap|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.skill_overlap }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Experience -->
+        <div class="calc-section">
+            <div class="icon-box icon-exp">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Relevant Experience <span class="weight-badge">10% Weight</span></div>
+                    <span class="score-badge">{{ percentages.experience|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.experience|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.experience }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ratings -->
+        <div class="calc-section">
+            <div class="icon-box icon-rating">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Platform Reputation <span class="weight-badge">10% Weight</span></div>
+                    <span class="score-badge">{{ percentages.reputation|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.reputation|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.reputation }}%"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Language -->
+        <div class="calc-section">
+            <div class="icon-box icon-lang">
+                <i class="fas fa-globe"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Language Proficiency <span class="weight-badge">5% Weight</span></div>
+                    <span class="score-badge">{{ percentages.language|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.language|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.language }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Availability -->
+        <div class="calc-section">
+            <div class="icon-box icon-avail">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="calc-content">
+                <h3>
+                    <div>Availability Alignment <span class="weight-badge">5% Weight</span></div>
+                    <span class="score-badge">{{ percentages.availability|floatformat:0 }}% Earned</span>
+                </h3>
+                <p>{{ insights.availability|safe }}</p>
+                <div class="progress-container">
+                    <div class="progress-bar" style="width: 0%;" data-width="{{ percentages.availability }}%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Animate progress bars on load
+    document.addEventListener("DOMContentLoaded", function() {
+        setTimeout(function() {
+            const bars = document.querySelectorAll('.progress-bar');
+            bars.forEach(bar => {
+                const targetWidth = bar.getAttribute('data-width');
+                if(targetWidth) {
+                    bar.style.width = targetWidth;
+                }
+            });
+        }, 100);
+    });
+</script>
+{% endblock %}

@@ -11,7 +11,14 @@
     <div class="header">
         <h1>My Projects</h1>
         <div class="header-actions">
-            <input type="text" id="searchBar" class="search-bar" placeholder="Search projects...">
+            <form method="get" action="{% url 'client_project' %}" class="header-search-form">
+                <div class="search-input-wrapper">
+                    <input type="text" name="search" id="searchBar" class="search-bar" placeholder="Search projects..." value="{{ search|default:'' }}">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </form>
             <a href="{% url 'client_projectCreate' %}" class="btn-create">
                 New Project
             </a>
@@ -39,39 +46,31 @@
     </div>
 
     <!-- Filters -->
-    <div class="filters">
+    <form method="get" action="{% url 'client_project' %}" class="filters">
         <div class="filter-group">
             <label>Status</label>
-            <select id="statusFilter">
-                <option value="all">All Status</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="draft">Draft</option>
+            <select name="status" id="statusFilter">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
             </select>
         </div>
         <div class="filter-group">
             <label>Date Range</label>
-            <select id="dateFilter">
-                <option value="all">All Time</option>
-                <option value="last30">Last 30 Days</option>
-                <option value="last90">Last 90 Days</option>
-                <option value="this-year">This Year</option>
+            <select name="date" id="dateFilter">
+                <option value="all" {% if date_filter == 'all' %}selected{% endif %}>All Time</option>
+                <option value="last30" {% if date_filter == 'last30' %}selected{% endif %}>Last 30 Days</option>
+                <option value="last90" {% if date_filter == 'last90' %}selected{% endif %}>Last 90 Days</option>
+                <option value="this-year" {% if date_filter == 'this-year' %}selected{% endif %}>This Year</option>
             </select>
         </div>
-        <div class="filter-group" style="display:none;" id="custom-date">
-            <label>From</label>
-            <input type="date" id="dateFrom">
-        </div>
-        <div class="filter-group" style="display:none;" id="custom-date-to">
-            <label>To</label>
-            <input type="date" id="dateTo">
-        </div>
         <div class="filter-actions">
-            <button class="btn-apply" id="applyFilters">Apply Filters</button>
-            <button class="btn-clear" id="clearFilters">Clear</button>
+            <button type="submit" class="btn-apply" id="applyFilters">Apply Filters</button>
+            <a href="{% url 'client_project' %}" class="btn-clear" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Clear</a>
         </div>
-    </div>
+    </form>
 
     <!-- Projects Table -->
     <div class="table-container">
@@ -117,104 +116,33 @@
             </tbody>
         </table>
     </div>
+
+    <!-- Pagination -->
+    {% if projects.has_other_pages %}
+    <div class="pagination-container">
+        <div class="pagination">
+            {% if projects.has_previous %}
+            <a href="?page={{ projects.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date={{ date_filter }}{% endif %}" class="page-link">
+                &laquo; Previous
+            </a>
+            {% endif %}
+
+            <span class="page-info">
+                Page {{ projects.number }} of {{ projects.paginator.num_pages }}
+            </span>
+
+            {% if projects.has_next %}
+            <a href="?page={{ projects.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if date_filter %}&date={{ date_filter }}{% endif %}" class="page-link">
+                Next &raquo;
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <script>
-    // Search functionality
-    const searchBar = document.getElementById('searchBar');
-    const statusFilter = document.getElementById('statusFilter');
-    const dateFilter = document.getElementById('dateFilter');
-    const applyBtn = document.getElementById('applyFilters');
-    const clearBtn = document.getElementById('clearFilters');
-    const projectRows = document.querySelectorAll('.project-row');
-    const noProjectsRow = document.getElementById('noProjectsRow');
-
-    // Real-time search
-    searchBar.addEventListener('input', function () {
-        const searchTerm = this.value.toLowerCase().trim();
-        filterProjects();
-    });
-
-    // Apply filters button
-    applyBtn.addEventListener('click', function () {
-        filterProjects();
-    });
-
-    // Clear filters button
-    clearBtn.addEventListener('click', function () {
-        searchBar.value = '';
-        statusFilter.value = 'all';
-        dateFilter.value = 'all';
-        filterProjects();
-    });
-
-    // Main filter function
-    function filterProjects() {
-        const searchTerm = searchBar.value.toLowerCase().trim();
-        const selectedStatus = statusFilter.value;
-        const selectedDateRange = dateFilter.value;
-        let visibleCount = 0;
-
-        projectRows.forEach(row => {
-            const title = row.getAttribute('data-title');
-            const status = row.getAttribute('data-status');
-            const createdDate = new Date(row.getAttribute('data-created'));
-
-            // Search filter - check if any word in the project title matches
-            let matchesSearch = true;
-            if (searchTerm) {
-                matchesSearch = title.includes(searchTerm);
-            }
-
-            // Status filter
-            let matchesStatus = true;
-            if (selectedStatus !== 'all') {
-                matchesStatus = status === selectedStatus;
-            }
-
-            // Date range filter
-            let matchesDate = true;
-            if (selectedDateRange !== 'all') {
-                const now = new Date();
-                const diffTime = now - createdDate;
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (selectedDateRange === 'last30') {
-                    matchesDate = diffDays <= 30;
-                } else if (selectedDateRange === 'last90') {
-                    matchesDate = diffDays <= 90;
-                } else if (selectedDateRange === 'this-year') {
-                    matchesDate = createdDate.getFullYear() === now.getFullYear();
-                }
-            }
-
-            // Show/hide row based on all filters
-            if (matchesSearch && matchesStatus && matchesDate) {
-                row.style.display = '';
-                visibleCount++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        // Handle "no results" message
-        let noResultsRow = document.getElementById('noResultsRow');
-
-        if (visibleCount === 0 && projectRows.length > 0) {
-            // No matches found - show "no results" message
-            if (!noResultsRow) {
-                noResultsRow = document.createElement('tr');
-                noResultsRow.id = 'noResultsRow';
-                noResultsRow.innerHTML = '<td colspan="6" style="text-align: center; padding: 40px 0 40px 0;">No projects match your search criteria.</td>';
-                document.getElementById('projectTableBody').appendChild(noResultsRow);
-            }
-            noResultsRow.style.display = '';
-        } else {
-            // Matches found - hide "no results" message
-            if (noResultsRow) {
-                noResultsRow.style.display = 'none';
-            }
-        }
-    }
+    // Simple UI helper for filter submission could be added if needed,
+    // but standard GET form handles the logic now.
 </script>
 {% endblock %}

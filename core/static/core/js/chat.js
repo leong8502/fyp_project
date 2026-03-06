@@ -30,6 +30,7 @@ CSRF_TOKEN = getCookie('csrftoken');
 // Initialize chat when DOM is ready
 document.addEventListener('DOMContentLoaded', function () {
     const contactListEl = document.getElementById('contact-list');
+    const chatContainer = document.querySelector('.chat-container');
     const messagesAreaEl = document.getElementById('messages-area');
     const chatHeader = document.getElementById('chat-header');
     const chatInputArea = document.getElementById('chat-input-area');
@@ -38,6 +39,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnMoreOptions = document.getElementById('btn-more-options');
     const headerDropdown = document.getElementById('header-dropdown');
     const btnMute = document.getElementById('btn-mute');
+    const btnRemoveChat = document.getElementById('btn-remove-chat');
+    const btnBack = document.getElementById('btn-back');
 
     let currentConversationId = null;
     let chatSocket = null;
@@ -141,7 +144,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     div.innerHTML = `
                         <div class="contact-avatar">
-                            <img src="${chat.avatar}" alt="${chat.name}">
+                            <img src="${chat.avatar || '/static/core/images/default-avatar.png'}" alt="${chat.name}" 
+                                 onerror="this.src='/static/core/images/default-avatar.png'">
                         </div>
                         <div class="contact-info">
                             <div class="contact-top">
@@ -197,7 +201,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Update Header
         document.getElementById('header-name').textContent = chatData.name;
-        document.getElementById('header-avatar').src = chatData.avatar;
+        const headerAvatarImg = document.getElementById('header-avatar');
+        headerAvatarImg.src = chatData.avatar || '/static/core/images/default-avatar.png';
+        headerAvatarImg.onerror = function() {
+            this.src = '/static/core/images/default-avatar.png';
+        };
         const taglineEl = document.getElementById('header-tagline');
         if (chatData.tagline) {
             taglineEl.textContent = chatData.tagline;
@@ -218,6 +226,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const url = new URL(window.location);
         url.searchParams.set('conversation_id', id);
         window.history.pushState({}, '', url);
+
+        // Mobile view toggle
+        chatContainer.classList.add('chat-selected');
     }
 
     // --- Search Functionality ---
@@ -302,8 +313,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     const msgDiv = document.createElement('div');
-                    msgDiv.className = `message-row ${msg.is_me ? 'sent' : 'received'}`;
-                    msgDiv.innerHTML = renderMessageHTML(msg, msg.is_me);
+                    const isMe = msg.sender_id === CURRENT_USER_ID;
+                    msgDiv.className = `message-row ${isMe ? 'sent' : 'received'}`;
+                    msgDiv.innerHTML = renderMessageHTML(msg, isMe);
+                    msgDiv.dataset.messageId = msg.id;
                     messagesAreaEl.appendChild(msgDiv);
                 });
 
@@ -432,7 +445,54 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     });
 
+    // --- 6. Remove Chat ---
+    btnRemoveChat.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (!currentConversationId) return;
+
+        if (!confirm('Are you sure you want to remove this conversation? Historical messages will still remain if you chat again.')) {
+            return;
+        }
+
+        fetch(`/api/chat/remove/${currentConversationId}/`, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': CSRF_TOKEN }
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Reset chat interface
+                    chatHeader.style.display = 'none';
+                    chatInputArea.style.display = 'none';
+                    messagesAreaEl.innerHTML = `
+                        <div class="no-chat-selected">
+                            <div class="empty-icon">💬</div>
+                            <h3>Your Messages</h3>
+                            <p>Select a conversation from the left to start chatting <br> or <a href="${FIND_URL}"
+                                    style="color:var(--primary-color);">${FIND_TEXT.toLowerCase()}</a> to connect.</p>
+                        </div>
+                    `;
+                    currentConversationId = null;
+
+                    // Remove room from URL
+                    const url = new URL(window.location);
+                    url.searchParams.delete('conversation_id');
+                    window.history.pushState({}, '', url);
+
+                    // Mobile view toggle
+                    chatContainer.classList.remove('chat-selected');
+
+                    loadConversations(); // Refresh sidebar to remove the item
+                    headerDropdown.classList.remove('show');
+                }
+            });
+    });
+
     // --- UI Interactions ---
+    btnBack.addEventListener('click', () => {
+        chatContainer.classList.remove('chat-selected');
+    });
+
     btnMoreOptions.addEventListener('click', () => {
         headerDropdown.classList.toggle('show');
     });

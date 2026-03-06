@@ -426,6 +426,7 @@ class ChatParticipant(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
     is_muted = models.BooleanField(default=False)
+    is_removed = models.BooleanField(default=False)
     joined_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

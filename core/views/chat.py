@@ -44,6 +44,8 @@ def start_chat(request, user_id):
 
     if common_convs.exists():
         conversation = common_convs.first()
+        # Reset is_removed for the current user if they are starting the chat again
+        ChatParticipant.objects.filter(user=request.user, conversation=conversation).update(is_removed=False)
     else:
         conversation = Conversation.objects.create()
         ChatParticipant.objects.create(user=request.user, conversation=conversation)
@@ -54,7 +56,7 @@ def start_chat(request, user_id):
 
 @login_required
 def api_get_conversations(request):
-    participants = ChatParticipant.objects.filter(user=request.user).select_related('conversation')
+    participants = ChatParticipant.objects.filter(user=request.user, is_removed=False).select_related('conversation')
     data = []
 
     for p in participants:
@@ -223,6 +225,9 @@ def api_send_message(request, conversation_id):
             attachment_size=attachment_size,
         )
 
+        # Reset is_removed for ALL participants when a new message is sent
+        # (This ensures the conversation reappears in their lists)
+        conversation.chatparticipant_set.update(is_removed=False)
         conversation.save()
 
         sender_name = "Me"
@@ -281,3 +286,14 @@ def api_toggle_mute(request, conversation_id):
     participant.is_muted = not participant.is_muted
     participant.save()
     return JsonResponse({'status': 'success', 'is_muted': participant.is_muted})
+
+
+@login_required
+def api_remove_chat(request, conversation_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    participant = get_object_or_404(ChatParticipant, conversation_id=conversation_id, user=request.user)
+    participant.is_removed = True
+    participant.save()
+    return JsonResponse({'status': 'success'})
