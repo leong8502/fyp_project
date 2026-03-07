@@ -493,6 +493,46 @@ def client_projectCreate(request):
     return render(request, 'core/client_projectCreate.html', {'form': form})
 
 
+from core.services.ai_generation_service import AIGenerationService
+from django.views.decorators.http import require_POST
+import json
+
+@client_required
+@require_POST
+def api_generate_project_scope(request):
+    """
+    Generate a project scope from a user prompt using AI.
+    """
+    try:
+        data = json.loads(request.body)
+        prompt = data.get('prompt')
+        if not prompt:
+            return JsonResponse({'error': 'Prompt is required.'}, status=400)
+            
+        generated_data = AIGenerationService.generate_project_scope(prompt)
+        return JsonResponse(generated_data)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON format.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@client_required
+def api_get_ai_quota(request):
+    """
+    Returns the current day's AI quota usage.
+    """
+    try:
+        usage = AIGenerationService.get_current_quota_usage()
+        limit = AIGenerationService.DAILY_QUOTA_LIMIT
+        return JsonResponse({
+            'usage': usage,
+            'limit': limit,
+            'remaining': max(0, limit - usage)
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 @client_required
 def client_projectInfo(request, project_id):
     project = get_object_or_404(Project, id=project_id, client=request.user.client)
@@ -939,18 +979,13 @@ def client_scoreCalculate(request, match_id):
     """View to show the dynamic freelancer match score breakdown."""
     from core.models import ProjectMatch
     
-    # We allow the client to view the match if they own the project
     match = get_object_or_404(ProjectMatch, id=match_id, project__client=request.user.client)
     
     # Calculate percentage scores for the progress bars
     bd = match.score_breakdown
     
-    # These are based on the weights in ai_matching.py
-    # semantic (50%), skill_overlap (20%), experience (10%), reputation (10%), language (5%), availability (5%)
-    
-    # Prevent division by zero and format for progress bar (0-100)
     percentages = {
-        'semantic': (bd.get('semantic', 0) / 1.0) * 100, # Weight is 0.5, but sim_score is 0-1. So bar shows the 0-1 value.
+        'semantic': (bd.get('semantic', 0) / 1.0) * 100, 
         'skill_overlap': (bd.get('skill_overlap', 0) / 1.0) * 100,
         'experience': (bd.get('experience', 0) / 1.0) * 100,
         'reputation': (bd.get('reputation', 0) / 1.0) * 100,

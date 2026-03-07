@@ -47,6 +47,8 @@ from core.views.client import (
     client_request_revision,
     client_release_milestone_payment,
     client_scoreCalculate,
+    api_generate_project_scope,
+    api_get_ai_quota,
 )
 
 from core.views.notification import (

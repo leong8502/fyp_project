@@ -10,9 +10,30 @@
 {% block content %}
 <div class="container">
     <div class="card">
-        <div class="header">
+        <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Create New Project</h1>
+            <div id="ai-quota-container" style="font-size: 14px; color: #fff; display: none;">
+                AI Quota: <span id="ai-quota-usage">0</span> / <span id="ai-quota-limit">250</span>
+            </div>
         </div>
+
+        <!-- AI Assistant Section -->
+        <div class="ai-assistant-card" style="background: linear-gradient(135deg, #f0f7ff, #e6f0fa); border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 1px solid #cce0ff;">
+            <h3 style="margin-top: 0; color: #004085; display: flex; align-items: center; gap: 8px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                Draft with AI
+            </h3>
+            <p style="font-size: 14px; color: #333; margin-bottom: 12px;">Describe what you want to build, and our AI will automatically suggest a project title, budget, experience level, required skills, and a structured milestone plan.</p>
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+                <textarea id="ai-prompt" style="flex: 1; min-height: 80px; padding: 12px; border: 1px solid #b3d4ff; border-radius: 6px; resize: vertical;" placeholder="e.g. I need a modern e-commerce website for my shoe brand, built with Django and Stripe payment integration. Need it done in about a month."></textarea>
+                <button type="button" id="btn-ai-generate" style="background: #0056b3; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap; align-self: stretch; transition: background 0.2s;" onmouseover="this.style.background='#004494'" onmouseout="this.style.background='#0056b3'">
+                    <span id="ai-btn-text">Generate Scope</span>
+                    <span id="ai-btn-spinner" style="display: none;">Generating...</span>
+                </button>
+            </div>
+            <div id="ai-error-message" style="color: #d32f2f; font-size: 14px; margin-top: 10px; display: none;"></div>
+        </div>
+
         <form class="form-body" method="POST" enctype="multipart/form-data" id="create-project-form">
             {% csrf_token %}
             <div class="form-group">
@@ -173,7 +194,198 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         initDatePicker('.datepicker-input');
+        fetchAiQuota();
     });
+
+    // --- AI Assistant Logic ---
+    function fetchAiQuota() {
+        fetch('{% url "api_get_ai_quota" %}', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.limit) {
+                document.getElementById('ai-quota-container').style.display = 'block';
+                document.getElementById('ai-quota-usage').textContent = data.usage;
+                document.getElementById('ai-quota-limit').textContent = data.limit;
+            }
+        })
+        .catch(err => console.error("Error fetching quota:", err));
+    }
+
+    document.getElementById('btn-ai-generate').addEventListener('click', function() {
+        const prompt = document.getElementById('ai-prompt').value.trim();
+        const errorDiv = document.getElementById('ai-error-message');
+        const btnText = document.getElementById('ai-btn-text');
+        const btnSpinner = document.getElementById('ai-btn-spinner');
+        const btn = this;
+
+        errorDiv.style.display = 'none';
+
+        if (!prompt) {
+            errorDiv.textContent = "Please enter a description of what you want to build.";
+            errorDiv.style.display = 'block';
+            return;
+        }
+
+        // Set Loading State
+        btn.disabled = true;
+        btn.style.opacity = '0.7';
+        btnText.style.display = 'none';
+        btnSpinner.style.display = 'inline-block';
+
+        fetch('{% url "api_generate_project_scope" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ prompt: prompt })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Restore btn
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btnText.style.display = 'inline-block';
+            btnSpinner.style.display = 'none';
+
+            if (data.error) {
+                errorDiv.textContent = data.error;
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Successfully received JSON data, let's auto-fill
+            applyAiDataToForm(data);
+            fetchAiQuota(); // Update quota visually
+        })
+        .catch(err => {
+            console.error("AI Gen Error:", err);
+            errorDiv.textContent = "A network error occurred. Please try again.";
+            errorDiv.style.display = 'block';
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btnText.style.display = 'inline-block';
+            btnSpinner.style.display = 'none';
+        });
+    });
+
+    function applyAiDataToForm(data) {
+        if (data.title) document.getElementById('title').value = data.title;
+        if (data.description) document.getElementById('description').value = data.description;
+        if (data.budget) document.getElementById('budget').value = data.budget;
+        
+        // Try to match category
+        if (data.category) {
+            const categorySelect = document.getElementById('category');
+            for(let i=0; i<categorySelect.options.length; i++) {
+                if(categorySelect.options[i].text.toLowerCase().includes(data.category.toLowerCase()) || 
+                   data.category.toLowerCase().includes(categorySelect.options[i].text.toLowerCase())) {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        if (data.experience_level) {
+            const expSelect = document.getElementById('experience_level');
+            const val = data.experience_level.toLowerCase();
+            if (['entry', 'intermediate', 'expert'].includes(val)) {
+                expSelect.value = val;
+            }
+        }
+
+        if (data.year_of_experience !== undefined) {
+            const yearSelect = document.getElementById('year_of_experience');
+            const val = parseInt(data.year_of_experience);
+            if (!isNaN(val) && val >= 0 && val <= 5) {
+                yearSelect.value = val.toString();
+            } else if (val > 5) {
+                yearSelect.value = "5";
+            }
+        }
+
+        if (data.preferred_languages && Array.isArray(data.preferred_languages)) {
+            const langSelect = document.getElementById('language-select');
+            data.preferred_languages.forEach(lang => {
+                for(let i=0; i<langSelect.options.length; i++) {
+                    if(langSelect.options[i].text.toLowerCase() === lang.toLowerCase()) {
+                        langSelect.selectedIndex = i;
+                        addLanguage();
+                        break;
+                    }
+                }
+            });
+        }
+
+        if (data.deadline) {
+            document.getElementById('deadline').value = data.deadline;
+            initDatePicker(document.getElementById('deadline'));
+        }
+
+        if (data.required_skills && Array.isArray(data.required_skills)) {
+            // clear existing
+            skills = [];
+            data.required_skills.forEach(skill => {
+                if(!skills.includes(skill)) {
+                    skills.push(skill);
+                }
+            });
+            renderSkills();
+        }
+
+        if (data.milestones && Array.isArray(data.milestones) && data.milestones.length > 0) {
+            // Clear existing milestones list completely
+            const milestonesList = document.getElementById('milestones-list');
+            milestonesList.innerHTML = '';
+            
+            // Re-populate with AI milestones
+            let baseDate = new Date();
+            
+            data.milestones.forEach((m, idx) => {
+                let dateStr = m.deadline || "";
+
+                const item = document.createElement('div');
+                item.className = 'milestone-item';
+                item.innerHTML = `
+                    <div style="grid-column: span 3;">
+                        <label>Milestone Title</label>
+                        <input type="text" name="milestone_title[]" value="${m.title || ''}" required>
+                    </div>
+                    <div style="grid-column: span 3;">
+                        <label>Description (Optional)</label>
+                        <input type="text" name="milestone_description[]" value="${m.description || ''}">
+                    </div>
+                    <div>
+                        <label>Amount ($)</label>
+                        <input type="number" name="milestone_amount[]" value="${m.amount || ''}" min="1" required>
+                    </div>
+                    <div>
+                        <label>Deadline</label>
+                        <input type="text" name="milestone_deadline[]" class="datepicker-input" value="${dateStr}" required>
+                    </div>
+                    <button type="button" class="remove-milestone" onclick="removeMilestone(this)">Remove</button>
+                `;
+                milestonesList.appendChild(item);
+                initDatePicker(item.querySelector('.datepicker-input'));
+            });
+
+            // Small visual highlight to show the fields updated
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // create a temporary overlay or border highlight if you want
+            const formBody = document.querySelector('.card');
+            formBody.style.boxShadow = "0 0 15px rgba(0, 86, 179, 0.4)";
+            setTimeout(() => {
+                formBody.style.transition = "box-shadow 1s";
+                formBody.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
+            }, 1000);
+        }
+    }
 
     // --- Prevent Scientific Notation in Number Inputs ---
     document.addEventListener('keydown', function (e) {

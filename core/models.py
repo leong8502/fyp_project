@@ -733,3 +733,17 @@ class NotificationSetting(models.Model):
 
     def __str__(self):
         return f"Settings for {self.user.username}"
+
+
+class AIApiUsage(models.Model):
+    """
+    Tracks daily API requests to generative AI models to enforce quotas.
+    """
+    date = models.DateField(unique=True, default=timezone.now, help_text="Date of API usage")
+    request_count = models.PositiveIntegerField(default=0, help_text="Number of requests made on this date")
+    
+    def __str__(self):
+        return f"API Usage on {self.date}: {self.request_count} requests"
+
+    class Meta:
+        ordering = ['-date']

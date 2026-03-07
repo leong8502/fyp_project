@@ -64,6 +64,10 @@ urlpatterns = [
     path('client/wallet/', views.client_wallet, name='client_wallet'),
     path('client/wallet/transaction/', views.client_transaction, name='client_transaction'),
     path('client/invite/<int:freelancer_id>/', views.client_invite_freelancer, name='client_invite_freelancer'),
+    
+    # Client AI API
+    path('client/api/generate-project-scope/', views.api_generate_project_scope, name='api_generate_project_scope'),
+    path('client/api/get-ai-quota/', views.api_get_ai_quota, name='api_get_ai_quota'),
     # Client – Projects
     path('client/project/', views.client_project, name='client_project'),
     path('client/project/create/', views.client_projectCreate, name='client_projectCreate'),
