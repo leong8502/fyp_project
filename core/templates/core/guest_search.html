@@ -8,6 +8,26 @@
 <link rel="stylesheet" href="{% static 'core/css/guest_search.css' %}">
 {% endblock %}
 
+{% block extra_meta %}
+{% if search_type == 'work' and query %}
+<meta property="og:title" content="{{ query }} - TalentSync Jobs">
+<meta property="og:description" content="View this open project on TalentSync. Register or login to apply today!">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% elif search_type == 'hire' and query %}
+<meta property="og:title" content="Search Freelancers: {{ query }} - TalentSync">
+<meta property="og:description" content="Find the best freelancers for your project on TalentSync.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% else %}
+<meta property="og:title" content="Search Results - TalentSync">
+<meta property="og:description" content="Explore freelancers and open projects on TalentSync.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.build_absolute_uri }}">
+{% endif %}
+{% endblock %}
+
+
 {% block content %}
 <div class="search-results-page">
     <div class="search-header">
