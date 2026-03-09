@@ -1,0 +1,134 @@
+{% extends 'core/master.html' %}
+{% load static %}
+
+{% block title %}Search Results - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/home.css' %}">
+<link rel="stylesheet" href="{% static 'core/css/guest_search.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="search-results-page">
+    <div class="search-header">
+        <h1>Search Results</h1>
+        <p>Showing results for "{{ query }}"</p>
+    </div>
+
+    <div class="search-bar-inner">
+        <form action="{% url 'guest_search' %}" method="GET">
+            <div class="type-multiplier">
+                <button type="button" class="type-btn {% if search_type == 'hire' %}active{% endif %}" data-val="hire">Freelancers</button>
+                <button type="button" class="type-btn {% if search_type == 'work' %}active{% endif %}" data-val="work">Projects</button>
+                <input type="hidden" name="type" id="type-input" value="{{ search_type }}">
+            </div>
+            <div class="search-input-wrapper" style="display: flex; gap: 10px;">
+                <input type="text" name="q" value="{{ query }}" class="main-search-input" style="flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px;">
+                <button type="submit" class="search-btn" style="background: #1976d2; color: white; padding: 0 25px; border-radius: 8px; border: none; cursor: pointer;">Search</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="results-container">
+        {% if search_type == 'hire' %}
+            <div class="results-grid">
+                {% for freelancer in results %}
+                <div class="freelancer-card" style="margin: 0; width: auto;">
+                    <div class="freelancer-header">
+                        {% if freelancer.profile_image %}
+                            <img src="{{ freelancer.profile_image.url }}" alt="{{ freelancer.full_name }}" class="avatar">
+                        {% else %}
+                            <img src="{% static 'core/images/default_profile.png' %}" alt="Freelancer" class="avatar">
+                        {% endif %}
+                        <div class="online-status"></div>
+                    </div>
+                    <h4>{{ freelancer.full_name|default:freelancer.user.username }}</h4>
+                    <p class="job-title">{{ freelancer.tagline|default:"Expert Freelancer" }}</p>
+                    <div class="rating">
+                        <span class="stars">
+                            {% if freelancer.user.rating_summary.average_rating %}
+                                {% with ""|center:5 as range %}
+                                {% for _ in range %}
+                                    {% if forloop.counter <= freelancer.user.rating_summary.average_rating %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            {% else %}
+                                ★★★★★
+                            {% endif %}
+                        </span>
+                        <span class="rating-count">({{ freelancer.user.rating_summary.total_reviews|default:0 }})</span>
+                    </div>
+                    <div class="skills">
+                        {% for skill in freelancer.skills_list|slice:":3" %}
+                            <span>{{ skill }}</span>
+                        {% empty %}
+                            <span>Generalist</span>
+                        {% endfor %}
+                    </div>
+                    <a href="{% url 'login' %}" class="price" style="text-decoration: none; color: inherit; display: block;">View Details</a>
+                </div>
+                {% empty %}
+                <div class="no-results" style="grid-column: 1 / -1;">
+                    <h3>No freelancers found</h3>
+                    <p>Try searching for different skills or keywords.</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="results-grid">
+                {% for project in results %}
+                <div class="project-card">
+                    <div class="project-category">{{ project.category.name|default:"General" }}</div>
+                    <h3 class="project-title">{{ project.title }}</h3>
+                    <p class="project-desc">{{ project.description|truncatechars:180 }}</p>
+                    <div class="project-footer">
+                        <span class="project-budget">RM {{ project.budget }}</span>
+                        <a href="{% url 'login' %}" class="view-btn">View Job</a>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="no-results" style="grid-column: 1 / -1;">
+                    <h3>No projects found</h3>
+                    <p>Try searching for different job titles or categories.</p>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Pagination -->
+    {% if results.has_other_pages %}
+    <div class="pagination">
+        {% if results.has_previous %}
+            <a href="?q={{ query }}&type={{ search_type }}&page={{ results.previous_page_number }}" class="page-link">&laquo; Previous</a>
+        {% endif %}
+        
+        {% for i in custom_page_range %}
+            {% if i == results.number %}
+                <span class="page-link active">{{ i }}</span>
+            {% elif i == results.paginator.ELLIPSIS %}
+                <span class="page-link" style="border: none; cursor: default;">{{ i }}</span>
+            {% else %}
+                <a href="?q={{ query }}&type={{ search_type }}&page={{ i }}" class="page-link">{{ i }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if results.has_next %}
+            <a href="?q={{ query }}&type={{ search_type }}&page={{ results.next_page_number }}" class="page-link">Next &raquo;</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('type-input').value = btn.dataset.val;
+            
+            btn.closest('form').submit();
+        });
+    });
+</script>
+{% endblock %}

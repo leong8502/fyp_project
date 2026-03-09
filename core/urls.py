@@ -6,6 +6,7 @@ from . import views
 urlpatterns = [
     # ── Shared / Auth ───────────────────────────────────────────────────────
     path('', views.home, name='home'),
+    path('search/', views.guest_search, name='guest_search'),
     path('accounts/login/', views.login, name='login'),
     path('panel/login/', views.admin_login, name='admin_login'),
     path('logout/', views.logout, name='logout'),

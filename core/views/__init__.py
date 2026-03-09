@@ -12,7 +12,7 @@ from core.views.auth import (
     verify_email,
 )
 
-from core.views.common import home, aboutUS
+from core.views.common import home, aboutUS, guest_search
 
 from core.views.client import (
     client_home,

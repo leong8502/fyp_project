@@ -22,9 +22,10 @@
                     <button class="tab" data-tab="work">I'm looking for work</button>
                 </div>
 
-                <form class="search-form">
+                <form class="search-form" action="{% url 'guest_search' %}" method="GET">
+                    <input type="hidden" name="type" id="search-type" value="hire">
                     <div class="search-input-wrapper">
-                        <input type="text" placeholder="Try: Website Development, Logo Design, Content Writing..."
+                        <input type="text" name="q" placeholder="Try: Website Development, Logo Design, Content Writing..."
                             class="main-search-input">
                         <button type="submit" class="search-btn">
                             Search
@@ -158,27 +159,60 @@
     </div>
 
     <div class="freelancers-grid">
-        <!-- duplicate this card 4-6 times with different data -->
+        {% for freelancer in top_freelancers %}
         <div class="freelancer-card">
             <div class="freelancer-header">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" alt="Freelancer"
-                    class="avatar">
+                {% if freelancer.profile_image %}
+                    <img src="{{ freelancer.profile_image.url }}" alt="{{ freelancer.full_name }}" class="avatar">
+                {% else %}
+                    <img src="{% static 'core/images/default_profile.png' %}" alt="Freelancer" class="avatar">
+                {% endif %}
                 <div class="online-status"></div>
             </div>
-            <h4>Aisyah Binti Rahman</h4>
-            <p class="job-title">UI/UX Designer • Branding Specialist</p>
+            <h4>{{ freelancer.full_name|default:freelancer.user.username }}</h4>
+            <p class="job-title">{{ freelancer.tagline|default:"Expert Freelancer" }}</p>
             <div class="rating">
-                <span class="stars">★★★★★</span>
-                <span class="rating-count">(142)</span>
+                <span class="stars">
+                    {% if freelancer.user.rating_summary.average_rating %}
+                        {% with ""|center:5 as range %}
+                        {% for _ in range %}
+                            {% if forloop.counter <= freelancer.user.rating_summary.average_rating %}★{% else %}☆{% endif %}
+                        {% endfor %}
+                        {% endwith %}
+                    {% else %}
+                        ★★★★★
+                    {% endif %}
+                </span>
+                <span class="rating-count">({{ freelancer.user.rating_summary.total_reviews|default:0 }})</span>
             </div>
             <div class="skills">
-                <span>Figma</span>
-                <span>Adobe XD</span>
-                <span>Branding</span>
+                {% for skill in freelancer.skills_list_preview %}
+                    <span>{{ skill }}</span>
+                {% empty %}
+                    <span>Generalist</span>
+                {% endfor %}
             </div>
-            <div class="price">View Details</div>
+            <a href="{% url 'login' %}" class="price" style="text-decoration: none; color: inherit; display: block;">View Details</a>
         </div>
-
+        {% endfor %}
     </div>
+
+    <script>
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('search-type').value = tab.dataset.tab;
+                
+                // Update placeholder based on tab
+                const input = document.querySelector('.main-search-input');
+                if (tab.dataset.tab === 'work') {
+                    input.placeholder = "Search for projects: Web Design, Writing, App Development...";
+                } else {
+                    input.placeholder = "Try: Website Development, Logo Design, Content Writing...";
+                }
+            });
+        });
+    </script>
 </section>
 {% endblock %}
