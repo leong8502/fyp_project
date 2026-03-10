@@ -42,23 +42,59 @@ def freelancer_home(request):
 @freelancer_required
 def freelancer_search_job(request):
     from core.ai_utils import AISearchManager
+    from core.models import MatchScore
+
     query = request.GET.get('q', '').strip()
     freelancer = request.user.freelancer
 
-    projects = list(Project.objects.filter(status='open'))
-    manager = AISearchManager()
-    scored_projects = manager.calculate_match_scores(projects, freelancer=freelancer, query=query)
-    scored_projects.sort(key=lambda x: x[1], reverse=True)
+    # Threshold: user-adjustable, default 20%, range 5-100
+    try:
+        threshold = int(request.GET.get('threshold', 20))
+        threshold = max(5, min(100, threshold))
+    except (ValueError, TypeError):
+        threshold = 20
 
-    for project, score in scored_projects:
-        if project.required_skills:
-            project.skills_list = [s.strip() for s in project.required_skills.split(',') if s.strip()]
-        else:
-            project.skills_list = []
+    projects = list(Project.objects.filter(status='open').select_related('client').prefetch_related('milestones'))
+    manager = AISearchManager()
+
+    # Use the new detailed method
+    details = manager.calculate_match_details(projects, freelancer=freelancer, query=query)
+
+    # Sort descending by score
+    details.sort(key=lambda d: d['score'], reverse=True)
+
+    # Filter by threshold and attach skills_list
+    matched = []
+    for d in details:
+        project = d['project']
+        score   = d['score']
+
+        # Always attach skills_list for template rendering
+        project.skills_list = [s.strip() for s in (project.required_skills or '').split(',') if s.strip()]
+
+        if score >= threshold:
+            matched.append(d)
+
+        # Persist / update MatchScore in DB (only for meaningful scores)
+        if score > 0:
+            try:
+                MatchScore.objects.update_or_create(
+                    freelancer=freelancer,
+                    project=project,
+                    defaults={
+                        'score': score,
+                        'calculation_logic': d['calculation_logic'],
+                        'suitability_sentence': d['suitability_sentence'],
+                    }
+                )
+            except Exception:
+                pass  # Never crash the page due to DB errors
 
     return render(request, 'core/freelancer_searchJob.html', {
-        'query': query,
-        'scored_projects': scored_projects,
+        'query':             query,
+        'threshold':         threshold,
+        'matched':           matched,
+        'threshold_choices': [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100],
     })
 
 

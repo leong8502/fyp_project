@@ -747,3 +747,24 @@ class AIApiUsage(models.Model):
 
     class Meta:
         ordering = ['-date']
+
+
+class MatchScore(models.Model):
+    """
+    Stores the Jaccard-based AI match score between a freelancer and a project.
+    Used for displaying sorted results, info popups, and suitability sentences.
+    """
+    freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='match_scores')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='match_scores')
+    score = models.FloatField(default=0.0, help_text="Match score 0-100")
+    calculation_logic = models.TextField(blank=True, help_text="Human-readable breakdown of scoring")
+    suitability_sentence = models.TextField(blank=True, help_text="Short sentence explaining suitability")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('freelancer', 'project')
+        ordering = ['-score']
+
+    def __str__(self):
+        return f"{self.freelancer} ↔ {self.project.title}: {self.score:.1f}%"

@@ -1,107 +1,365 @@
+"""
+ai_utils.py — Jaccard similarity + weighted scoring for freelancer-job matching.
+
+Algorithm weights:
+  40%  Skills Jaccard   (merged: freelancer profile skills ∪ query-typed skills vs project skills)
+  20%  Language match   (freelancer profile languages vs project preferred language — profile only)
+  20%  Experience years (numerical: min(effective_exp / project_exp, 1))
+  10%  Work title match (Jaccard of past job titles vs project title keywords)
+  10%  Availability     (exact availability match vs project experience_level heuristic)
+
+Score is 0–100 (float, rounded to 1 dp).
+
+RELEVANCE GATE (applied when a query is provided):
+  If none of the query skill tokens appear in the project title, description, or required_skills,
+  the project is suppressed (score set to 0) so unrelated results don't appear.
+"""
+
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+
+
+# ---------------------------------------------------------------------------
+# Keyword parsing
+# ---------------------------------------------------------------------------
+
+def parse_keywords(query: str) -> dict:
+    """
+    Parses a raw search query string into structured fields.
+
+    Returns:
+        {
+          'skills':       list[str],   # remaining tokens after extraction
+          'experience':   int | None,  # years extracted from e.g. "5 years"
+          'availability': str | None,  # 'full_time' | 'part_time' | 'contract'
+        }
+    """
+    raw = query.lower()
+
+    # --- Extract experience years ---
+    exp_match = re.search(r'(\d+)\s*(?:\+\s*)?years?', raw)
+    experience = int(exp_match.group(1)) if exp_match else None
+    if exp_match:
+        raw = raw[:exp_match.start()] + raw[exp_match.end():]
+
+    # --- Extract availability ---
+    availability = None
+    if re.search(r'\bfull[\s-]?time\b', raw):
+        availability = 'full_time'
+        raw = re.sub(r'\bfull[\s-]?time\b', '', raw)
+    elif re.search(r'\bpart[\s-]?time\b', raw):
+        availability = 'part_time'
+        raw = re.sub(r'\bpart[\s-]?time\b', '', raw)
+    elif re.search(r'\bcontract\b', raw):
+        availability = 'contract'
+        raw = re.sub(r'\bcontract\b', '', raw)
+
+    # --- Remaining tokens are skills / tech keywords ---
+    _stop = {'and', 'or', 'the', 'a', 'an', 'for', 'in', 'with', 'to', 'of',
+             'is', 'are', 'was', 'were', 'my', 'i', 'have', 'has', 'using',
+             'experience', 'developer', 'engineer', 'working', 'stack', 'full'}
+    tokens = [t for t in re.split(r'[\s,;/|]+', raw) if len(t) >= 2 and t not in _stop]
+
+    return {
+        'skills':       tokens,
+        'experience':   experience,
+        'availability': availability,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+_PROFICIENCY_WEIGHT = {
+    'basic':          0.25,
+    'conversational': 0.50,
+    'fluent':         0.85,
+    'native':         1.00,
+}
+
+def _to_set(text: str) -> set:
+    """Lowercased, comma-separated text → set of stripped tokens."""
+    if not text:
+        return set()
+    return {t.strip().lower() for t in text.split(',') if t.strip()}
+
+def _jaccard(a: set, b: set) -> float:
+    """Jaccard similarity: |A ∩ B| / |A ∪ B|.  Returns 0 if both empty."""
+    if not a and not b:
+        return 0.0
+    union = a | b
+    if not union:
+        return 0.0
+    return len(a & b) / len(union)
+
+
+# ---------------------------------------------------------------------------
+# Main matching class
+# ---------------------------------------------------------------------------
 
 class AISearchManager:
     """
-    Handles AI-based matching between freelancers, search queries, and projects.
-    Uses TF-IDF for fast, real-time matching of skills and descriptions.
+    Jaccard similarity + weighted scoring for freelancer–project matching.
+    Drop-in replacement for the old TF-IDF cosine similarity manager.
     """
-    
-    def __init__(self):
-        self.vectorizer = TfidfVectorizer(stop_words='english', lowercase=True)
 
-    def _get_project_text(self, project):
-        """
-        Combines project title, description, required skills, and milestones into a single corpus.
-        """
-        parts = [
-            project.title,
-            project.description,
-            project.required_skills,
-            project.preferred_language or ""
-        ]
-        
-        # Add milestone info
-        for milestone in project.milestones.all():
-            parts.append(milestone.title)
-            if milestone.description:
-                parts.append(milestone.description)
-        
-        return " ".join(filter(None, parts))
-
-    def _get_freelancer_text(self, freelancer):
-        """
-        Combines freelancer tagline, bio, and skills into a single corpus.
-        """
-        parts = [
-            freelancer.tagline or "",
-            freelancer.bio or "",
-            freelancer.skills or ""
-        ]
-        return " ".join(filter(None, parts))
+    # Component weights (must sum to 1.0)
+    W_SKILLS        = 0.40
+    W_LANGUAGE      = 0.20
+    W_EXPERIENCE    = 0.20
+    W_WORK_TITLE    = 0.10
+    W_AVAILABILITY  = 0.10
 
     def calculate_match_scores(self, projects, freelancer=None, query=None):
         """
-        Calculates match scores for a list of projects against a freelancer and/or a search query.
-        Returns a list of (project, score) tuples.
+        Returns list of (project, score) tuples, score in [0, 100].
+        Compatible with the previous cosine-similarity version's signature.
         """
-        if not projects:
-            return []
+        parsed = parse_keywords(query) if query else {'skills': [], 'experience': None, 'availability': None}
+        results = []
+        for project in projects:
+            score, _, _ = self._score_project(project, freelancer, parsed, has_query=bool(query and query.strip()))
+            results.append((project, round(score, 1)))
+        return results
 
-        # Prepare target text (Freelancer skills + Query)
-        target_parts = []
+    def calculate_match_details(self, projects, freelancer=None, query=None):
+        """
+        Extended version used by the search view.
+        Returns list of dicts:
+          { project, score, suitability_sentence, calculation_logic }
+        """
+        parsed = parse_keywords(query) if query else {'skills': [], 'experience': None, 'availability': None}
+        has_query = bool(query and query.strip())
+        results = []
+        for project in projects:
+            score, sentence, logic = self._score_project(project, freelancer, parsed, has_query=has_query)
+            results.append({
+                'project':              project,
+                'score':                round(score, 1),
+                'suitability_sentence': sentence,
+                'calculation_logic':    logic,
+            })
+        return results
+
+    # ------------------------------------------------------------------
+    # Internal scoring
+    # ------------------------------------------------------------------
+
+    def _score_project(self, project, freelancer, parsed: dict, has_query: bool = False):
+        """
+        Computes the weighted match score for one project.
+        Returns (score_0_to_100, suitability_sentence, calculation_logic_string).
+        """
+        # ── Freelancer data ────────────────────────────────────────────
         if freelancer:
-            target_parts.append(self._get_freelancer_text(freelancer))
-        if query:
-            target_parts.append(query)
-        
-        target_text = " ".join(target_parts)
-        if not target_text:
-            return [(p, 0) for p in projects]
+            fl_skills_set   = set(freelancer.skills_list)
+            fl_exp_years    = getattr(freelancer, 'experience_years', 0) or 0
+            fl_availability = getattr(freelancer, 'availability_status', '') or ''
 
-        # Prepare project corpora
-        project_texts = [self._get_project_text(p) for p in projects]
-        
-        try:
-            # Combine all for vectorization
-            all_texts = project_texts + [target_text]
-            tfidf_matrix = self.vectorizer.fit_transform(all_texts)
-            
-            # Target is the last row
-            target_vector = tfidf_matrix[-1]
-            project_vectors = tfidf_matrix[:-1]
-            
-            # Calculate cosine similarity
-            similarities = cosine_similarity(target_vector, project_vectors).flatten()
-            
-            results = []
-            for i, project in enumerate(projects):
-                # Scale to 0-100 and round
-                score = round(similarities[i] * 100, 1)
-                results.append((project, score))
-            
-            return results
-        except Exception as e:
-            print(f"AI Matching Error: {e}")
-            return [(p, 0) for p in projects]
+            # Language data: {lang_lower: weight}
+            fl_lang_map = {}
+            try:
+                for lang_obj in freelancer.languages.all():
+                    w = _PROFICIENCY_WEIGHT.get(lang_obj.proficiency.lower(), 0.5)
+                    fl_lang_map[lang_obj.language.strip().lower()] = w
+            except Exception:
+                pass
+
+            # Work title keywords (all past job titles combined)
+            fl_work_titles = set()
+            try:
+                for we in freelancer.work_experiences.all():
+                    for token in re.split(r'[\s,/]+', (we.job_title or '').lower()):
+                        if len(token) >= 3:
+                            fl_work_titles.add(token)
+            except Exception:
+                pass
+        else:
+            fl_skills_set   = set()
+            fl_exp_years    = 0
+            fl_availability = ''
+            fl_lang_map     = {}
+            fl_work_titles  = set()
+
+        # ── Query-keyword data ─────────────────────────────────────────
+        query_skills = set(t.lower() for t in parsed.get('skills', []))
+        query_exp    = parsed.get('experience')    # int or None
+        query_avail  = parsed.get('availability')  # str or None
+
+        # ── Merge profile + query for effective values ─────────────────
+        # Skills: profile skills ∪ query-typed skills
+        effective_skills = fl_skills_set | query_skills
+
+        # Experience: prefer query if specified, else profile
+        effective_exp = query_exp if query_exp is not None else fl_exp_years
+
+        # Availability: prefer query if specified, else profile
+        effective_avail = query_avail if query_avail else fl_availability
+
+        # Language: profile only — search bar input does NOT affect language score
+        effective_lang_map = fl_lang_map
+
+        # ── Relevance gate (only when a query is provided) ─────────────
+        # At least ONE query skill token must appear in project title, description,
+        # or required_skills to pass. This prevents unrelated projects from showing up.
+        if has_query and query_skills:
+            proj_text = ' '.join([
+                project.title or '',
+                project.description or '',
+                project.required_skills or '',
+            ]).lower()
+            has_any_match = any(token in proj_text for token in query_skills)
+            if not has_any_match:
+                # Irrelevant project — suppress with score=0
+                logic = "No query keywords matched this project's title, description, or required skills."
+                sentence = "This project does not appear relevant to your search keywords."
+                return 0.0, sentence, logic
+
+        # ── Project data ───────────────────────────────────────────────
+        proj_skills_set = _to_set(project.required_skills)
+        proj_exp_req    = getattr(project, 'year_of_experience', 0) or 0
+        proj_lang       = (project.preferred_language or '').strip().lower()
+
+        # Project title keywords for work-title match
+        proj_title_tokens = set(
+            t for t in re.split(r'[\s,/\-]+', project.title.lower()) if len(t) >= 3
+        )
+
+        # ── Component scores ───────────────────────────────────────────
+
+        # 1) Skills Jaccard (40%) — uses merged profile+query skills
+        skills_jaccard = _jaccard(effective_skills, proj_skills_set)
+        common_skills  = effective_skills & proj_skills_set
+
+        # 2) Language match (20%)
+        if proj_lang:
+            # Check merged language map (profile + query-stated languages)
+            lang_score = effective_lang_map.get(proj_lang, 0.0)
+        else:
+            # No language preference = full marks
+            lang_score = 1.0
+
+        # 3) Experience years (20%)
+        if proj_exp_req == 0:
+            exp_score = 1.0
+        else:
+            exp_score = min(effective_exp / proj_exp_req, 1.0)
+
+        # 4) Work title Jaccard (10%)
+        work_title_jaccard = _jaccard(fl_work_titles, proj_title_tokens)
+
+        # 5) Availability (10%)
+        if not effective_avail:
+            avail_score = 0.5   # unknown → neutral
+        elif effective_avail == 'not_available':
+            avail_score = 0.0
+        elif effective_avail in ('full_time', 'contract'):
+            avail_score = 1.0
+        else:
+            avail_score = 0.7   # part_time is eligible but partial
+
+        # ── Weighted total ─────────────────────────────────────────────
+        raw_score = (
+            self.W_SKILLS       * skills_jaccard       +
+            self.W_LANGUAGE     * lang_score           +
+            self.W_EXPERIENCE   * exp_score            +
+            self.W_WORK_TITLE   * work_title_jaccard   +
+            self.W_AVAILABILITY * avail_score
+        )
+        score = raw_score * 100   # 0–100
+
+        # ── Human-readable breakdown (for info popup) ──────────────────
+        common_list  = ', '.join(sorted(common_skills)) if common_skills else 'none'
+        lang_display = proj_lang.title() if proj_lang else 'Any'
+
+        lang_source = ''
+        if proj_lang:
+            if proj_lang in fl_lang_map and proj_lang in query_languages:
+                lang_source = ' (profile + query)'
+            elif proj_lang in query_languages:
+                lang_source = ' (from search query)'
+            elif proj_lang in fl_lang_map:
+                lang_source = ' (from profile)'
+            else:
+                lang_source = ' (not found)'
+
+        logic = (
+            f"Skills Jaccard: {skills_jaccard:.0%} "
+            f"({len(common_skills)} common: {common_list}) x 40%\n"
+            f"Language ({lang_display}): {lang_score:.0%}{lang_source} x 20%\n"
+            f"Experience: {effective_exp} yr / {proj_exp_req} yr req -> {exp_score:.0%} x 20%\n"
+            f"Work Title overlap: {work_title_jaccard:.0%} x 10%\n"
+            f"Availability ({effective_avail or 'unknown'}): {avail_score:.0%} x 10%\n"
+            f"Total: {score:.1f}%"
+        )
+
+        # ── Suitability sentence ───────────────────────────────────────
+        sentence = _build_sentence(
+            score, common_skills, effective_exp, proj_exp_req,
+            effective_avail, lang_score, proj_lang
+        )
+
+        return score, sentence, logic
+
+
+# ---------------------------------------------------------------------------
+# Sentence generator
+# ---------------------------------------------------------------------------
+
+def _build_sentence(score, common_skills, fl_exp, proj_exp, fl_avail, lang_score, proj_lang):
+    """Generates a short plain-English suitability sentence."""
+    if score >= 75:
+        strength = "an excellent"
+    elif score >= 50:
+        strength = "a good"
+    elif score >= 25:
+        strength = "a fair"
+    else:
+        strength = "a low"
+
+    parts = []
+
+    if common_skills:
+        skill_str = ', '.join(sorted(common_skills)[:3])
+        if len(common_skills) > 3:
+            skill_str += f" +{len(common_skills)-3} more"
+        parts.append(f"your {skill_str} skills align")
+    else:
+        parts.append("no direct skill overlap found")
+
+    if proj_exp > 0:
+        if fl_exp >= proj_exp:
+            parts.append(f"your {fl_exp} yr experience meets the {proj_exp} yr requirement")
+        else:
+            parts.append(f"your {fl_exp} yr experience is below the {proj_exp} yr requirement")
+
+    if proj_lang:
+        if lang_score >= 0.85:
+            parts.append(f"you speak {proj_lang.title()} at a high level")
+        elif lang_score > 0:
+            parts.append(f"you have some {proj_lang.title()} proficiency")
+        else:
+            parts.append(f"the preferred language ({proj_lang.title()}) is not in your profile")
+
+    detail = "; ".join(parts) if parts else "general profile match"
+    return f"You are {strength} match ({score:.0f}%): {detail}."
+
+
+# ---------------------------------------------------------------------------
+# Recommendations shortcut (used on freelancer home)
+# ---------------------------------------------------------------------------
 
 def get_recommendations(freelancer, limit=4):
     """
-    Convenience function to get top recommended projects for a freelancer.
+    Returns top recommended (project, score) pairs for the freelancer home page.
     """
     from .models import Project
-    
-    # Get all open projects
+
     open_projects = list(Project.objects.filter(status='open'))
     if not open_projects:
         return []
-    
+
     manager = AISearchManager()
-    scored_projects = manager.calculate_match_scores(open_projects, freelancer=freelancer)
-    
-    # Sort by score descending
-    scored_projects.sort(key=lambda x: x[1], reverse=True)
-    
-    return scored_projects[:limit]
+    scored = manager.calculate_match_scores(open_projects, freelancer=freelancer)
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return scored[:limit]
