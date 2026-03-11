@@ -99,6 +99,10 @@ urlpatterns = [
     path('api/chat/mute/<int:conversation_id>/', views.api_toggle_mute, name='api_toggle_mute'),
     path('api/chat/remove/<int:conversation_id>/', views.api_remove_chat, name='api_remove_chat'),
 
+    # ── Ami AI Chatbox ─────────────────────────────────────────────────────
+    path('ami/ask/', views.chat_ami, name='ami_ask'),
+    path('ami/history/', views.ami_history, name='ami_history'),
+
     # ── Freelancer ─────────────────────────────────────────────────────────
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),
     path('freelancer/profile/', views.freelancer_profile, name='freelancer_profile'),

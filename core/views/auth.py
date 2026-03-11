@@ -1,17 +1,17 @@
 """
 Auth views – login, logout, registration, email verification.
 """
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate
-from django.contrib.auth import login as auth_login, logout as auth_logout
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
+from django.shortcuts import render, redirect  # type: ignore[import-untyped]
+from django.contrib.auth import authenticate  # type: ignore[import-untyped]
+from django.contrib.auth import login as auth_login, logout as auth_logout  # type: ignore[import-untyped]
+from django.contrib.auth.decorators import login_required  # type: ignore[import-untyped]
+from django.contrib import messages  # type: ignore[import-untyped]
 
-from django.db.models import Q
-from core.decorators import guest_required
-from core.models import AdminLog
-from core.forms import ClientRegistrationForm
-from core.services.auth_service import AuthService
+from django.db.models import Q  # type: ignore[import-untyped]
+from core.decorators import guest_required  # type: ignore[import-untyped]
+from core.models import AdminLog  # type: ignore[import-untyped]
+from core.forms import ClientRegistrationForm  # type: ignore[import-untyped]
+from core.services.auth_service import AuthService  # type: ignore[import-untyped]
 
 
 @guest_required
@@ -21,7 +21,7 @@ def login(request):
         password = request.POST.get("password")
         role = request.POST.get("role")  # client / freelancer
 
-        from django.contrib.auth.models import User
+        from django.contrib.auth.models import User  # type: ignore[import-untyped]
         try:
             # Check if login_id is email or username
             user = User.objects.filter(Q(email=login_id) | Q(username=login_id)).first()
@@ -86,7 +86,7 @@ def admin_login(request):
         login_id = request.POST.get('login_id')
         password = request.POST.get('password')
         
-        from django.contrib.auth.models import User
+        from django.contrib.auth.models import User  # type: ignore[import-untyped]
         user_obj = User.objects.filter(Q(email=login_id) | Q(username=login_id)).first()
         
         if user_obj:
@@ -122,6 +122,12 @@ def logout(request):
             description='Admin logged out',
             ip_address=request.META.get('REMOTE_ADDR')
         )
+    # Clear Ami chatbox history on logout so next session starts fresh
+    try:
+        from core.models import ChatMessage  # type: ignore[import-untyped]
+        ChatMessage.objects.filter(user=request.user).delete()
+    except Exception:
+        pass
     auth_logout(request)
     return redirect('home')
 
