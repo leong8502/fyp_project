@@ -7,6 +7,7 @@ from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
+from django.db.models import Q
 from core.decorators import guest_required
 from core.models import AdminLog
 from core.forms import ClientRegistrationForm
@@ -16,15 +17,18 @@ from core.services.auth_service import AuthService
 @guest_required
 def login(request):
     if request.method == "POST":
-        email = request.POST.get("email")
+        login_id = request.POST.get("login_id")
         password = request.POST.get("password")
         role = request.POST.get("role")  # client / freelancer
 
         from django.contrib.auth.models import User
         try:
-            user = User.objects.get(email=email)
+            # Check if login_id is email or username
+            user = User.objects.filter(Q(email=login_id) | Q(username=login_id)).first()
+            if not user:
+                raise User.DoesNotExist
         except User.DoesNotExist:
-            messages.error(request, "Invalid email or password")
+            messages.error(request, "Invalid username/email or password")
             return redirect("login")
 
         if not user.is_active and user.check_password(password):
@@ -44,7 +48,7 @@ def login(request):
         user = authenticate(request, username=user.username, password=password)
 
         if user is None:
-            messages.error(request, "Invalid email or password")
+            messages.error(request, "Invalid username/email or password")
             return redirect("login")
 
         if role == "client" and not hasattr(user, "client"):
@@ -79,9 +83,16 @@ def admin_login(request):
             return redirect('home')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
+        login_id = request.POST.get('login_id')
         password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
+        
+        from django.contrib.auth.models import User
+        user_obj = User.objects.filter(Q(email=login_id) | Q(username=login_id)).first()
+        
+        if user_obj:
+            user = authenticate(request, username=user_obj.username, password=password)
+        else:
+            user = None
 
         if user is not None:
             if user.is_superuser or user.is_staff:
