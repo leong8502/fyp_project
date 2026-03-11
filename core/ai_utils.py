@@ -16,6 +16,7 @@ RELEVANCE GATE (applied when a query is provided):
 """
 
 import re
+from itertools import islice
 
 
 # ---------------------------------------------------------------------------
@@ -39,7 +40,9 @@ def parse_keywords(query: str) -> dict:
     exp_match = re.search(r'(\d+)\s*(?:\+\s*)?years?', raw)
     experience = int(exp_match.group(1)) if exp_match else None
     if exp_match:
-        raw = raw[:exp_match.start()] + raw[exp_match.end():]
+        # Avoid IDE type checking errors for slicing by using re.sub or substring replace
+        # We replace the exact match with an empty string
+        raw = raw.replace(exp_match.group(0), '', 1)
 
     # --- Extract availability ---
     availability = None
@@ -53,6 +56,14 @@ def parse_keywords(query: str) -> dict:
         availability = 'contract'
         raw = re.sub(r'\bcontract\b', '', raw)
 
+# --- Extract languages ---
+    _KNOWN_LANGS = {'english', 'malay', 'chinese', 'mandarin', 'tamil', 'hindi', 'japanese', 'korean', 'french', 'german', 'spanish'}
+    query_langs = []
+    for l in _KNOWN_LANGS:
+        if re.search(r'\b' + re.escape(l) + r'\b', raw):
+            query_langs.append(l)
+            raw = re.sub(r'\b' + re.escape(l) + r'\b', '', raw)
+
     # --- Remaining tokens are skills / tech keywords ---
     _stop = {'and', 'or', 'the', 'a', 'an', 'for', 'in', 'with', 'to', 'of',
              'is', 'are', 'was', 'were', 'my', 'i', 'have', 'has', 'using',
@@ -61,6 +72,7 @@ def parse_keywords(query: str) -> dict:
 
     return {
         'skills':       tokens,
+        'languages':    query_langs,
         'experience':   experience,
         'availability': availability,
     }
@@ -115,11 +127,12 @@ class AISearchManager:
         Returns list of (project, score) tuples, score in [0, 100].
         Compatible with the previous cosine-similarity version's signature.
         """
-        parsed = parse_keywords(query) if query else {'skills': [], 'experience': None, 'availability': None}
+        parsed = parse_keywords(query) if query else {'skills': [], 'languages': [], 'experience': None, 'availability': None}
         results = []
         for project in projects:
             score, _, _ = self._score_project(project, freelancer, parsed, has_query=bool(query and query.strip()))
-            results.append((project, round(score, 1)))
+            final_score: float = float(score)
+            results.append((project, round(final_score, 1)))  # type: ignore[call-overload]
         return results
 
     def calculate_match_details(self, projects, freelancer=None, query=None):
@@ -128,14 +141,15 @@ class AISearchManager:
         Returns list of dicts:
           { project, score, suitability_sentence, calculation_logic }
         """
-        parsed = parse_keywords(query) if query else {'skills': [], 'experience': None, 'availability': None}
+        parsed = parse_keywords(query) if query else {'skills': [], 'languages': [], 'experience': None, 'availability': None}
         has_query = bool(query and query.strip())
         results = []
         for project in projects:
             score, sentence, logic = self._score_project(project, freelancer, parsed, has_query=has_query)
+            final_score: float = float(score)
             results.append({
                 'project':              project,
-                'score':                round(score, 1),
+                'score':                round(final_score, 1),  # type: ignore[call-overload]
                 'suitability_sentence': sentence,
                 'calculation_logic':    logic,
             })
@@ -145,7 +159,7 @@ class AISearchManager:
     # Internal scoring
     # ------------------------------------------------------------------
 
-    def _score_project(self, project, freelancer, parsed: dict, has_query: bool = False):
+    def _score_project(self, project, freelancer, parsed: dict, has_query: bool = False) -> tuple[float, str, str]:
         """
         Computes the weighted match score for one project.
         Returns (score_0_to_100, suitability_sentence, calculation_logic_string).
@@ -183,6 +197,7 @@ class AISearchManager:
 
         # ── Query-keyword data ─────────────────────────────────────────
         query_skills = set(t.lower() for t in parsed.get('skills', []))
+        query_langs  = set(t.lower() for t in parsed.get('languages', []))
         query_exp    = parsed.get('experience')    # int or None
         query_avail  = parsed.get('availability')  # str or None
 
@@ -196,8 +211,11 @@ class AISearchManager:
         # Availability: prefer query if specified, else profile
         effective_avail = query_avail if query_avail else fl_availability
 
-        # Language: profile only — search bar input does NOT affect language score
-        effective_lang_map = fl_lang_map
+        # Language: profile + query-stated languages
+        effective_lang_map = fl_lang_map.copy()
+        for ql in query_langs:
+            # Query-stated language gets high weight (effectively native/fluent)
+            effective_lang_map[ql] = max(effective_lang_map.get(ql, 0.0), 0.95)
 
         # ── Relevance gate (only when a query is provided) ─────────────
         # At least ONE query skill token must appear in project title, description,
@@ -274,11 +292,14 @@ class AISearchManager:
 
         lang_source = ''
         if proj_lang:
-            if proj_lang in fl_lang_map and proj_lang in query_languages:
+            is_in_profile = proj_lang in fl_lang_map
+            is_in_query   = proj_lang in query_langs
+            
+            if is_in_profile and is_in_query:
                 lang_source = ' (profile + query)'
-            elif proj_lang in query_languages:
+            elif is_in_query:
                 lang_source = ' (from search query)'
-            elif proj_lang in fl_lang_map:
+            elif is_in_profile:
                 lang_source = ' (from profile)'
             else:
                 lang_source = ' (not found)'
@@ -317,10 +338,12 @@ def _build_sentence(score, common_skills, fl_exp, proj_exp, fl_avail, lang_score
     else:
         strength = "a low"
 
-    parts = []
+    parts: list[str] = []
 
     if common_skills:
-        skill_str = ', '.join(sorted(common_skills)[:3])
+        # Cast to a strictly typed string list to satisfy Pyre slicing
+        skill_list: list[str] = list(sorted(common_skills))
+        skill_str = ', '.join(islice(skill_list, 3))
         if len(common_skills) > 3:
             skill_str += f" +{len(common_skills)-3} more"
         parts.append(f"your {skill_str} skills align")
@@ -353,13 +376,13 @@ def get_recommendations(freelancer, limit=4):
     """
     Returns top recommended (project, score) pairs for the freelancer home page.
     """
-    from .models import Project
+    from core.models import Project  # type: ignore
 
     open_projects = list(Project.objects.filter(status='open'))
     if not open_projects:
         return []
 
     manager = AISearchManager()
-    scored = manager.calculate_match_scores(open_projects, freelancer=freelancer)
-    scored.sort(key=lambda x: x[1], reverse=True)
-    return scored[:limit]
+    scored: list[tuple] = manager.calculate_match_scores(open_projects, freelancer=freelancer)
+    scored = sorted(scored, key=lambda x: x[1], reverse=True)
+    return list(islice(scored, limit))

@@ -1,7 +1,7 @@
-from django.db import models
-from pgvector.django import VectorField
-from django.contrib.auth.models import User
-from django.utils import timezone
+from django.db import models  # type: ignore[import-untyped]
+from pgvector.django import VectorField  # type: ignore[import-untyped]
+from django.contrib.auth.models import User  # type: ignore[import-untyped]
+from django.utils import timezone  # type: ignore[import-untyped]
 
 class Industry(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -183,7 +183,7 @@ class Milestone(models.Model):
     def is_late(self):
         """Returns True if the milestone is in_progress and past its deadline."""
         if self.status == 'in_progress' and self.deadline:
-            from django.utils import timezone
+            from django.utils import timezone  # type: ignore[import-untyped]
             return self.deadline < timezone.now().date()
         return False
 
@@ -773,3 +773,17 @@ class MatchScore(models.Model):
 
     def __str__(self):
         return f"{self.freelancer} ↔ {self.project.title}: {self.score:.1f}%"
+
+
+class ChatMessage(models.Model):
+    """Stores per-user Ami chatbox conversation history."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ami_messages')
+    message = models.TextField()
+    response = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"[{self.user.username}] {self.message[:40]}"

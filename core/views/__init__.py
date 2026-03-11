@@ -86,6 +86,8 @@ from core.views.chat import (
     api_remove_chat,
 )
 
+from core.views.ami import chat_ami, ami_history
+
 from core.views.admin import (
     admin_dashboard,
     admin_support,
