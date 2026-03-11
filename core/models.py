@@ -189,10 +189,13 @@ class Milestone(models.Model):
 
     @property
     def was_completed_late(self):
-        """Returns True if the milestone was completed/approved after its deadline."""
+        """Returns True if the milestone is completed/approved after its deadline."""
         if self.status in ['completed', 'approved'] and self.deadline and self.completed_at:
             return self.completed_at.date() > self.deadline
         return False
+
+    class Meta:
+        ordering = ['order']
 
 class MilestoneAttachment(models.Model):
     milestone = models.ForeignKey(Milestone, on_delete=models.CASCADE, related_name='attachments')

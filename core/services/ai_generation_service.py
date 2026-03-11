@@ -49,6 +49,11 @@ class AIGenerationService:
             
         genai.configure(api_key=api_key)
         
+        # Fetch active categories from the database
+        from core.models import ProjectCategory
+        categories_list = list(ProjectCategory.objects.filter(is_active=True).values_list('name', flat=True))
+        categories_str = ", ".join(categories_list) if categories_list else "Development, Design, Marketing, Writing, Legal"
+        
         # We use flash because it's fast and handles JSON generation well
         model = genai.GenerativeModel('gemini-2.5-flash')
         
@@ -63,7 +68,7 @@ class AIGenerationService:
         
         {{
           "title": "A short, professional title for the project",
-          "category": "One of: Development, Design, Marketing, Writing, Legal",
+          "category": "{categories_list[0] if categories_list else 'Development'}", // MUST be one of: {categories_str}
           "description": "A detailed, professional description expanding on their prompt",
           "budget": 5000, 
           "experience_level": "entry, intermediate, or expert",
@@ -87,6 +92,7 @@ class AIGenerationService:
         3. Milestone deadlines MUST be sequential and the final milestone deadline MUST match the project "deadline".
         4. Budget: The sum of all milestone amounts MUST equal the total budget.
         5. Experience: Less than 2 years = entry, 2-4 years = intermediate, 5+ years = expert.
+        6. Skills: Generate specific technical skills or tools, not general abilities. The skills should be software, programming languages, frameworks, or professional tools (e.g., Python, Flutter, Adobe Photoshop, Microsoft Excel, MySQL). Avoid generic terms like ‘programming’, ‘design’, or ‘computer skills’.
         """
         
         try:

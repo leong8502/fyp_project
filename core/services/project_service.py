@@ -352,8 +352,9 @@ class ProjectService:
             escrow.status = 'refunded'
             escrow.save()
 
-            # Cancel project
+            # Cancel project and milestones
             project.status = 'cancelled'
+            project.milestones.all().update(status='cancelled')
             project.save()
 
             ProjectActivity.objects.create(
@@ -410,6 +411,7 @@ class ProjectService:
                     escrow.save()
 
                     project.status = 'cancelled'
+                    project.milestones.all().update(status='cancelled')
                     project.save()
 
                     from core.models import ProjectActivity

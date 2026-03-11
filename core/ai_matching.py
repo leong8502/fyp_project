@@ -486,8 +486,14 @@ class MatchEngine:
         
         # Clamp sim_score
         sim_score = max(0.0, min(sim_score, 1.0))
-        if sim_score > 0.8:
-            reasons.append("<strong>Context Match:</strong> Profile description strongly aligns with your project goals.")
+        
+        # Tiered reasons for better transparency
+        if sim_score >= 0.8:
+            reasons.append("<strong>Context Match:</strong> Profile and background strongly align with the project's strategic goals.")
+        elif sim_score >= 0.6:
+            reasons.append("<strong>Good Context Match:</strong> Professional experience and profile details align well with the project requirements.")
+        elif sim_score >= 0.4:
+            reasons.append("<strong>Moderate Context Match:</strong> Some aspects of your professional background relate to the project's scope.")
 
         # 2. Skill Overlap (20%)
         # Explicit check of required skills vs freelancer skills
@@ -565,7 +571,7 @@ class MatchEngine:
 
 
         # 5. Language Match (5%)
-        lang_score = 0.0
+        lang_score = 1.0
         lang_match_text = ""
         if project.preferred_language:
             pref_lang = project.preferred_language.lower().strip()
@@ -573,6 +579,8 @@ class MatchEngine:
             if freelancer.languages.filter(language__icontains=pref_lang).exists():
                 lang_score = 1.0
                 lang_match_text = f", and is proficient in {project.preferred_language}"
+            else:
+                lang_score = 0.0
 
         # 6. Availability (5%)
         avail_score = 0.0

@@ -214,7 +214,7 @@
             <h2>Milestones</h2>
             {% if project.milestones.exists %}
             <ul class="milestones">
-                {% for milestone in project.milestones.all %}
+                {% for milestone in project.milestones.all|dictsort:"order" %}
                 <li class="milestone-item milestone-{{ milestone.status }}">
                     <div class="ms-header">
                         <span class="ms-title">{{ milestone.title }}</span>
@@ -455,7 +455,7 @@
             <button class="btn-primary btn-disabled-v2" disabled>No Freelancer Assigned</button>
             {% endif %}
             
-            {% for milestone in project.milestones.all %}
+            {% for milestone in project.milestones.all|dictsort:"order" %}
                 {% if milestone.status == 'completed' %}
                 <!-- Actions for Completed Milestone waiting for client approval -->
                 <button class="btn-success" onclick="openModalV2('releasePaymentModal_{{ milestone.id }}')"><i class="fas fa-check-circle"></i> Release Milestone Payment</button>
@@ -516,7 +516,7 @@
 
 <!-- Action Modals for Milestones -->
 {% if project.status == 'in_progress' %}
-    {% for milestone in project.milestones.all %}
+    {% for milestone in project.milestones.all|dictsort:"order" %}
         {% if milestone.status == 'completed' %}
             <!-- Request Revision Modal -->
             <div id="requestRevisionModal_{{ milestone.id }}" class="modal-v2">

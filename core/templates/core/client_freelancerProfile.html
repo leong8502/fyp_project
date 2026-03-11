@@ -60,6 +60,100 @@
                     <p style="color: #888;">No skills specified.</p>
                     {% endfor %}
                 </div>
+                
+            </div>
+
+            <!-- Languages Section -->
+            <div class="profile-card">
+                <h2>Languages</h2>
+                <div class="detail-grid">
+                    {% for lang in freelancer.languages.all %}
+                    <div class="detail-item">
+                        <span class="detail-label">{{ lang.language }}</span>
+                        <span class="detail-value">{{ lang.proficiency }}</span>
+                    </div>
+                    {% empty %}
+                    <p style="color: #888; font-style: italic;">No languages specified.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Work History Section -->
+            <div class="profile-card">
+                <h2>Work & Education History</h2>
+                {% if freelancer.work_experiences.all %}
+                <div class="timeline">
+                    {% for exp in freelancer.work_experiences.all|dictsortreversed:"start_date" %}
+                    <div class="timeline-item">
+                        <div class="timeline-header">
+                            <div>
+                                <h3 class="timeline-title">{{ exp.job_title }}</h3>
+                                <div class="timeline-company">{{ exp.company }}</div>
+                            </div>
+                            <div class="timeline-date">
+                                {{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}
+                            </div>
+                        </div>
+                        {% if exp.description %}
+                        <p class="timeline-desc">{{ exp.description|linebreaksbr }}</p>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #888; font-style: italic;">No work history provided.</p>
+                {% endif %}
+            </div>
+
+            <!-- Portfolio Section -->
+            <div class="profile-card">
+                <h2>Portfolio</h2>
+                {% if freelancer.portfolios.all %}
+                <div class="portfolio-grid">
+                    {% for item in freelancer.portfolios.all %}
+                    <div class="portfolio-card">
+                        <h3>{{ item.title }}</h3>
+                        <p>{{ item.description|truncatewords:20 }}</p>
+                        {% if item.project_link %}
+                        <a href="{{ item.project_link }}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem; text-decoration: none;">View Project</a>
+                        {% elif item.project_file %}
+                        <a href="{{ item.project_file.url }}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem; text-decoration: none;">Download File</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #888; font-style: italic;">No portfolio items uploaded yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Certifications Section -->
+            <div class="profile-card">
+                <h2>Certifications</h2>
+                {% if freelancer.certifications.all %}
+                <ul class="cert-list">
+                    {% for cert in freelancer.certifications.all %}
+                    <li class="cert-item">
+                        <div class="cert-icon">
+                            ✓
+                        </div>
+                        <div class="cert-details">
+                            <h3>
+                                {{ cert.name }}
+                                {% if cert.is_verified %}
+                                <span class="verified-badge">✔ Verified</span>
+                                {% endif %}
+                            </h3>
+                            <div class="cert-meta">
+                                Issued by {{ cert.issuing_organization }} • {{ cert.issue_date|date:"M Y" }}
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p style="color: #888; font-style: italic;">No certifications listed.</p>
+                {% endif %}
             </div>
 
             <!-- Reviews Section -->
@@ -110,6 +204,15 @@
                         <li>
                             <span class="info-label">Location</span>
                             <span class="info-value">{{ freelancer.location|default:'Remote' }}</span>
+                        </li>
+                        <li>
+                            <span class="info-label">Experience</span>
+                            <span class="info-value">
+                                {% if freelancer.experience_years >= 5 %}Expert ({{ freelancer.experience_years }} yrs)
+                                {% elif freelancer.experience_years >= 2 %}Intermediate ({{ freelancer.experience_years }} yrs)
+                                {% elif freelancer.experience_years > 0 %}Entry Level ({{ freelancer.experience_years }} yr)
+                                {% else %}New{% endif %}
+                            </span>
                         </li>
                         <li>
                             <span class="info-label">Success Rate</span>
