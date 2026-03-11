@@ -743,14 +743,21 @@ def client_projectPublish(request, project_id):
         return redirect('client_projectInfo', project_id=project.id)
 
     milestones = project.milestones.all().order_by('order')
-    has_sufficient_balance = wallet.balance >= project.budget
-    balance_after_payment = wallet.balance - project.budget
-    amount_needed = project.budget - wallet.balance if not has_sufficient_balance else decimal.Decimal('0.00')
+    
+    import decimal
+    platform_fee = round(project.budget * decimal.Decimal('0.10'), 2)
+    total_payment = project.budget + platform_fee
+    
+    has_sufficient_balance = wallet.balance >= total_payment
+    balance_after_payment = wallet.balance - total_payment
+    amount_needed = total_payment - wallet.balance if not has_sufficient_balance else decimal.Decimal('0.00')
 
     return render(request, 'core/client_projectPublish.html', {
         'project': project,
         'milestones': milestones,
         'wallet': wallet,
+        'platform_fee': platform_fee,
+        'total_payment': total_payment,
         'has_sufficient_balance': has_sufficient_balance,
         'balance_after_payment': balance_after_payment,
         'amount_needed': amount_needed,
@@ -798,15 +805,19 @@ def client_confirmPayment(request, project_id):
         messages.error(request, "Wallet not found.")
         return redirect('client_projectInfo', project_id=project.id)
 
-    if wallet.balance < project.budget:
-        messages.error(request, f"Insufficient balance. You need RM {project.budget - wallet.balance:.2f} more.")
+    import decimal
+    platform_fee = round(project.budget * decimal.Decimal('0.10'), 2)
+    total_payment = project.budget + platform_fee
+
+    if wallet.balance < total_payment:
+        messages.error(request, f"Insufficient balance. You need RM {total_payment - wallet.balance:.2f} more.")
         return redirect('client_projectPublish', project_id=project_id)
 
     try:
         ProjectService.publish_project(project, wallet)
         messages.success(
             request,
-            f"Project '{project.title}' published successfully! RM {project.budget:.2f} has been placed in escrow."
+            f"Project '{project.title}' published successfully! RM {project.budget:.2f} has been placed in escrow and RM {platform_fee:.2f} paid as platform fee."
         )
         return redirect('client_projectInfo', project_id=project.id)
     except Exception as e:

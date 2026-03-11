@@ -30,11 +30,13 @@ def admin_dashboard(request):
     open_projects = Project.objects.filter(status='open').count()
     completed_projects = Project.objects.filter(status='completed').count()
 
-    total_earnings = Transaction.objects.filter(
-        status='completed', transaction_type='payment'
-    ).aggregate(total=Sum('amount'))['total'] or 0
-
-    platform_revenue = total_earnings * decimal.Decimal('0.10')
+    from core.models import Escrow
+    # Total earnings = sum of all project budgets (Escrow total_amount)
+    total_earnings = Escrow.objects.aggregate(total=Sum('total_amount'))['total'] or decimal.Decimal('0.00')
+    
+    # Platform revenue = sum of all platform fees stored in Escrow
+    platform_revenue = Escrow.objects.aggregate(total_fees=Sum('platform_fee'))['total_fees'] or decimal.Decimal('0.00')
+    
     recent_users = User.objects.order_by('-date_joined')[:5]
     recent_projects = Project.objects.order_by('-created_at')[:5]
 

@@ -370,6 +370,7 @@ class Escrow(models.Model):
     total_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Total amount held in escrow")
     released_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="Amount released to freelancer")
     remaining_amount = models.DecimalField(max_digits=12, decimal_places=2, help_text="Amount still in escrow")
+    platform_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="10% platform fee allocated from project")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

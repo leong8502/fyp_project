@@ -50,9 +50,17 @@
                     <span class="label"><i class="fas fa-wallet"></i> Available Balance</span>
                     <span class="value">RM {{ wallet.balance|floatformat:2 }}</span>
                 </div>
-                <div class="balance-row total">
-                    <span class="label"><i class="fas fa-money-bill-wave"></i> Total Payment</span>
+                <div class="balance-row">
+                    <span class="label"><i class="fas fa-money-bill-wave"></i> Project Budget</span>
                     <span class="value">RM {{ project.budget|floatformat:2 }}</span>
+                </div>
+                <div class="balance-row">
+                    <span class="label"><i class="fas fa-percentage"></i> 10% Platform Fee</span>
+                    <span class="value">RM {{ platform_fee|floatformat:2 }}</span>
+                </div>
+                <div class="balance-row total">
+                    <span class="label"><i class="fas fa-file-invoice-dollar"></i> Total Payment</span>
+                    <span class="value">RM {{ total_payment|floatformat:2 }}</span>
                 </div>
                 <div class="balance-row remaining {% if not has_sufficient_balance %}insufficient{% endif %}">
                     <span class="label"><i class="fas fa-coins"></i> After Payment</span>
@@ -123,9 +131,17 @@
                         <span>Project:</span>
                         <span>{{ project.title }}</span>
                     </div>
-                    <div class="detail-row total">
-                        <span>Amount:</span>
+                    <div class="detail-row">
+                        <span>Project Budget:</span>
                         <span>RM {{ project.budget|floatformat:2 }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Platform Fee (10%):</span>
+                        <span>RM {{ platform_fee|floatformat:2 }}</span>
+                    </div>
+                    <div class="detail-row total">
+                        <span>Total Payment:</span>
+                        <span>RM {{ total_payment|floatformat:2 }}</span>
                     </div>
                 </div>
 

@@ -87,12 +87,15 @@ class ProjectService:
         """Pay from wallet, create escrow, and publish the project."""
         from core.services import NotificationService
         with transaction.atomic():
-            wallet.balance -= project.budget
+            platform_fee = round(project.budget * decimal.Decimal('0.10'), 2)
+            total_deduction = project.budget + platform_fee
+            
+            wallet.balance -= total_deduction
             wallet.save()
 
             Transaction.objects.create(
                 wallet=wallet,
-                amount=project.budget,
+                amount=total_deduction,
                 direction='debit',
                 transaction_type='payment',
                 status='completed',
@@ -106,6 +109,7 @@ class ProjectService:
                 total_amount=project.budget,
                 released_amount=decimal.Decimal('0.00'),
                 remaining_amount=project.budget,
+                platform_fee=platform_fee,
                 status='active'
             )
 
