@@ -530,6 +530,7 @@ class Review(models.Model):
     rating = models.PositiveIntegerField(choices=[(i, i) for i in range(1, 6)])
     comment = models.TextField(blank=True)
     feedback_tags = models.JSONField(default=list, blank=True, help_text="List of selected feedback tags")
+    is_hidden = models.BooleanField(default=False, help_text="Hide the review from public display")
     
     created_at = models.DateTimeField(auto_now_add=True)
 

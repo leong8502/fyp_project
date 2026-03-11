@@ -30,6 +30,9 @@
                 <a href="{% url 'admin_project_management' %}" class="{% if request.resolver_match.url_name == 'admin_project_management' %}active{% endif %}">
                     <i class="fas fa-project-diagram"></i> Project Management
                 </a>
+                <a href="{% url 'admin_review_management' %}" class="{% if request.resolver_match.url_name == 'admin_review_management' %}active{% endif %}">
+                    <i class="fas fa-star-half-alt"></i> Review Management
+                </a>
                 <a href="{% url 'admin_reference_data' %}" class="{% if request.resolver_match.url_name == 'admin_reference_data' %}active{% endif %}">
                     <i class="fas fa-database"></i> Reference Data
                 </a>

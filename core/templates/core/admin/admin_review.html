@@ -1,0 +1,273 @@
+{% extends 'core/admin/admin_master.html' %}
+{% load static %}
+
+{% block admin_title %}Review Management - Admin Panel{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/admin/admin_review.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="user-container">
+    <h1 class="page-title">Review Management</h1>
+
+    <!-- Search and Filter Bar -->
+    <div class="filter-bar">
+        <form method="get" class="filter-form">
+            <input type="text" name="search" class="search-input" placeholder="Search by project, user, or comment..." value="{{ search|default:'' }}">
+            
+            <select name="visibility" class="filter-select">
+                <option value="">All Visibility</option>
+                <option value="visible" {% if visibility_filter == 'visible' %}selected{% endif %}>Visible</option>
+                <option value="hidden" {% if visibility_filter == 'hidden' %}selected{% endif %}>Hidden</option>
+            </select>
+            
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-filter"></i> Filter
+            </button>
+            
+            <a href="{% url 'admin_review_management' %}" class="btn-reset">
+                <i class="fas fa-redo"></i> Reset
+            </a>
+        </form>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 60px;">ID</th>
+                    <th style="width: 25%;">Project</th>
+                    <th style="width: 15%;">Reviewer</th>
+                    <th style="width: 15%;">Reviewee</th>
+                    <th style="width: 10%;">Rating</th>
+                    <th style="width: 15%;">Date</th>
+                    <th style="width: 10%;">Visibility</th>
+                    <th style="width: 9%;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for review in reviews %}
+                <tr data-review-id="{{ review.id }}" 
+                    data-project="{{ review.project.title }}" 
+                    data-reviewer="{{ review.reviewer.username }}" 
+                    data-reviewee="{{ review.reviewee.username }}" 
+                    data-rating="{{ review.rating }}"
+                    data-comment="{{ review.comment }}"
+                    data-visibility="{% if review.is_hidden %}hidden{% else %}visible{% endif %}"
+                    data-date="{{ review.created_at|date:'M d, Y H:i' }}">
+                    <td>#{{ review.id }}</td>
+                    <td>
+                        <div style="font-weight: 600;" class="truncate-text">{{ review.project.title }}</div>
+                    </td>
+                    <td>{{ review.reviewer.username }}</td>
+                    <td>{{ review.reviewee.username }}</td>
+                    <td><span class="star-rating"><i class="fas fa-star"></i> {{ review.rating }}</span></td>
+                    <td>{{ review.created_at|date:"M d, Y" }}</td>
+                    <td>
+                        <span class="badge badge-visibility-{% if review.is_hidden %}hidden{% else %}visible{% endif %}">
+                            {% if review.is_hidden %}Hidden{% else %}Visible{% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <button type="button" class="btn-action btn-edit" title="Manage Visibility" onclick="openEditReviewModal(this)">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="no-data">No reviews found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if reviews.has_other_pages %}
+    <div class="pagination">
+        {% if reviews.has_previous %}
+            <a href="?page={{ reviews.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if visibility_filter %}&visibility={{ visibility_filter }}{% endif %}" class="page-link">
+                <i class="fas fa-chevron-left"></i> Previous
+            </a>
+        {% endif %}
+        
+        <span class="page-info">Page {{ reviews.number }} of {{ reviews.paginator.num_pages }}</span>
+        
+        {% if reviews.has_next %}
+            <a href="?page={{ reviews.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if visibility_filter %}&visibility={{ visibility_filter }}{% endif %}" class="page-link">
+                Next <i class="fas fa-chevron-right"></i>
+            </a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Edit Review Modal -->
+<div id="editReviewModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Manage Review Visibility</h2>
+            <span class="close-modal" onclick="closeEditReviewModal()">&times;</span>
+        </div>
+        <form id="editReviewForm" onsubmit="submitVisibilityUpdate(event)">
+            {% csrf_token %}
+            <input type="hidden" id="edit_review_id" name="review_id">
+            
+            <div class="form-group">
+                <label>Review Info</label>
+                <div class="info-card">
+                    <p><strong>Project:</strong> <span id="info_project"></span></p>
+                    <p><strong>Reviewer:</strong> <span id="info_reviewer"></span></p>
+                    <p><strong>Reviewee:</strong> <span id="info_reviewee"></span></p>
+                    <p><strong>Rating:</strong> <span id="info_rating"></span></p>
+                    <p><strong>Date:</strong> <span id="info_date"></span></p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Comment Content</label>
+                <div class="info-card comment-box">
+                    <p id="info_comment" style="margin:0; font-style: italic;"></p>
+                </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label for="edit_visibility">Visibility Status</label>
+                <div class="visibility-toggle-container">
+                    <div class="toggle-option" id="toggle_visible" onclick="selectVisibility('show')">
+                        <i class="fas fa-eye"></i> Visible to Public
+                    </div>
+                    <div class="toggle-option" id="toggle_hidden" onclick="selectVisibility('hide')">
+                        <i class="fas fa-eye-slash alert-color"></i> Hidden (Removed)
+                    </div>
+                </div>
+                <input type="hidden" id="selected_action" name="action" value="">
+                <p class="help-text">Hiding a review removes it from user profiles and project pages. Used for violating content.</p>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn-cancel" onclick="closeEditReviewModal()">Cancel</button>
+                <button type="submit" class="btn-save">Update Visibility</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openEditReviewModal(button) {
+        const row = button.closest('tr');
+        
+        // Populate modal with row data
+        document.getElementById('edit_review_id').value = row.dataset.reviewId;
+        document.getElementById('info_project').textContent = row.dataset.project;
+        document.getElementById('info_reviewer').textContent = row.dataset.reviewer;
+        document.getElementById('info_reviewee').textContent = row.dataset.reviewee;
+        document.getElementById('info_rating').innerHTML = '<i class="fas fa-star star-color"></i> ' + row.dataset.rating;
+        document.getElementById('info_date').textContent = row.dataset.date;
+        document.getElementById('info_comment').textContent = row.dataset.comment || "No written comment attached.";
+        
+        // Set initial visibility toggle
+        const visibility = row.dataset.visibility;
+        selectVisibility(visibility === 'hidden' ? 'hide' : 'show');
+        
+        document.getElementById('editReviewModal').style.display = 'block';
+    }
+
+    function closeEditReviewModal() {
+        document.getElementById('editReviewModal').style.display = 'none';
+        document.getElementById('editReviewForm').reset();
+    }
+    
+    function selectVisibility(action) {
+        document.getElementById('selected_action').value = action;
+        
+        const visibleOpt = document.getElementById('toggle_visible');
+        const hiddenOpt = document.getElementById('toggle_hidden');
+        
+        if (action === 'show') {
+            visibleOpt.classList.add('selected');
+            hiddenOpt.classList.remove('selected');
+        } else {
+            hiddenOpt.classList.add('selected', 'danger');
+            visibleOpt.classList.remove('selected');
+        }
+    }
+
+    function showToast(message, type) {
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) {
+            existingToast.remove();
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        
+        toast.innerHTML = `
+            <i class="fas ${icon}"></i>
+            <span>${message}</span>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => toast.classList.add('show'), 100);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function submitVisibilityUpdate(event) {
+        event.preventDefault();
+        
+        const reviewId = document.getElementById('edit_review_id').value;
+        const action = document.getElementById('selected_action').value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        const submitBtn = event.target.querySelector('.btn-save');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Updating...';
+        submitBtn.disabled = true;
+
+        fetch(`/panel/reviews/update-status/${reviewId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `action=${action}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeEditReviewModal();
+                showToast(data.message, 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                showToast(data.message || 'Error updating review visibility', 'error');
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An unexpected error occurred', 'error');
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const overrideModal = document.getElementById('editReviewModal');
+        if (event.target == overrideModal) {
+            closeEditReviewModal();
+        }
+    }
+</script>
+{% endblock %}

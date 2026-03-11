@@ -300,7 +300,7 @@ def freelancer_profile(request):
     completed_projects = Project.objects.filter(
         assigned_freelancer=freelancer, status='completed'
     ).order_by('-created_at')
-    reviews = Review.objects.filter(reviewee=freelancer.user).order_by('-created_at')
+    reviews = Review.objects.filter(reviewee=freelancer.user, is_hidden=False).order_by('-created_at')
 
     # Forms
     header_form = FreelancerHeaderForm(instance=freelancer)

@@ -550,3 +550,65 @@ class ProjectService:
                 message=f"Freelancer agreed to cancel '{project.title}'. RM{refund_amount:.2f} refunded to your wallet.",
                 link=reverse('client_projectInfo', kwargs={'project_id': project.id})
             )
+
+    @staticmethod
+    def admin_cancel_project(project, actor_user):
+        """Admin forces cancellation of a project and refunds remaining escrow to the client."""
+        from core.services import NotificationService
+        with transaction.atomic():
+            escrow = getattr(project, 'escrow', None)
+            refund_amount = decimal.Decimal('0.00')
+            
+            if escrow and escrow.remaining_amount > 0:
+                client_wallet, _ = Wallet.objects.get_or_create(user=project.client.user)
+                refund_amount = escrow.remaining_amount
+
+                # Refund remaining escrow to client
+                client_wallet.balance += refund_amount
+                client_wallet.save()
+
+                Transaction.objects.create(
+                    wallet=client_wallet,
+                    amount=refund_amount,
+                    direction='credit',
+                    transaction_type='refund',
+                    status='completed',
+                    description=f"Admin refund for cancelled project: {project.title}",
+                    reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                    related_project=project
+                )
+
+                escrow.remaining_amount = 0
+                escrow.status = 'refunded'
+                escrow.save()
+
+            # Cancel all pending/in-progress milestones
+            project.milestones.filter(status__in=['pending', 'in_progress']).update(status='cancelled')
+
+            old_status = project.status
+            project.status = 'cancelled'
+            project.save()
+
+            ProjectActivity.objects.create(
+                project=project,
+                user=actor_user,
+                activity_type='status_updated',
+                description=f"Project cancelled by Administrator. Status changed from '{old_status}' to 'cancelled'. RM{refund_amount} refunded to client."
+            )
+
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='project_cancelled',
+                title='Project Cancelled by Admin',
+                message=f"Your project '{project.title}' has been cancelled by an administrator. RM{refund_amount:.2f} has been refunded to your wallet.",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+            
+            if project.assigned_freelancer:
+                NotificationService.create_notification(
+                    recipient=project.assigned_freelancer.user,
+                    notification_type='project_cancelled',
+                    title='Project Cancelled by Admin',
+                    message=f"Project '{project.title}' has been cancelled by an administrator.",
+                    link=reverse('freelancer_track_project')
+                )

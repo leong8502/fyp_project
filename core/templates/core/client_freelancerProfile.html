@@ -67,48 +67,7 @@
                 <h2>Client Reviews ({{ freelancer.user.received_reviews.count }})</h2>
                 <div class="reviews-list">
                     {% for review in reviews %}
-                    <div class="review-card">
-                        <div class="review-header">
-                            <div class="reviewer-info">
-                                {% if review.reviewer.client.profile_image %}
-                                <img src="{{ review.reviewer.client.profile_image.url }}" alt="Client Profile"
-                                    class="reviewer-avatar">
-                                {% else %}
-                                <img src="{% static 'core/images/default_profile.png' %}" alt="Default Profile"
-                                    class="reviewer-avatar">
-                                {% endif %}
-                                <div class="reviewer-details">
-                                    <h4>{{ review.reviewer.client.company_name|default:review.reviewer.username }}</h4>
-                                    <p>{{ review.project.title }}</p>
-                                </div>
-                            </div>
-                            <div class="review-meta">
-                                <div class="review-stars">
-                                    {% with ''|center:5 as range %}
-                                    {% for _ in range %}
-                                    {% if forloop.counter <= review.rating %} <i class="fas fa-star"></i>
-                                        {% else %}
-                                        <i class="far fa-star"></i>
-                                        {% endif %}
-                                        {% endfor %}
-                                        {% endwith %}
-                                </div>
-                                <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
-                            </div>
-                        </div>
-
-                        {% if review.comment %}
-                        <p class="review-comment">{{ review.comment }}</p>
-                        {% endif %}
-
-                        {% if review.feedback_tags %}
-                        <div class="review-tags">
-                            {% for tag in review.feedback_tags %}
-                            <span class="review-tag">{{ tag }}</span>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
+                    {% include "core/components/review_card.html" with review=review %}
                     {% empty %}
                     <p style="color: #888; font-style: italic;">No reviews received yet.</p>
                     {% endfor %}

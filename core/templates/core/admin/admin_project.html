@@ -163,20 +163,17 @@
                 </div>
 
                 <div class="form-group" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #f1f5f9;">
-                    <label for="editProjectStatus" style="color: #3730a3; font-weight: 700;">Update Project Status</label>
-                    <select id="editProjectStatus" class="form-control" style="border-color: #3730a3;">
-                        <option value="draft">Draft</option>
-                        <option value="open">Open</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
-                    </select>
+                    <label style="color: #3730a3; font-weight: 700;">Project Status</label>
+                    <div id="displayStatusBadge"></div>
+                    <input type="hidden" id="editProjectStatus">
                 </div>
             </form>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn-cancel" onclick="closeEditProjectModal()">Cancel</button>
-            <button type="button" class="btn-save" onclick="saveProjectStatus()"><i class="fas fa-save"></i> Save Changes</button>
+            <button type="button" class="btn-cancel" onclick="closeEditProjectModal()">Close</button>
+            <button type="button" id="btnCancelProject" class="btn-danger" style="display: none;" onclick="cancelProjectAdmin()">
+                <i class="fas fa-ban"></i> Cancel Project & Refund Escrow
+            </button>
         </div>
     </div>
 </div>
@@ -184,6 +181,9 @@
 <script>
     function openEditProjectModal(btn) {
         const row = btn.closest('tr');
+        const status = row.dataset.status;
+        const statusDisplay = row.querySelector('.badge').innerText.trim();
+        
         document.getElementById('editProjectId').value = row.dataset.projectId;
         document.getElementById('displayProjectTitle').value = row.dataset.title;
         document.getElementById('displayProjectClient').value = row.dataset.client;
@@ -193,7 +193,19 @@
         document.getElementById('displayEscrowTotal').value = row.dataset.escrowTotal;
         document.getElementById('displayEscrowRemaining').value = row.dataset.escrowRemaining;
         document.getElementById('displayFreelancer').value = row.dataset.freelancer;
-        document.getElementById('editProjectStatus').value = row.dataset.status;
+        document.getElementById('editProjectStatus').value = status;
+        
+        // Update status badge display in modal
+        const badgeHtml = `<span class="badge badge-status-${status}">${statusDisplay}</span>`;
+        document.getElementById('displayStatusBadge').innerHTML = badgeHtml;
+        
+        // Show/Hide Cancel button based on status
+        const cancelBtn = document.getElementById('btnCancelProject');
+        if (status === 'cancelled' || status === 'completed') {
+            cancelBtn.style.display = 'none';
+        } else {
+            cancelBtn.style.display = 'flex';
+        }
         
         document.getElementById('editProjectModal').style.display = 'flex';
     }
@@ -202,11 +214,16 @@
         document.getElementById('editProjectModal').style.display = 'none';
     }
 
-    function saveProjectStatus() {
+    function cancelProjectAdmin() {
         const projectId = document.getElementById('editProjectId').value;
-        const status = document.getElementById('editProjectStatus').value;
-        const formData = new FormData();
-        formData.append('status', status);
+        const projectTitle = document.getElementById('displayProjectTitle').value;
+        const remainingEscrow = document.getElementById('displayEscrowRemaining').value;
+        
+        const confirmMsg = `Are you sure you want to CANCEL the project "${projectTitle}"?\n\nThis will refund the remaining escrow (${remainingEscrow}) back to the client. This action cannot be undone.`;
+        
+        if (!confirm(confirmMsg)) {
+            return;
+        }
 
         const getCookie = (name) => {
             let cookieValue = null;
@@ -222,11 +239,11 @@
             return cookieValue;
         };
 
-        fetch(`/panel/projects/update-status/${projectId}/`, {
+        fetch(`/panel/projects/cancel/${projectId}/`, {
             method: 'POST',
-            body: formData,
             headers: {
-                'X-CSRFToken': getCookie('csrftoken')
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
             }
         })
         .then(response => response.json())
@@ -235,12 +252,12 @@
                 alert(data.message);
                 window.location.reload();
             } else {
-                alert(data.message || 'Error updating project status.');
+                alert(data.message || 'Error cancelling project.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while updating the project.');
+            alert('An error occurred while cancelling the project.');
         });
     }
 

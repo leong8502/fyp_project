@@ -12,26 +12,26 @@
     <div class="card">
         <div class="header" style="display: flex; justify-content: space-between; align-items: center;">
             <h1>Create New Project</h1>
-            <div id="ai-quota-container" style="font-size: 14px; color: #fff; display: none;">
+            <div id="ai-quota-container" style="display: none;">
                 AI Quota: <span id="ai-quota-usage">0</span> / <span id="ai-quota-limit">250</span>
             </div>
         </div>
 
         <!-- AI Assistant Section -->
-        <div class="ai-assistant-card" style="background: linear-gradient(135deg, #f0f7ff, #e6f0fa); border-radius: 8px; padding: 20px; margin-bottom: 25px; border: 1px solid #cce0ff;">
-            <h3 style="margin-top: 0; color: #004085; display: flex; align-items: center; gap: 8px;">
+        <div class="ai-assistant-card">
+            <h3>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
                 Draft with AI
             </h3>
-            <p style="font-size: 14px; color: #333; margin-bottom: 12px;">Describe what you want to build, and our AI will automatically suggest a project title, budget, experience level, required skills, and a structured milestone plan.</p>
-            <div style="display: flex; gap: 10px; align-items: flex-start;">
-                <textarea id="ai-prompt" style="flex: 1; min-height: 80px; padding: 12px; border: 1px solid #b3d4ff; border-radius: 6px; resize: vertical;" placeholder="e.g. I need a modern e-commerce website for my shoe brand, built with Django and Stripe payment integration. Need it done in about a month."></textarea>
-                <button type="button" id="btn-ai-generate" style="background: #0056b3; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap; align-self: stretch; transition: background 0.2s;" onmouseover="this.style.background='#004494'" onmouseout="this.style.background='#0056b3'">
+            <p>Describe what you want to build, and our AI will automatically suggest a project title, budget, experience level, required skills, and a structured milestone plan.</p>
+            <div class="ai-prompt-wrapper">
+                <textarea id="ai-prompt" placeholder="e.g. I need a modern e-commerce website for my shoe brand, built with Django and Stripe payment integration. Need it done in about a month."></textarea>
+                <button type="button" id="btn-ai-generate">
                     <span id="ai-btn-text">Generate Scope</span>
                     <span id="ai-btn-spinner" style="display: none;">Generating...</span>
                 </button>
             </div>
-            <div id="ai-error-message" style="color: #d32f2f; font-size: 14px; margin-top: 10px; display: none;"></div>
+            <div id="ai-error-message" style="display: none;"></div>
         </div>
 
         <form class="form-body" method="POST" enctype="multipart/form-data" id="create-project-form">

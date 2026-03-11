@@ -1,0 +1,311 @@
+{% load static %}
+
+{% comment %}
+  review_card.html — Reusable review card component.
+  Context:
+    review  — A Review model instance
+{% endcomment %}
+
+<style>
+/* === Review Card Component Styles === */
+.review-card {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    margin-bottom: 16px;
+}
+.review-card .review-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+.review-card .reviewer-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.review-card .reviewer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.review-card .reviewer-details h4 {
+    margin: 0;
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+}
+.review-card .reviewer-details p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: #666;
+}
+.review-card .review-meta {
+    text-align: right;
+}
+.review-card .review-stars {
+    color: #ffc107;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+.review-card .review-date {
+    display: block;
+    color: #888;
+    font-size: 12px;
+}
+.review-card .review-comment {
+    line-height: 1.6;
+    margin: 12px 0 8px;
+    font-size: 15px;
+    padding-top: 10px;
+}
+.review-card .review-tags {
+    margin: 10px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.review-card .review-tag {
+    background: #e3f2fd;
+    color: #1976d2;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: inline-block;
+}
+.review-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f0f0;
+}
+.btn-report-review {
+    background: none;
+    border: 1px solid #e2e8f0;
+    color: #94a3b8;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+.btn-report-review:hover {
+    background: #fff5f5;
+    color: #dc3545;
+    border-color: #fee2e2;
+}
+/* Modal styles (minimal, in case page doesn't have modal-v2 CSS) */
+.rc-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 2000;
+    background: rgba(15,23,42,0.55);
+    backdrop-filter: blur(4px);
+    align-items: center;
+    justify-content: center;
+}
+.rc-modal-overlay.active { display: flex; }
+.rc-modal-box {
+    background: #fff;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    overflow: hidden;
+    animation: rcModalIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes rcModalIn {
+    from { opacity: 0; transform: scale(0.9) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.rc-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+}
+.rc-modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.rc-modal-header h2 i { color: #ef4444; }
+.rc-modal-close {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+.rc-modal-close:hover { background: #f1f5f9; transform: rotate(90deg); }
+.rc-modal-body { padding: 1.5rem; }
+.rc-modal-body p {
+    color: #64748b;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+.rc-modal-body label {
+    display: block;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #334155;
+    margin-bottom: 0.4rem;
+}
+.rc-modal-body textarea {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+}
+.rc-modal-body textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+.rc-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+}
+.rc-btn-cancel {
+    background: #fff;
+    color: #64748b;
+    border: 1.5px solid #e2e8f0;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.rc-btn-cancel:hover { background: #f8fafc; color: #0f172a; }
+.rc-btn-report {
+    background: #ef4444;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(239,68,68,0.2);
+    transition: all 0.2s;
+}
+.rc-btn-report:hover { background: #dc2626; transform: translateY(-1px); }
+</style>
+
+<div class="review-card">
+    <div class="review-header">
+        <div class="reviewer-info">
+            {% if review.reviewer.client.profile_image %}
+            <img src="{{ review.reviewer.client.profile_image.url }}" alt="Client" class="reviewer-avatar">
+            {% elif review.reviewer.freelancer.profile_image %}
+            <img src="{{ review.reviewer.freelancer.profile_image.url }}" alt="Freelancer" class="reviewer-avatar">
+            {% else %}
+            <img src="{% static 'core/images/default_profile.png' %}" alt="Profile" class="reviewer-avatar">
+            {% endif %}
+            <div class="reviewer-details">
+                <h4>{% if review.reviewer.client %}{{ review.reviewer.client.company_name|default:review.reviewer.username }}{% elif review.reviewer.freelancer %}{{ review.reviewer.freelancer.full_name|default:review.reviewer.username }}{% else %}{{ review.reviewer.username }}{% endif %}</h4>
+                <p>{{ review.project.title }}</p>
+            </div>
+        </div>
+        <div class="review-meta">
+            <div class="review-stars">
+                {% with ''|center:5 as range %}{% for _ in range %}{% if forloop.counter <= review.rating %}<i class="fas fa-star"></i>{% else %}<i class="far fa-star"></i>{% endif %}{% endfor %}{% endwith %}
+            </div>
+            <span class="review-date">{{ review.created_at|date:"M d, Y" }}</span>
+        </div>
+    </div>
+
+    {% if review.comment %}
+    <p class="review-comment">{{ review.comment }}</p>
+    {% endif %}
+
+    {% if review.feedback_tags %}
+    <div class="review-tags">
+        {% for tag in review.feedback_tags %}<span class="review-tag">{{ tag }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="review-card-footer">
+        <button type="button" class="btn-report-review" onclick="rcOpenModal('rcReportModal_{{ review.id }}')">
+            <i class="fas fa-flag"></i> Report
+        </button>
+    </div>
+</div>
+
+<!-- Report Review Modal -->
+<div id="rcReportModal_{{ review.id }}" class="rc-modal-overlay" onclick="if(event.target===this)rcCloseModal('rcReportModal_{{ review.id }}')">
+    <div class="rc-modal-box">
+        <div class="rc-modal-header">
+            <h2><i class="fas fa-flag"></i> Report Review</h2>
+            <button type="button" class="rc-modal-close" onclick="rcCloseModal('rcReportModal_{{ review.id }}')"><i class="fas fa-times"></i></button>
+        </div>
+        <form action="{% url 'report_review' review.id %}" method="POST">
+            {% csrf_token %}
+            <div class="rc-modal-body">
+                <p>Describe why this review violates our community guidelines. Our team will investigate.</p>
+                <label for="rcReason_{{ review.id }}">Reason for Report</label>
+                <textarea id="rcReason_{{ review.id }}" name="reason" rows="4" placeholder="E.g. false information, inappropriate content..." required></textarea>
+            </div>
+            <div class="rc-modal-footer">
+                <button type="button" class="rc-btn-cancel" onclick="rcCloseModal('rcReportModal_{{ review.id }}')">Cancel</button>
+                <button type="submit" class="rc-btn-report"><i class="fas fa-paper-plane"></i> Submit Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+/* Minimal modal helpers – only defined once (idempotent) */
+if (typeof rcOpenModal === 'undefined') {
+    function rcOpenModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.add('active');
+    }
+    function rcCloseModal(id) {
+        var el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    }
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.rc-modal-overlay.active').forEach(function(m) {
+                m.classList.remove('active');
+            });
+        }
+    });
+}
+</script>

@@ -16,7 +16,7 @@ from django.db.models import ProtectedError
 from core.decorators import admin_required
 from core.models import (
     Client, Freelancer, Project, Transaction,
-    Ticket, AdminLog, Industry, ProjectCategory
+    Ticket, AdminLog, Industry, ProjectCategory, Review
 )
 from core.forms import StaffCreationForm
 
@@ -58,11 +58,14 @@ def admin_support(request):
 
     search = request.GET.get('search', '')
     if search:
-        tickets = tickets.filter(
-            Q(title__icontains=search) |
-            Q(user__username__icontains=search) |
-            Q(user__email__icontains=search)
-        )
+        search_filter = Q(title__icontains=search) | \
+                        Q(user__username__icontains=search) | \
+                        Q(user__email__icontains=search)
+        
+        if search.isdigit():
+            search_filter |= Q(pk=search)
+            
+        tickets = tickets.filter(search_filter)
 
     category_filter = request.GET.get('category', '')
     if category_filter:
@@ -117,12 +120,15 @@ def admin_user_management(request):
 
     search = request.GET.get('search', '')
     if search:
-        users = users.filter(
-            Q(username__icontains=search) |
-            Q(email__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(last_name__icontains=search)
-        )
+        search_filter = Q(username__icontains=search) | \
+                        Q(email__icontains=search) | \
+                        Q(first_name__icontains=search) | \
+                        Q(last_name__icontains=search)
+        
+        if search.isdigit():
+            search_filter |= Q(pk=search)
+            
+        users = users.filter(search_filter)
 
     role_filter = request.GET.get('role', '')
     if role_filter == 'client':
@@ -369,11 +375,14 @@ def admin_project_management(request):
 
     search = request.GET.get('search', '')
     if search:
-        projects = projects.filter(
-            Q(title__icontains=search) |
-            Q(description__icontains=search) |
-            Q(client__company_name__icontains=search)
-        )
+        search_filter = Q(title__icontains=search) | \
+                        Q(description__icontains=search) | \
+                        Q(client__company_name__icontains=search)
+        
+        if search.isdigit():
+            search_filter |= Q(pk=search)
+            
+        projects = projects.filter(search_filter)
 
     status_filter = request.GET.get('status', '')
     if status_filter:
@@ -420,5 +429,97 @@ def admin_update_project_status(request, project_id):
         )
 
         return JsonResponse({'status': 'success', 'message': f'Project status updated to {project.get_status_display()} successfully.'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+
+@admin_required
+def admin_cancel_project(request, project_id):
+    """Admin endpoint to cancel a project and refund escrow."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+    project = get_object_or_404(Project, id=project_id)
+    
+    if project.status in ['cancelled', 'completed']:
+        return JsonResponse({'status': 'error', 'message': f'Cannot cancel a project that is already {project.status}.'})
+
+    try:
+        from core.services.project_service import ProjectService
+        ProjectService.admin_cancel_project(project, request.user)
+        
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model='Project',
+            target_id=str(project.id),
+            description=f"Admin cancelled project '{project.title}' (ID: {project.id}) and refunded escrow."
+        )
+        
+        return JsonResponse({'status': 'success', 'message': 'Project successfully cancelled and escrow refunded.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Error cancelling project: {str(e)}'})
+
+@admin_required
+def admin_review_management(request):
+    reviews = Review.objects.all().select_related(
+        'project', 'reviewer', 'reviewee'
+    ).order_by('-created_at')
+
+    search = request.GET.get('search', '')
+    if search:
+        search_filter = Q(project__title__icontains=search) | \
+                        Q(reviewer__username__icontains=search) | \
+                        Q(reviewee__username__icontains=search) | \
+                        Q(comment__icontains=search)
+        
+        if search.isdigit():
+            search_filter |= Q(pk=search)
+            
+        reviews = reviews.filter(search_filter)
+
+    visibility_filter = request.GET.get('visibility', '')
+    if visibility_filter == 'hidden':
+        reviews = reviews.filter(is_hidden=True)
+    elif visibility_filter == 'visible':
+        reviews = reviews.filter(is_hidden=False)
+
+    paginator = Paginator(reviews, 10)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/admin/admin_review.html', {
+        'reviews': page_obj,
+        'search': search,
+        'visibility_filter': visibility_filter,
+        'active_menu': 'reviews',
+    })
+
+@admin_required
+def admin_update_review_status(request, review_id):
+    review = get_object_or_404(Review, id=review_id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action') # 'hide' or 'show'
+        
+        if action == 'hide':
+            review.is_hidden = True
+            message = f"Review #{review.id} is now hidden."
+        elif action == 'show':
+            review.is_hidden = False
+            message = f"Review #{review.id} is now visible."
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid action.'})
+            
+        review.save()
+
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model='Review',
+            target_id=str(review.id),
+            description=f"Admin {action} review '{review.id}' for project '{review.project.title}'."
+        )
+
+        return JsonResponse({'status': 'success', 'message': message})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)

@@ -97,8 +97,8 @@ def client_freelancerProfile(request, freelancer_id):
     freelancer = get_object_or_404(Freelancer, id=freelancer_id)
     open_projects = Project.objects.filter(client=request.user.client, status='open')
     
-    # Fetch reviews for the freelancer
-    reviews_list = freelancer.user.received_reviews.all().order_by('-created_at')
+    # Fetch reviews for the freelancer (excluding hidden reviews)
+    reviews_list = freelancer.user.received_reviews.filter(is_hidden=False).order_by('-created_at')
     
     # Paginate reviews: 5 per page
     paginator = Paginator(reviews_list, 5)
@@ -191,8 +191,8 @@ def client_settings(request):
 def client_profile(request):
     from django.core.paginator import Paginator
     
-    # Fetch reviews for the current user
-    reviews_list = request.user.received_reviews.all().order_by('-created_at')
+    # Fetch reviews for the current user (excluding hidden reviews)
+    reviews_list = request.user.received_reviews.filter(is_hidden=False).order_by('-created_at')
     
     # Paginate reviews: 5 per page
     paginator = Paginator(reviews_list, 5)
@@ -965,7 +965,7 @@ def report_project(request, project_id):
         Ticket.objects.create(
             user=request.user,
             title=f"Report Project: {project.title} (ID: {project.id})",
-            category='projects',
+            category='disputes',
             description=f"{reason}",
             status='open'
         )
@@ -973,6 +973,36 @@ def report_project(request, project_id):
         messages.success(request, "Project report submitted successfully. Our team will review it.")
         
     return redirect('client_projectInfo', project_id=project.id)
+
+
+@login_required
+def report_review(request, review_id):
+    """View to report a review and create a support ticket under 'reviews' category."""
+    review = get_object_or_404(Review, id=review_id)
+    
+    if request.method == 'POST':
+        reason = request.POST.get('reason', '').strip()
+        if not reason:
+            messages.error(request, "Please provide a reason for reporting.")
+        else:
+            reviewee_name = review.reviewee.username
+            if hasattr(review.reviewee, 'freelancer'):
+                reviewee_name = review.reviewee.freelancer.full_name or reviewee_name
+            elif hasattr(review.reviewee, 'client'):
+                reviewee_name = review.reviewee.client.company_name or reviewee_name
+
+            Ticket.objects.create(
+                user=request.user,
+                title=f"Report Review (ID: {review.id})",
+                category='reviews',
+                description=reason,
+                status='open'
+            )
+            messages.success(request, "Review report submitted. Our team will investigate.")
+    
+    # Redirect back to wherever the user came from
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
 
 @client_required
 def client_scoreCalculate(request, match_id):

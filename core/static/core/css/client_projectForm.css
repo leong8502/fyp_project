@@ -223,3 +223,71 @@ button[type="submit"] {
 .skill-chip span:hover {
     color: #dc3545;
 }
+
+/* AI Assistant Section Styles */
+#ai-quota-container {
+    font-size: 14px;
+    color: #fff;
+}
+
+.ai-assistant-card {
+    background: linear-gradient(135deg, #f0f7ff, #e6f0fa);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border: 1px solid #cce0ff;
+}
+
+.ai-assistant-card h3 {
+    margin-top: 0;
+    color: #004085;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: none; /* Override default h3 border */
+    padding-bottom: 0;
+}
+
+.ai-assistant-card p {
+    font-size: 14px;
+    color: #333;
+    margin-bottom: 12px;
+}
+
+.ai-prompt-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+#ai-prompt {
+    flex: 1;
+    min-height: 80px;
+    padding: 12px;
+    border: 1px solid #b3d4ff;
+    border-radius: 6px;
+    resize: vertical;
+}
+
+#btn-ai-generate {
+    background: #0056b3;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    white-space: nowrap;
+    align-self: stretch;
+    transition: background 0.2s;
+}
+
+#btn-ai-generate:hover {
+    background: #004494;
+}
+
+#ai-error-message {
+    color: #d32f2f;
+    font-size: 14px;
+    margin-top: 10px;
+}

@@ -80,6 +80,7 @@ urlpatterns = [
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/project/<int:project_id>/request-cancel/', views.client_request_cancellation, name='client_request_cancellation'),
     path('client/project/<int:project_id>/report/', views.report_project, name='report_project'),
+    path('review/<int:review_id>/report/', views.report_review, name='report_review'),
     path('client/match/<int:match_id>/score/', views.client_scoreCalculate, name='client_scoreCalculate'),
 
     # ── Notifications ──────────────────────────────────────────────────────
@@ -115,6 +116,9 @@ urlpatterns = [
     path('panel/users/', views.admin_user_management, name='admin_user_management'),
     path('panel/projects/', views.admin_project_management, name='admin_project_management'),
     path('panel/projects/update-status/<int:project_id>/', views.admin_update_project_status, name='admin_update_project_status'),
+    path('panel/projects/cancel/<int:project_id>/', views.admin_cancel_project, name='admin_cancel_project'),
+    path('panel/reviews/', views.admin_review_management, name='admin_review_management'),
+    path('panel/reviews/update-status/<int:review_id>/', views.admin_update_review_status, name='admin_update_review_status'),
     path('panel/staff/', views.admin_staff_management, name='admin_staff_management'),
     path('panel/staff/update/<int:staff_id>/', views.admin_update_staff, name='admin_update_staff'),
     path('panel/users/<int:user_id>/update/', views.admin_update_user, name='admin_update_user'),
