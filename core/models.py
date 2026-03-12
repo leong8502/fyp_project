@@ -1,7 +1,7 @@
-from django.db import models  # type: ignore[import-untyped]
-from pgvector.django import VectorField  # type: ignore[import-untyped]
-from django.contrib.auth.models import User  # type: ignore[import-untyped]
-from django.utils import timezone  # type: ignore[import-untyped]
+from django.db import models  
+from pgvector.django import VectorField 
+from django.contrib.auth.models import User 
+from django.utils import timezone  
 
 class Industry(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -183,7 +183,7 @@ class Milestone(models.Model):
     def is_late(self):
         """Returns True if the milestone is in_progress and past its deadline."""
         if self.status == 'in_progress' and self.deadline:
-            from django.utils import timezone  # type: ignore[import-untyped]
+            from django.utils import timezone 
             return self.deadline < timezone.now().date()
         return False
 
