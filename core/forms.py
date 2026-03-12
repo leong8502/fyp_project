@@ -5,7 +5,12 @@ from django.core.validators import RegexValidator
 from django.utils import timezone
 from datetime import datetime
 
-# Phone number validator: numbers and hyphens only
+# Phone number validator: Numbers, +, space, and - only
+phone_validator = RegexValidator(
+    regex=r'^[0-9+\- ]+$',
+    message="Phone number can only contain numbers, '+', spaces, and hyphens."
+)
+
 phone_validator = RegexValidator(
     regex=r'^[0-9\-]+$',
     message="Phone number can only contain numbers and hyphens."
@@ -203,22 +208,21 @@ class ProjectForm(forms.ModelForm):
                 # Add validation error to non-field error or budget field
                 raise forms.ValidationError(f"Total milestone budget (${total_milestone_amount}) must equal project budget (${budget}).")
 
-        from datetime import date as date_type
-        prev_deadline: date_type | None = None
+        prev_deadline = None
         for i, deadline_str in enumerate(m_deadlines):
             if not deadline_str: continue
             try:
                 m_deadline = datetime.strptime(deadline_str, '%Y-%m-%d').date()
-
+                
                 if deadline and m_deadline > deadline:
                     raise forms.ValidationError(f"Milestone {i+1} deadline cannot be after project deadline.")
-
+                
                 if m_deadline < today:
-                    raise forms.ValidationError(f"Milestone {i+1} deadline cannot be in the past.")
-
-                if prev_deadline is not None and m_deadline <= prev_deadline:
-                    raise forms.ValidationError(f"Milestone {i+1} deadline must be after previous milestone.")
-
+                     raise forms.ValidationError(f"Milestone {i+1} deadline cannot be in the past.")
+                     
+                if prev_deadline and m_deadline <= prev_deadline:
+                     raise forms.ValidationError(f"Milestone {i+1} deadline must be after previous milestone.")
+                
                 prev_deadline = m_deadline
             except ValueError:
                 continue # Skip invalid dates (handled by frontend or basic type checks)
