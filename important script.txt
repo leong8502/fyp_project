@@ -7,8 +7,8 @@ python manage.py runserver
 taskkill /F /IM python.exe
 cd fyp_project
 
-pip install -r requirements.txt
-pip freeze > requirements.txt
+pip install -r requirements_venv312.txt
+pip freeze > requirements_test.txt
 
 Db migration
 python manage.py makemigrations # when u update db
