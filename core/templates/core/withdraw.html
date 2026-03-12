@@ -68,8 +68,59 @@
             </div>
         </div>
 
-        <button type="submit" class="submit-btn" id="submit-btn" disabled>Confirm Withdrawal</button>
+        <!-- "Confirm" button now opens the PIN modal instead of submitting directly -->
+        <button type="button" class="submit-btn" id="show-pin-modal" disabled>Confirm Withdrawal</button>
     </form>
+</div>
+
+<!-- PIN Modal -->
+<div id="pin-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2><i class="fas fa-lock"></i> Enter Secure PIN</h2>
+            <button type="button" class="modal-close" id="close-modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <p class="modal-instruction">Enter your 6-digit Secure PIN to authorize this withdrawal</p>
+
+            <!-- This form submits everything: the hidden fields + PIN -->
+            <form method="post" action="{% url 'withdraw' %}" id="withdraw-pin-form">
+                {% csrf_token %}
+                <input type="hidden" name="amount"          id="modal-amount">
+                <input type="hidden" name="bank_name"       id="modal-bank">
+                <input type="hidden" name="account_number"  id="modal-account">
+
+                <div class="pin-input-container">
+                    <input type="password" name="secure_pin" id="pin-input" class="pin-input"
+                           maxlength="6" placeholder="••••••" autocomplete="off"
+                           inputmode="numeric" pattern="[0-9]*">
+                </div>
+
+                <div class="withdraw-summary">
+                    <div class="detail-row">
+                        <span>Withdraw Amount:</span>
+                        <span id="modal-display-amount">RM 0.00</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Bank:</span>
+                        <span id="modal-display-bank">—</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Account Number:</span>
+                        <span id="modal-display-account">—</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-withdraw">
+                    <i class="fas fa-check-circle"></i> Confirm Withdrawal
+                </button>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -80,7 +131,7 @@
         const finalAmountInput = document.getElementById('final-amount');
         const bankInput = document.getElementById('selected-bank');
         const accountInput = document.getElementById('account-number');
-        const submitBtn = document.getElementById('submit-btn');
+        const showPinBtn = document.getElementById('show-pin-modal');
         const amountError = document.getElementById('amount-error');
 
         let currentAmount = 0;
@@ -107,11 +158,7 @@
         customInput.addEventListener('input', function () {
             amountBtns.forEach(b => b.classList.remove('active'));
             const val = parseFloat(this.value);
-            if (!isNaN(val)) {
-                currentAmount = val;
-            } else {
-                currentAmount = 0;
-            }
+            currentAmount = !isNaN(val) ? val : 0;
             updateDisplay();
         });
 
@@ -138,7 +185,6 @@
             let isValid = true;
             let errorMsg = '';
 
-            // Amount Validation
             if (currentAmount < 1) {
                 isValid = false;
             } else if (currentAmount > maxBalance) {
@@ -153,23 +199,72 @@
                 amountError.style.display = 'none';
             }
 
-            // Bank Validation
             if (!selectedBank) isValid = false;
-
-            // Account Number Validation
             if (accountInput.value.trim().length < 6) isValid = false;
 
-            // Submit Button
             if (isValid) {
-                submitBtn.disabled = false;
-                submitBtn.style.opacity = '1';
-                submitBtn.innerText = "Confirm Withdraw RM " + currentAmount.toFixed(2);
+                showPinBtn.disabled = false;
+                showPinBtn.style.opacity = '1';
+                showPinBtn.innerText = "Confirm Withdraw RM " + currentAmount.toFixed(2);
             } else {
-                submitBtn.disabled = true;
-                submitBtn.style.opacity = '0.6';
-                submitBtn.innerText = errorMsg ? errorMsg : "Confirm Withdraw";
+                showPinBtn.disabled = true;
+                showPinBtn.style.opacity = '0.6';
+                showPinBtn.innerText = errorMsg ? errorMsg : "Confirm Withdraw";
             }
         }
+
+        // ── Modal Logic ──────────────────────────────────────────────
+        const modal          = document.getElementById('pin-modal');
+        const closeModalBtn  = document.getElementById('close-modal');
+        const modalOverlay   = document.querySelector('.modal-overlay');
+        const pinInput       = document.getElementById('pin-input');
+        const withdrawForm   = document.getElementById('withdraw-pin-form');
+        const submitBtn      = document.getElementById('submit-withdraw');
+
+        showPinBtn.addEventListener('click', function () {
+            // Copy current values into the modal's hidden fields
+            document.getElementById('modal-amount').value   = currentAmount;
+            document.getElementById('modal-bank').value     = selectedBank;
+            document.getElementById('modal-account').value  = accountInput.value.trim();
+
+            // Update summary display
+            document.getElementById('modal-display-amount').textContent  = 'RM ' + currentAmount.toFixed(2);
+            document.getElementById('modal-display-bank').textContent    = selectedBank;
+            document.getElementById('modal-display-account').textContent = accountInput.value.trim();
+
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => pinInput.focus(), 100);
+        });
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            pinInput.value = '';
+        }
+
+        closeModalBtn.addEventListener('click', closeModal);
+        modalOverlay.addEventListener('click', closeModal);
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && modal.classList.contains('active')) closeModal();
+        });
+
+        // Only allow numbers in PIN
+        pinInput.addEventListener('input', function () {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        // Validate PIN length before submitting
+        withdrawForm.addEventListener('submit', function (e) {
+            if (pinInput.value.length !== 6) {
+                e.preventDefault();
+                alert('Please enter a 6-digit PIN');
+                return;
+            }
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
     });
 </script>
 {% endblock %}

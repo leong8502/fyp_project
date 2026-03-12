@@ -354,7 +354,28 @@ def withdraw(request):
 
     wallet = getattr(request.user, 'wallet', None)
 
+    # Ensure the user has a Secure PIN set up
+    user_security = getattr(request.user, 'security', None)
+    if not user_security or not user_security.secure_pin:
+        if hasattr(request.user, 'client'):
+            messages.warning(request, "Please set up your Secure PIN before making a withdrawal.")
+            return redirect('client_settings')
+        else:
+            messages.warning(request, "Please set up your Secure PIN before making a withdrawal.")
+            return redirect('freelancer_settings')
+
     if request.method == 'POST':
+        # Verify PIN first
+        pin_form = PaymentPinForm(request.POST)
+        if not pin_form.is_valid():
+            messages.error(request, "Please enter a valid 6-digit PIN.")
+            return redirect('withdraw')
+
+        if not check_password(pin_form.cleaned_data['secure_pin'], user_security.secure_pin):
+            messages.error(request, "Incorrect Secure PIN. Please try again.")
+            return redirect('withdraw')
+
+        # PIN OK – now validate the withdrawal fields
         form = WithdrawForm(request.POST, wallet=wallet)
         if form.is_valid():
             try:
@@ -376,6 +397,7 @@ def withdraw(request):
                     messages.error(request, error)
 
     return render(request, 'core/withdraw.html', {'base_template': base_template, 'wallet': wallet})
+
 
 
 @client_required
