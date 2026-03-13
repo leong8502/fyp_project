@@ -104,11 +104,20 @@ def freelancer_search_job(request):
 
 @freelancer_required
 def freelancer_track_project(request):
+    """Freelancer's project tracking page."""
     freelancer = request.user.freelancer
+    
     current_projects = Project.objects.filter(
-        assigned_freelancer=freelancer, status__in=['in_progress', 'reviewing']
-    )
-    pass_projects = Project.objects.filter(assigned_freelancer=freelancer, status='completed')
+        applications__freelancer=freelancer,
+        applications__status='accepted',
+        status__in=['open', 'in_progress', 'reviewing']
+    ).prefetch_related('milestones').distinct()
+    
+    pass_projects = Project.objects.filter(
+        applications__freelancer=freelancer,
+        applications__status='accepted',
+        status__in=['completed', 'cancelled']
+    ).distinct()
 
     for project in pass_projects:
         project.has_reviewed = Review.objects.filter(project=project, reviewer=request.user).exists()
@@ -117,11 +126,12 @@ def freelancer_track_project(request):
         freelancer=freelancer, status='pending'
     ).order_by('-created_at')
 
-    # Attach pending cancellation request (if any) to each current project
+    # Attach pending cancellation request addressed to THIS freelancer
     pending_cancellations = CancellationRequest.objects.filter(
-        project__assigned_freelancer=freelancer,
+        freelancer=freelancer,
         status='pending'
     ).select_related('project')
+    
     pending_cancellation_map = {cr.project_id: cr for cr in pending_cancellations}
     for project in current_projects:
         project.pending_cancellation = pending_cancellation_map.get(project.id)
@@ -140,7 +150,7 @@ def freelancer_respond_cancellation(request, cancellation_id):
     cancellation_req = get_object_or_404(
         CancellationRequest,
         id=cancellation_id,
-        project__assigned_freelancer=request.user.freelancer,
+        freelancer=request.user.freelancer,
         status='pending'
     )
     project = cancellation_req.project
@@ -157,21 +167,14 @@ def freelancer_respond_cancellation(request, cancellation_id):
             except Exception as e:
                 messages.error(request, f"Error processing cancellation: {str(e)}")
         elif response == 'decline':
-            cancellation_req.status = 'declined'
-            cancellation_req.save()
-            # Notify client
-            from core.services import NotificationService
-            NotificationService.create_notification(
-                recipient=project.client.user,
-                notification_type='cancellation_request',
-                title='Cancellation Request Declined',
-                message=f"Freelancer declined your cancellation request for '{project.title}'. The project continues.",
-                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
-            )
-            messages.info(
-                request,
-                f"You declined the cancellation request for '{project.title}'. The project continues."
-            )
+            try:
+                ProjectService.decline_cancellation(cancellation_req, request.user)
+                messages.info(
+                    request,
+                    f"You declined the cancellation request for '{project.title}'. The project continues."
+                )
+            except Exception as e:
+                messages.error(request, f"Error processing decline: {str(e)}")
         else:
             messages.error(request, "Invalid response.")
 
@@ -230,7 +233,7 @@ def freelancer_apply_project(request, project_id):
 @freelancer_required
 def freelancer_submit_milestone(request, milestone_id):
     milestone = get_object_or_404(
-        Milestone, id=milestone_id, project__assigned_freelancer=request.user.freelancer
+        Milestone, id=milestone_id, assigned_to=request.user.freelancer
     )
     if milestone.status != 'in_progress':
         messages.error(request, "Milestone must be in progress to submit.")
@@ -298,8 +301,8 @@ def freelancer_profile(request):
     certifications = freelancer.certifications.all().order_by('-issue_date')
     languages = freelancer.languages.all()
     completed_projects = Project.objects.filter(
-        assigned_freelancer=freelancer, status='completed'
-    ).order_by('-created_at')
+        applications__freelancer=freelancer, applications__status='accepted', status='completed'
+    ).order_by('-created_at').distinct()
     reviews = Review.objects.filter(reviewee=freelancer.user, is_hidden=False).order_by('-created_at')
 
     # Forms

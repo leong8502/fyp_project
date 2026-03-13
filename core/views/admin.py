@@ -372,7 +372,9 @@ def admin_update_staff(request, staff_id):
 @admin_required
 def admin_project_management(request):
     projects = Project.objects.all().select_related(
-        'client', 'category', 'assigned_freelancer__user', 'escrow'
+        'client', 'category', 'escrow'
+    ).prefetch_related(
+        'applications__freelancer__user'
     ).order_by('-created_at')
 
     search = request.GET.get('search', '')

@@ -40,7 +40,7 @@
                     required>{{ project.description }}</textarea>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                 <div class="form-group">
                     <label for="budget">Budget ($)</label>
                     <input type="number" id="budget" name="budget" value="{{ project.budget }}"
@@ -50,6 +50,11 @@
                     <label for="deadline">Expected Completion Date</label>
                     <input type="text" id="deadline" name="deadline" class="datepicker-input" 
                         value="{{ project.deadline|date:'Y-m-d' }}" required placeholder="Select date...">
+                </div>
+                <div class="form-group">
+                    <label for="max_freelancers">Max Freelancers</label>
+                    <input type="number" id="max_freelancers" name="max_freelancers" 
+                        value="{{ project.max_freelancers|default:'1' }}" min="1" required>
                 </div>
             </div>
 

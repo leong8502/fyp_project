@@ -110,8 +110,7 @@ class Project(models.Model):
     experience_level = models.CharField(max_length=20, choices=EXPERIENCE_LEVEL_CHOICES, default='entry')
     year_of_experience = models.PositiveIntegerField(default=0)
     preferred_language = models.CharField(max_length=100, blank=True)
-    
-    assigned_freelancer = models.ForeignKey('Freelancer', on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_projects')
+    max_freelancers = models.PositiveIntegerField(default=1, help_text="Maximum number of freelancers allowed on this project")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
     attachment = models.FileField(upload_to='project_attachments/', blank=True, null=True, help_text="Single PDF attachment")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -119,6 +118,16 @@ class Project(models.Model):
     deadline_notified = models.BooleanField(default=False, help_text="True after deadline-expired notification sent for in_progress projects")
     def __str__(self):
         return self.title
+
+    @property
+    def hired_freelancers(self):
+        """Returns a list of freelancers whose applications have been accepted."""
+        return [app.freelancer for app in self.applications.filter(status='accepted')]
+
+    @property
+    def has_hired_freelancers(self):
+        """Returns True if at least one freelancer has been accepted."""
+        return self.applications.filter(status='accepted').exists()
 
 class ProjectApplication(models.Model):
     APPLICATION_TYPES = [
@@ -166,7 +175,11 @@ class Milestone(models.Model):
     deadline = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     order = models.PositiveIntegerField(help_text="Milestone sequence order")
-    
+    assigned_to = models.ForeignKey(
+        'Freelancer', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='assigned_milestones',
+        help_text="Freelancer responsible for this milestone"
+    )
     # Revision Support
     revision_requested = models.BooleanField(default=False, help_text="Indicates whether client requested a revision")
     revision_count = models.PositiveIntegerField(default=0, help_text="Number of revisions requested")
@@ -393,15 +406,26 @@ class CancellationRequest(models.Model):
         ('declined', 'Declined'),
     ]
 
-    project = models.OneToOneField('Project', on_delete=models.CASCADE, related_name='cancellation_request')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='cancellation_requests')
+    # Always targets a specific freelancer — one request per freelancer per project
+    freelancer = models.ForeignKey(
+        'Freelancer', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='received_cancellation_requests',
+        help_text="The freelancer this cancellation request is addressed to"
+    )
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cancellation_requests')
     reason = models.TextField(blank=True, help_text="Optional reason for cancellation")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        # One active request per project per freelancer at a time
+        unique_together = ('project', 'freelancer')
+
     def __str__(self):
-        return f"Cancellation Request for {self.project.title} ({self.status})"
+        return f"Cancellation Request for {self.project.title} ({self.freelancer.user.username}) - {self.status}"
+
 
 class ProjectMatch(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='matches')
@@ -539,7 +563,9 @@ class Review(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('project', 'reviewer') # One review per project per reviewer
+        # One review per reviewer per reviewee per project
+        # Allows client to review each freelancer individually on a multi-freelancer project
+        unique_together = ('project', 'reviewer', 'reviewee')
 
     def __str__(self):
         return f"Review by {self.reviewer.username} for {self.reviewee.username} - {self.rating} stars"

@@ -60,7 +60,7 @@
                     required></textarea>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
                 <div class="form-group">
                     <label for="budget">Budget ($)</label>
                     <input type="number" id="budget" name="budget" placeholder="e.g., 12000" min="1" step="1" required>
@@ -68,6 +68,10 @@
                 <div class="form-group">
                     <label for="deadline">Expected Completion Date</label>
                     <input type="text" id="deadline" name="deadline" class="datepicker-input" required placeholder="Select date...">
+                </div>
+                <div class="form-group">
+                    <label for="max_freelancers">Max Freelancers</label>
+                    <input type="number" id="max_freelancers" name="max_freelancers" placeholder="e.g., 1" min="1" value="1" required>
                 </div>
             </div>
 
@@ -278,6 +282,7 @@
         if (data.title) document.getElementById('title').value = data.title;
         if (data.description) document.getElementById('description').value = data.description;
         if (data.budget) document.getElementById('budget').value = data.budget;
+        if (data.max_freelancers) document.getElementById('max_freelancers').value = data.max_freelancers;
         
         // Try to match category
         if (data.category) {

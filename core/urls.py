@@ -51,6 +51,7 @@ urlpatterns = [
     path('milestone/<int:milestone_id>/submit/', views.freelancer_submit_milestone, name='freelancer_submit_milestone'),
     path('milestone/<int:milestone_id>/revision/', views.client_request_revision, name='client_request_revision'),
     path('milestone/<int:milestone_id>/release-payment/', views.client_release_milestone_payment, name='client_release_milestone_payment'),
+    path('milestone/<int:milestone_id>/assign/', views.client_assign_milestone, name='client_assign_milestone'),
 
     # ── Client ─────────────────────────────────────────────────────────────
     path('client/home/', views.client_home, name='client_home'),
@@ -77,6 +78,7 @@ urlpatterns = [
     path('client/project/edit/<int:project_id>/', views.client_projectEdit, name='client_projectEdit'),
     path('client/project/delete/<int:project_id>/', views.client_projectDelete, name='client_projectDelete'),
     path('client/project/<int:project_id>/publish/', views.client_projectPublish, name='client_projectPublish'),
+    path('client/project/<int:project_id>/start/', views.client_start_project, name='client_start_project'),
     path('client/project/<int:project_id>/confirm-payment/', views.client_confirmPayment, name='client_confirmPayment'),
     path('client/project/<int:project_id>/request-cancel/', views.client_request_cancellation, name='client_request_cancellation'),
     path('client/project/<int:project_id>/report/', views.report_project, name='report_project'),

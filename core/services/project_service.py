@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.utils import timezone
 from core.models import (
     Project, Milestone, ProjectApplication,
-    ProjectActivity, Escrow, Transaction, Wallet
+    ProjectActivity, Escrow, Transaction, Wallet,
+    CancellationRequest
 )
 
 
@@ -127,20 +128,76 @@ class ProjectService:
 
     @staticmethod
     def accept_application(application, actor_user):
-        """Accept a project application, start first milestone, reject others."""
+        """Accept a project application."""
         from core.services import NotificationService
         with transaction.atomic():
+            project = application.project
+            
+            # Check if we've already reached max freelancers
+            accepted_count = project.applications.filter(status='accepted').count()
+            if accepted_count >= project.max_freelancers:
+                raise ValueError(f"This project already has the maximum of {project.max_freelancers} freelancers accepted.")
+
             application.status = 'accepted'
             application.save()
+            
+            accepted_count += 1 # Update count for notification
 
-            project = application.project
-            project.assigned_freelancer = application.freelancer
+            ProjectActivity.objects.create(
+                project=project,
+                user=actor_user,
+                activity_type='proposal_accepted',
+                description=(
+                    f"Proposal from {application.freelancer.full_name or application.freelancer.user.username} "
+                    "was accepted."
+                )
+            )
+
+            # If project is now full, cancel all remaining pending invitations/applications
+            if accepted_count >= project.max_freelancers:
+                pending_apps = project.applications.filter(status='pending')
+                for pending_app in pending_apps:
+                    NotificationService.create_notification(
+                        recipient=pending_app.freelancer.user,
+                        notification_type='proposal_received',
+                        title='Invitation Cancelled',
+                        message=f"Unfortunately, the project '{project.title}' is now full. Your invitation has been cancelled.",
+                        link=reverse('freelancer_track_project')
+                    )
+                pending_apps.update(status='rejected')
+
+            # Notify Freelancer
+            NotificationService.create_notification(
+                recipient=application.freelancer.user,
+                notification_type='proposal_received',
+                title='Application Accepted',
+                message=f"Your application for '{project.title}' was accepted! Waiting for client to start the project.",
+                link=reverse('freelancer_track_project')
+            )
+            # Notify Client
+            NotificationService.create_notification(
+                recipient=project.client.user,
+                notification_type='proposal_received',
+                title='Application Accepted',
+                message=f"You accepted {application.freelancer.full_name or application.freelancer.user.username} for '{project.title}'. ({accepted_count}/{project.max_freelancers} hired)",
+                link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+            )
+
+    @staticmethod
+    def start_project(project, actor_user):
+        """Start project with accepted freelancers, rejecting other proposals."""
+        from core.services import NotificationService
+        with transaction.atomic():
+            accepted_apps = project.applications.filter(status='accepted')
+            if not accepted_apps.exists():
+                raise ValueError("Cannot start project without accepted freelancers.")
+            
             project.status = 'in_progress'
             project.save()
 
             ProjectApplication.objects.filter(
                 project=project, status='pending'
-            ).exclude(id=application.id).update(status='rejected')
+            ).update(status='rejected')
 
             first_milestone = project.milestones.order_by('order').first()
             if first_milestone:
@@ -150,27 +207,26 @@ class ProjectService:
             ProjectActivity.objects.create(
                 project=project,
                 user=actor_user,
-                activity_type='proposal_accepted',
+                activity_type='status_updated',
                 description=(
-                    f"Proposal from {application.freelancer.full_name or application.freelancer.user.username} "
-                    "was accepted. Project is now 'In Progress'."
+                    f"Project '{project.title}' has been started with {accepted_apps.count()} freelancer(s)."
                 )
             )
 
-            # Notify Freelancer
-            NotificationService.create_notification(
-                recipient=application.freelancer.user,
-                notification_type='project_started',
-                title='Project Started',
-                message=f"Your application for '{project.title}' was accepted! Time to get to work.",
-                link=reverse('freelancer_track_project')
-            )
-            # Notify Client
+            for app in accepted_apps:
+                NotificationService.create_notification(
+                    recipient=app.freelancer.user,
+                    notification_type='project_started',
+                    title='Project Started',
+                    message=f"Project '{project.title}' has officially started! Time to get to work.",
+                    link=reverse('freelancer_track_project')
+                )
+                
             NotificationService.create_notification(
                 recipient=project.client.user,
                 notification_type='project_started',
                 title='Project Started',
-                message=f"Project '{project.title}' has officially started with {application.freelancer.full_name or application.freelancer.user.username}.",
+                message=f"You have explicitly started project '{project.title}'.",
                 link=reverse('client_projectInfo', kwargs={'project_id': project.id})
             )
 
@@ -212,12 +268,14 @@ class ProjectService:
             description=f"Milestone '{milestone.title}' was submitted by the freelancer."
         )
 
+        freelancer_name = milestone.assigned_to.full_name or milestone.assigned_to.user.username if milestone.assigned_to else "A freelancer"
+
         # Notify Client
         NotificationService.create_notification(
             recipient=milestone.project.client.user,
             notification_type='milestone_submitted',
             title='Milestone Submitted',
-            message=f"Freelancer {milestone.project.assigned_freelancer.full_name or milestone.project.assigned_freelancer.user.username} has submitted milestone '{milestone.title}' for project '{milestone.project.title}'.",
+            message=f"Freelancer {freelancer_name} has submitted milestone '{milestone.title}' for project '{milestone.project.title}'.",
             link=reverse('client_projectInfo', kwargs={'project_id': milestone.project.id})
         )
 
@@ -239,13 +297,14 @@ class ProjectService:
         )
 
         # Notify Freelancer
-        NotificationService.create_notification(
-            recipient=milestone.project.assigned_freelancer.user,
-            notification_type='project_started', # Re-using or could add revision_requested
-            title='Revision Requested',
-            message=f"Revision requested for milestone '{milestone.title}' in '{milestone.project.title}'.",
-            link=reverse('freelancer_track_project')
-        )
+        if milestone.assigned_to:
+            NotificationService.create_notification(
+                recipient=milestone.assigned_to.user,
+                notification_type='project_started', # Re-using or could add revision_requested
+                title='Revision Requested',
+                message=f"Revision requested for milestone '{milestone.title}' in '{milestone.project.title}'.",
+                link=reverse('freelancer_track_project')
+            )
 
     @staticmethod
     def release_milestone_payment(milestone, actor_user):
@@ -253,8 +312,12 @@ class ProjectService:
         from core.services import NotificationService
         with transaction.atomic():
             project = milestone.project
+            
+            if not milestone.assigned_to:
+                raise ValueError("Milestone is not assigned to any freelancer.")
+
             freelancer_wallet, _ = Wallet.objects.get_or_create(
-                user=project.assigned_freelancer.user
+                user=milestone.assigned_to.user
             )
             escrow = project.escrow
 
@@ -294,7 +357,7 @@ class ProjectService:
 
             # Notify Freelancer
             NotificationService.create_notification(
-                recipient=project.assigned_freelancer.user,
+                recipient=milestone.assigned_to.user,
                 notification_type='payment_released',
                 title='Payment Received',
                 message=f"Payment of RM{milestone.amount} released for milestone '{milestone.title}'.",
@@ -352,9 +415,10 @@ class ProjectService:
             escrow.status = 'refunded'
             escrow.save()
 
-            # Cancel project and milestones
+            # Cancel project, milestones and pending applications
             project.status = 'cancelled'
             project.milestones.all().update(status='cancelled')
+            project.applications.filter(status='pending').update(status='rejected')
             project.save()
 
             ProjectActivity.objects.create(
@@ -412,6 +476,7 @@ class ProjectService:
 
                     project.status = 'cancelled'
                     project.milestones.all().update(status='cancelled')
+                    project.applications.filter(status='pending').update(status='rejected')
                     project.save()
 
                     from core.models import ProjectActivity
@@ -503,59 +568,158 @@ class ProjectService:
         return count
 
     @staticmethod
-    def confirm_cancellation(cancellation_request, actor_user):
-        """Freelancer agrees to cancellation. Cancel project and refund remaining escrow."""
+    def request_project_cancellation(project, actor_user, reason):
+        """Creates a pending CancellationRequest for each active freelancer."""
         from core.services import NotificationService
-        project = cancellation_request.project
+        
+        active_freelancers = project.applications.filter(status='accepted')
+        
         with transaction.atomic():
-            escrow = project.escrow
-            client_wallet, _ = Wallet.objects.get_or_create(
-                user=project.client.user
-            )
-            refund_amount = escrow.remaining_amount
-
-            # Refund remaining escrow to client
-            client_wallet.balance += refund_amount
-            client_wallet.save()
-
-            Transaction.objects.create(
-                wallet=client_wallet,
-                amount=refund_amount,
-                direction='credit',
-                transaction_type='refund',
-                status='completed',
-                description=f"Partial refund for cancelled in-progress project: {project.title}",
-                reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
-                related_project=project
-            )
-
-            escrow.remaining_amount = 0
-            escrow.status = 'refunded'
-            escrow.save()
-
-            # Cancel all pending/in-progress milestones
-            project.milestones.filter(status__in=['pending', 'in_progress']).update(status='cancelled')
-
-            project.status = 'cancelled'
-            project.save()
-
-            cancellation_request.status = 'agreed'
-            cancellation_request.save()
-
+            for app in active_freelancers:
+                CancellationRequest.objects.update_or_create(
+                    project=project,
+                    freelancer=app.freelancer,
+                    defaults={
+                        'requested_by': actor_user,
+                        'reason': reason,
+                        'status': 'pending'
+                    }
+                )
+                
+                NotificationService.create_notification(
+                    recipient=app.freelancer.user,
+                    notification_type='cancellation_request',
+                    title='Project Cancellation Request',
+                    message=f"Client has requested to cancel the project '{project.title}'. Please review and respond.",
+                    link=reverse('freelancer_track_project')
+                )
+                
             ProjectActivity.objects.create(
                 project=project,
                 user=actor_user,
-                activity_type='status_updated',
-                description=f"Freelancer agreed to cancellation. Project cancelled. RM{refund_amount} refunded."
+                activity_type='cancellation_requested',
+                description=f"Client requested project cancellation. Waiting for responses from {active_freelancers.count()} freelancer(s)."
             )
 
+    @staticmethod
+    def confirm_cancellation(cancellation_request, actor_user):
+        """A freelancer agrees to cancellation. If all agree, cancel project."""
+        from core.services import NotificationService
+        project = cancellation_request.project
+        current_freelancer = cancellation_request.freelancer
+        
+        with transaction.atomic():
+            cancellation_request.status = 'agreed'
+            cancellation_request.save()
+            
+            # Check if any pending requests remain for this project
+            remaining_pending = project.cancellation_requests.filter(status='pending').exists()
+            
+            if not remaining_pending:
+                # Everyone has agreed! Cancel the project.
+                escrow = getattr(project, 'escrow', None)
+                refund_amount = decimal.Decimal('0.00')
+                if escrow and escrow.remaining_amount > 0:
+                    client_wallet, _ = Wallet.objects.get_or_create(user=project.client.user)
+                    refund_amount = escrow.remaining_amount
+                    
+                    client_wallet.balance += refund_amount
+                    client_wallet.save()
+                    
+                    Transaction.objects.create(
+                        wallet=client_wallet,
+                        amount=refund_amount,
+                        direction='credit',
+                        transaction_type='refund',
+                        status='completed',
+                        description=f"Refund for cancelled project: {project.title}",
+                        reference_id=str(uuid.uuid4()).replace('-', '')[:12].upper(),
+                        related_project=project
+                    )
+                    
+                    escrow.remaining_amount = 0
+                    escrow.status = 'refunded'
+                    escrow.save()
+                    
+                project.milestones.filter(status__in=['pending', 'in_progress', 'completed']).update(status='cancelled')
+                project.status = 'cancelled'
+                project.save()
+                
+                ProjectActivity.objects.create(
+                    project=project,
+                    user=actor_user,
+                    activity_type='status_updated',
+                    description=f"All active freelancers agreed. Project cancelled. RM{refund_amount} refunded."
+                )
+                
+                # Notify client
+                NotificationService.create_notification(
+                    recipient=project.client.user,
+                    notification_type='project_cancelled',
+                    title='Project Cancelled',
+                    message=f"All freelancers agreed to cancel '{project.title}'. RM{refund_amount:.2f} refunded to your wallet.",
+                    link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+                )
+                
+                # Notify all involved freelancers
+                all_requests = project.cancellation_requests.all()
+                for req in all_requests:
+                    if req.freelancer != current_freelancer:
+                        NotificationService.create_notification(
+                            recipient=req.freelancer.user,
+                            notification_type='project_cancelled',
+                            title='Project Cancelled',
+                            message=f"All parties agreed. Project '{project.title}' is now cancelled.",
+                            link=reverse('freelancer_track_project')
+                        )
+            else:
+                # Not everyone has agreed yet
+                ProjectActivity.objects.create(
+                    project=project,
+                    user=actor_user,
+                    activity_type='cancellation_progress',
+                    description=f"Freelancer {current_freelancer.user.username} agreed to cancellation."
+                )
+                
+                NotificationService.create_notification(
+                    recipient=project.client.user,
+                    notification_type='cancellation_agreed',
+                    title='Cancellation Agreement',
+                    message=f"Freelancer {current_freelancer.user.username} agreed to cancel '{project.title}'. Waiting for others.",
+                    link=reverse('client_projectInfo', kwargs={'project_id': project.id})
+                )
+
+    @staticmethod
+    def decline_cancellation(cancellation_request, actor_user):
+        """A freelancer declines cancellation. This calls off the cancellation for everyone."""
+        from core.services import NotificationService
+        project = cancellation_request.project
+        declining_freelancer = cancellation_request.freelancer
+        
+        with transaction.atomic():
+            # Mark this request as declined
+            cancellation_request.status = 'declined'
+            cancellation_request.save()
+            
+            # Dismiss all other pending requests so others don't keep seeing the banner
+            project.cancellation_requests.filter(status='pending').update(status='declined')
+            
+            ProjectActivity.objects.create(
+                project=project,
+                user=actor_user,
+                activity_type='cancellation_declined',
+                description=f"Freelancer {declining_freelancer.user.username} declined cancellation. Project continues."
+            )
+            
+            # Notify Client
             NotificationService.create_notification(
                 recipient=project.client.user,
-                notification_type='project_cancelled',
-                title='Project Cancelled',
-                message=f"Freelancer agreed to cancel '{project.title}'. RM{refund_amount:.2f} refunded to your wallet.",
+                notification_type='cancellation_request',
+                title='Cancellation Declined',
+                message=f"Freelancer {declining_freelancer.user.username} declined your cancellation request for '{project.title}'. The project continues.",
                 link=reverse('client_projectInfo', kwargs={'project_id': project.id})
             )
+
 
     @staticmethod
     def admin_cancel_project(project, actor_user):
@@ -588,8 +752,9 @@ class ProjectService:
                 escrow.status = 'refunded'
                 escrow.save()
 
-            # Cancel all pending/in-progress milestones
+            # Cancel all pending/in-progress milestones and pending applications
             project.milestones.filter(status__in=['pending', 'in_progress']).update(status='cancelled')
+            project.applications.filter(status='pending').update(status='rejected')
 
             old_status = project.status
             project.status = 'cancelled'
@@ -610,9 +775,10 @@ class ProjectService:
                 link=reverse('client_projectInfo', kwargs={'project_id': project.id})
             )
             
-            if project.assigned_freelancer:
+            target_apps = project.applications.filter(status='accepted')
+            for app in target_apps:
                 NotificationService.create_notification(
-                    recipient=project.assigned_freelancer.user,
+                    recipient=app.freelancer.user,
                     notification_type='project_cancelled',
                     title='Project Cancelled by Admin',
                     message=f"Project '{project.title}' has been cancelled by an administrator.",

@@ -65,7 +65,7 @@ class MatchEngine:
             corpus.append(exp.description)
             
         # Add Platform Experience (Completed Projects)
-        for project in freelancer.assigned_projects.filter(status='completed'):
+        for project in Project.objects.filter(applications__freelancer=freelancer, applications__status='accepted', status='completed').distinct():
             corpus.append(f"Completed Project on Platform: {project.title}")
             corpus.append(project.description)
             
@@ -110,9 +110,10 @@ class MatchEngine:
             pass
         
         # Factor 2: Completion rate (30%)
-        total_projects = freelancer.assigned_projects.count()
+        assigned_projects = Project.objects.filter(applications__freelancer=freelancer, applications__status='accepted').distinct()
+        total_projects = assigned_projects.count()
         if total_projects > 0:
-            completed = freelancer.assigned_projects.filter(status='completed').count()
+            completed = assigned_projects.filter(status='completed').count()
             completion_rate = completed / total_projects
             score += completion_rate * 0.3
         
@@ -560,10 +561,12 @@ class MatchEngine:
         # 4b. Platform History (Deep Integration)
         # Check for similar completed projects in the same category
         if project.category:
-            similar_completed_count = freelancer.assigned_projects.filter(
+            similar_completed_count = Project.objects.filter(
+                applications__freelancer=freelancer,
+                applications__status='accepted',
                 status='completed', 
                 category=project.category
-            ).count()
+            ).distinct().count()
             
             if similar_completed_count > 0:
                 category_name = project.category.name

@@ -56,6 +56,7 @@
                     <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
                         <h4 style="margin-bottom: 10px; font-size: 14px; color: #555;">Milestones:</h4>
                         {% for milestone in project.milestones.all %}
+                        {% if milestone.assigned_to == request.user.freelancer %}
                         {% if milestone.status == 'in_progress' %}
                             <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
@@ -104,9 +105,18 @@
                                 <span style="font-size: 12px; font-weight: 600; color: #31708f; background: white; padding: 4px 8px; border-radius: 12px; border: 1px solid #bce8f1;">Waiting for Approval</span>
                             </div>
                         {% endif %}
+                        {% endif %}
                         {% endfor %}
                     </div>
+                    {% elif project.status == 'open' %}
+                    <div style="margin-top: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 10px; padding: 16px; text-align: center;">
+                        <p style="color: #2e7d32; font-weight: 600; margin: 0;">
+                            <i class="fas fa-info-circle"></i> Application Accepted! Waiting for client to start the project.
+                        </p>
+                    </div>
+                    {% endif %}
 
+                    {% if project.status == 'in_progress' %}
                     <!-- Cancellation Request Banner -->
                     {% if project.pending_cancellation %}
                     <div style="margin-top: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px;">
@@ -125,7 +135,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="response" value="agree">
                                 <button type="submit" class="btn btn-danger"
-                                    onclick="return confirm('Agreeing will cancel the project. The remaining escrow will be refunded to the client. Are you sure?')"
+                                    onclick="return confirm('Agreeing will contribute to the project cancellation. If all hired freelancers agree, the project will cancel and remaining escrow will be refunded to the client. Proceed?')"
                                     style="width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; background: #dc3545; color: white; font-weight: 600;">
                                     <i class="fas fa-check"></i> Agree to Cancel
                                 </button>
@@ -185,7 +195,7 @@
                         
                         <div style="margin-top: 15px; display: flex; gap: 10px;">
                             {% if app.application_type == 'invite' %}
-                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;">
+                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;" onsubmit="return confirm('Are you sure you want to accept this invitation?');">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-success" style="width: 100%; border: none; cursor: pointer; padding: 8px;">Accept</button>
                             </form>

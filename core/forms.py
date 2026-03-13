@@ -141,7 +141,7 @@ class ProjectForm(forms.ModelForm):
         fields = [
             'title', 'description', 'category', 'budget', 'deadline',
             'required_skills', 'experience_level', 'year_of_experience',
-            'preferred_language', 'status', 'attachment'
+            'preferred_language', 'max_freelancers', 'status', 'attachment'
         ]
         
         widgets = {
@@ -156,6 +156,7 @@ class ProjectForm(forms.ModelForm):
                 (0, 'Less than 1 year'), (1, '1 Year'), (2, '2 Years'), (3, '3 Years'), (4, '4 Years'), (5, '5+ Years')
             ]}),
             'preferred_language': forms.HiddenInput(attrs={'id': 'preferred_language'}), # Handled by JS
+            'max_freelancers': forms.NumberInput(attrs={'class': 'form-control', 'min': '1', 'value': '1'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'attachment': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': '.pdf'}),
         }

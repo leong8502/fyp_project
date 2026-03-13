@@ -17,18 +17,27 @@ def submit_review(request, project_id):
 
     reviewee = None
     if hasattr(reviewer, 'client') and project.client == reviewer.client:
-        if project.assigned_freelancer:
-            reviewee = project.assigned_freelancer.user
-    elif hasattr(reviewer, 'freelancer') and project.assigned_freelancer == reviewer.freelancer:
-        reviewee = project.client.user
+        freelancer_id = request.GET.get('freelancer_id') or request.POST.get('freelancer_id')
+        if freelancer_id:
+            from core.models import Freelancer
+            fl = get_object_or_404(Freelancer, id=freelancer_id)
+            reviewee = fl.user
+        else:
+            messages.error(request, "Please specify a freelancer to review (e.g., via '?freelancer_id=').")
+            return redirect('client_projectInfo', project_id=project.id)
+            
+    elif hasattr(reviewer, 'freelancer'):
+        # Assuming the freelancer is valid if they have an accepted app
+        if project.applications.filter(freelancer=reviewer.freelancer, status='accepted').exists():
+            reviewee = project.client.user
 
     if not reviewee:
         messages.error(request, "You cannot review this project.")
         return redirect('client_project')
 
-    existing_review = Review.objects.filter(project=project, reviewer=reviewer).first()
+    existing_review = Review.objects.filter(project=project, reviewer=reviewer, reviewee=reviewee).first()
     if existing_review:
-        messages.info(request, "You have already reviewed this project.")
+        messages.info(request, "You have already reviewed this user for this project.")
         if hasattr(reviewer, 'client'):
             return redirect('client_projectInfo', project_id=project.id)
         return redirect(reverse('freelancer_track_project') + '?tab=pass')

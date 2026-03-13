@@ -70,6 +70,7 @@ class AIGenerationService:
           "title": "A short, professional title for the project",
           "category": "{categories_list[0] if categories_list else 'Development'}", // MUST be one of: {categories_str}
           "description": "A detailed, professional description expanding on their prompt",
+          "max_freelancers": 1, // Number of freelancers needed. Suggest 1 for simple tasks, 2-3 for complex/multi-disciplinary projects.
           "budget": 5000, 
           "experience_level": "entry, intermediate, or expert",
           "year_of_experience": 2, 
@@ -92,7 +93,7 @@ class AIGenerationService:
         3. Milestone deadlines MUST be sequential and the final milestone deadline MUST match the project "deadline".
         4. Budget: The sum of all milestone amounts MUST equal the total budget.
         5. Experience: Less than 2 years = entry, 2-4 years = intermediate, 5+ years = expert.
-        6. Skills: Generate specific technical skills or tools, not general abilities. The skills should be software, programming languages, frameworks, or professional tools (e.g., Python, Flutter, Adobe Photoshop, Microsoft Excel, MySQL). Avoid generic terms like ‘programming’, ‘design’, or ‘computer skills’.
+        6. Skills: Generate specific technical skills or tools. Use standardized names (e.g., "HTML", "CSS", "Node.js"). Do NOT include versions (no "HTML5"), do NOT include parentheticals (no "React (Next.js)"), and do NOT use generic terms like "programming" or "design".
         """
         
         try:

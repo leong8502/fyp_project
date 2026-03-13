@@ -20,6 +20,9 @@
 
         <form method="POST" action="{% url 'submit_review' project.id %}" id="reviewForm">
             {% csrf_token %}
+            {% if request.GET.freelancer_id %}
+            <input type="hidden" name="freelancer_id" value="{{ request.GET.freelancer_id }}">
+            {% endif %}
 
             <!-- Section 1: Star Rating -->
             <div class="rating-section">

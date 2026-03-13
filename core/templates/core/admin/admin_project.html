@@ -39,6 +39,7 @@
         <table class="data-table">
             <thead>
                 <tr>
+                <tr>
                     <th style="width: 60px;">ID</th>
                     <th style="width: 30%;">Title</th>
                     <th style="width: 15%;">Client</th>
@@ -59,7 +60,7 @@
                     data-date="{{ project.created_at|date:'M d, Y' }}"
                     data-escrow-total="{% if project.escrow %}RM {{ project.escrow.total_amount }}{% else %}N/A{% endif %}"
                     data-escrow-remaining="{% if project.escrow %}RM {{ project.escrow.remaining_amount }}{% else %}N/A{% endif %}"
-                    data-freelancer="{% if project.assigned_freelancer %}{{ project.assigned_freelancer.user.username }}{% else %}None{% endif %}">
+                    data-freelancer="{% if project.has_hired_freelancers %}{% for f in project.hired_freelancers %}{{ f.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}None{% endif %}">
                     <td>#{{ project.id }}</td>
                     <td>
                         <div style="font-weight: 600;">{{ project.title }}</div>
@@ -81,7 +82,7 @@
                 </tr>
                 {% empty %}
                 <tr>
-                    <td colspan="7" class="no-data">No projects found</td>
+                    <td colspan="6" class="no-data">No projects found</td>
                 </tr>
                 {% endfor %}
             </tbody>

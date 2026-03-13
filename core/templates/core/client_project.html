@@ -91,10 +91,17 @@
                     data-created="{{ project.created_at|date:'Y-m-d' }}" data-title="{{ project.title|lower }}">
                     <td>{{ project.title }}</td>
                     <td>
-                        {% if project.assigned_freelancer %}
-                        {{ project.assigned_freelancer.full_name|default:project.assigned_freelancer.user.username }}
+                        {% if project.has_hired_freelancers %}
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+                                {% for freelancer in project.hired_freelancers %}
+                                    <span style="display: inline-flex; align-items: center; background: #f1f5f9; color: #475569; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid #e2e8f0; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                                        <i class="fas fa-user-circle" style="margin-right: 5px; color: #94a3b8;"></i>
+                                        {{ freelancer.full_name|default:freelancer.user.username }}
+                                    </span>
+                                {% endfor %}
+                            </div>
                         {% else %}
-                        <span style="color: #666;">Not Assigned</span>
+                            <span style="color: #94a3b8; font-style: italic; font-size: 13px;">Not Assigned</span>
                         {% endif %}
                     </td>
                     <td>
