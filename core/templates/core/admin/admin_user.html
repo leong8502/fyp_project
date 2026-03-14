@@ -161,7 +161,7 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="closeUserModal()">Cancel</button>
-            <button type="button" id="btnSaveUser" class="btn-save d-none" onclick="saveUser()"><i class="fas fa-save"></i> Save Changes</button>
+            <button type="button" id="btnSaveUser" class="btn-save d-none" onclick="saveUser(this)"><i class="fas fa-save"></i> Save Changes</button>
         </div>
     </div>
 </div>
@@ -218,7 +218,24 @@
         document.getElementById('userForm').reset();
     }
 
-    function saveUser() {
+    function showToast(message, type) {
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 100);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function saveUser(btn) {
         const userId = document.getElementById('modalUserId').value;
         const username = document.getElementById('modalUsername').value;
         const phone = document.getElementById('modalPhone').value;
@@ -228,6 +245,10 @@
         formData.append('username', username);
         formData.append('phone', phone);
         formData.append('status', status);
+
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+        btn.disabled = true;
 
         // Fetch CSRF token
         const getCookie = (name) => {
@@ -245,7 +266,7 @@
             return cookieValue;
         };
 
-        fetch(`/panel/users/update/${userId}/`, {
+        fetch(`/panel/users/${userId}/update/`, {
             method: 'POST',
             body: formData,
             headers: {
@@ -255,15 +276,20 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert(data.message);
-                window.location.reload();
+                closeUserModal();
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
             } else {
-                alert(data.message || 'Error updating user.');
+                showToast(data.message || 'Error updating user.', 'error');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while updating the user.');
+            showToast('An error occurred while updating the user.', 'error');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
         });
     }
 

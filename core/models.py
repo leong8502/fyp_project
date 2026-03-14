@@ -416,6 +416,7 @@ class CancellationRequest(models.Model):
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cancellation_requests')
     reason = models.TextField(blank=True, help_text="Optional reason for cancellation")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    is_project_cancellation = models.BooleanField(default=False, help_text="True if this request is part of a full project cancellation.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

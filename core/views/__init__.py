@@ -102,6 +102,7 @@ from core.views.admin import (
     admin_update_staff,
     admin_project_management,
     admin_update_project_status,
+    admin_remove_freelancer,
     admin_cancel_project,
     admin_review_management,
     admin_update_review_status,

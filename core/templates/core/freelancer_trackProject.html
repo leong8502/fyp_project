@@ -121,7 +121,7 @@
                     {% if project.pending_cancellation %}
                     <div style="margin-top: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px;">
                         <p style="font-weight: 700; color: #856404; margin: 0 0 6px 0; font-size: 14px;">
-                            <i class="fas fa-exclamation-circle"></i> Cancellation Requested
+                            <i class="fas fa-exclamation-circle"></i> Removal/Cancellation Requested
                         </p>
                         {% if project.pending_cancellation.reason %}
                         <p style="font-size: 13px; color: #555; margin: 0 0 12px 0;">
@@ -135,9 +135,9 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="response" value="agree">
                                 <button type="submit" class="btn btn-danger"
-                                    onclick="return confirm('Agreeing will contribute to the project cancellation. If all hired freelancers agree, the project will cancel and remaining escrow will be refunded to the client. Proceed?')"
+                                    onclick="return confirm('Are you sure to agree to get removed from this project?')"
                                     style="width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; background: #dc3545; color: white; font-weight: 600;">
-                                    <i class="fas fa-check"></i> Agree to Cancel
+                                    <i class="fas fa-check"></i> Agree
                                 </button>
                             </form>
                             <form action="{% url 'freelancer_respond_cancellation' project.pending_cancellation.id %}" method="post" style="flex: 1;">

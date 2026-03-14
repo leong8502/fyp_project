@@ -54,11 +54,21 @@ def freelancer_search_job(request):
     except (ValueError, TypeError):
         threshold = 20
 
-    projects = list(Project.objects.filter(status='open').select_related('client').prefetch_related('milestones'))
+    # Instantiate the manager
     manager = AISearchManager()
 
     # Use the new detailed method
-    details = manager.calculate_match_details(projects, freelancer=freelancer, query=query)
+    from django.db.models import Count, Q
+    projects_qs = Project.objects.filter(
+        status__in=['open', 'in_progress']
+    ).select_related('client').prefetch_related('milestones').annotate(
+        accepted_freelancers_count=Count('applications', filter=Q(applications__status='accepted'))
+    )
+
+    details = manager.calculate_match_details(
+        projects_qs,
+        freelancer=freelancer, query=query
+    )
 
     # Sort descending by score
     details.sort(key=lambda d: d['score'], reverse=True)
@@ -72,7 +82,16 @@ def freelancer_search_job(request):
         # Always attach skills_list for template rendering
         project.skills_list = [s.strip() for s in (project.required_skills or '').split(',') if s.strip()]
 
-        if score >= threshold:
+        # Check if project can accept more freelancers
+        can_apply = False
+        if project.status == 'open':
+            can_apply = True
+        elif project.status == 'in_progress':
+            accepted_count = project.applications.filter(status='accepted').count()
+            if accepted_count < project.max_freelancers:
+                can_apply = True
+
+        if score >= threshold and can_apply:
             matched.append(d)
 
         # Persist / update MatchScore in DB (only for meaningful scores)
@@ -184,7 +203,16 @@ def freelancer_respond_cancellation(request, cancellation_id):
 @freelancer_required
 def freelancer_apply_project(request, project_id):
     project = get_object_or_404(Project, id=project_id)
-    if project.status != 'open':
+    
+    can_apply = False
+    if project.status == 'open':
+        can_apply = True
+    elif project.status == 'in_progress':
+        accepted_count = project.applications.filter(status='accepted').count()
+        if accepted_count < project.max_freelancers:
+            can_apply = True
+
+    if not can_apply:
         messages.error(request, "This project is no longer accepting applications.")
         return redirect('freelancer_search_job')
 

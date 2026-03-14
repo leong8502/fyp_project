@@ -226,8 +226,7 @@
                                 <span class="score-badge score-high"><i class="fas fa-star"></i> {{ item.score }}%
                                     Match</span>
                                 {% elif item.score >= 40 %}
-                                <span class="score-badge score-mid"><i class="fas fa-check-circle"></i> {{ item.score
-                                    }}% Match</span>
+                                <span class="score-badge score-mid"><i class="fas fa-check-circle"></i> {{ item.score }}% Match</span>
                                 {% else %}
                                 <span class="score-badge score-low"><i class="fas fa-info-circle"></i> {{ item.score }}%
                                     Match</span>
@@ -285,12 +284,14 @@
                 <div class="job-item-footer" style="display:flex; gap:10px; align-items:center;">
                     <button class="toggle-details-btn" onclick="toggleDetails({{ item.project.id }}, this)">View
                         Details</button>
-                    {% if item.project.status == 'open' %}
-                    <button class="btn-primary"
-                        onclick="document.getElementById('applyModal_{{ item.project.id }}').style.display='block'"
-                        style="padding:8px 16px; border-radius:6px; font-weight:500; border:none; cursor:pointer; background-color:#1976d2; color:white;">
-                        Apply Now
-                    </button>
+                    {% if item.project.status == 'open' or item.project.status == 'in_progress' %}
+                        {% if item.project.status == 'open' or item.project.accepted_freelancers_count < item.project.max_freelancers %}
+                        <button class="btn-primary"
+                            onclick="document.getElementById('applyModal_{{ item.project.id }}').style.display='block'"
+                            style="padding:8px 16px; border-radius:6px; font-weight:500; border:none; cursor:pointer; background-color:#1976d2; color:white;">
+                            Apply Now
+                        </button>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

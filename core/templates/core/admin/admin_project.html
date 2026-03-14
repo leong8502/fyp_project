@@ -60,7 +60,18 @@
                     data-date="{{ project.created_at|date:'M d, Y' }}"
                     data-escrow-total="{% if project.escrow %}RM {{ project.escrow.total_amount }}{% else %}N/A{% endif %}"
                     data-escrow-remaining="{% if project.escrow %}RM {{ project.escrow.remaining_amount }}{% else %}N/A{% endif %}"
-                    data-freelancer="{% if project.has_hired_freelancers %}{% for f in project.hired_freelancers %}{{ f.user.username }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}None{% endif %}">
+                    data-escrow-total="{% if project.escrow %}RM {{ project.escrow.total_amount }}{% else %}N/A{% endif %}"
+                    data-escrow-remaining="{% if project.escrow %}RM {{ project.escrow.remaining_amount }}{% else %}N/A{% endif %}"
+                    data-freelancers='[{"id": "0", "name": "None"}]'>
+                    {% if project.has_hired_freelancers %}
+                        <script>
+                            document.currentScript.parentElement.dataset.freelancers = JSON.stringify([
+                                {% for f in project.hired_freelancers %}
+                                {"id": "{{ f.id }}", "name": "{{ f.user.username }}"}{% if not forloop.last %},{% endif %}
+                                {% endfor %}
+                            ]);
+                        </script>
+                    {% endif %}
                     <td>#{{ project.id }}</td>
                     <td>
                         <div style="font-weight: 600;">{{ project.title }}</div>
@@ -136,8 +147,8 @@
                         <input type="text" id="displayProjectClient" class="form-control" readonly>
                     </div>
                     <div class="form-group">
-                        <label>Assigned Freelancer</label>
-                        <input type="text" id="displayFreelancer" class="form-control" readonly>
+                        <label>Assigned Freelancers</label>
+                        <div id="displayFreelancers" style="display: flex; flex-direction: column; gap: 5px;"></div>
                     </div>
                 </div>
 
@@ -172,8 +183,8 @@
         </div>
         <div class="modal-footer">
             <button type="button" class="btn-cancel" onclick="closeEditProjectModal()">Close</button>
-            <button type="button" id="btnCancelProject" class="btn-danger" style="display: none;" onclick="cancelProjectAdmin()">
-                <i class="fas fa-ban"></i> Cancel Project & Refund Escrow
+            <button type="button" id="btnCancelProject" class="btn-danger" style="display: none;" onclick="cancelProjectAdmin(this)">
+                <i class="fas fa-ban"></i> Cancel Project &amp; Refund Escrow
             </button>
         </div>
     </div>
@@ -193,8 +204,46 @@
         document.getElementById('displayDate').value = row.dataset.date;
         document.getElementById('displayEscrowTotal').value = row.dataset.escrowTotal;
         document.getElementById('displayEscrowRemaining').value = row.dataset.escrowRemaining;
-        document.getElementById('displayFreelancer').value = row.dataset.freelancer;
         document.getElementById('editProjectStatus').value = status;
+        
+        const freelancers = JSON.parse(row.dataset.freelancers || '[{"id": "0", "name": "None"}]');
+        const freelancersContainer = document.getElementById('displayFreelancers');
+        freelancersContainer.innerHTML = '';
+        
+        if (freelancers.length === 1 && freelancers[0].id === "0") {
+            freelancersContainer.innerHTML = '<span style="color: #64748b;">None</span>';
+        } else {
+            freelancers.forEach(f => {
+                const fDiv = document.createElement('div');
+                fDiv.style.display = 'flex';
+                fDiv.style.justifyContent = 'space-between';
+                fDiv.style.alignItems = 'center';
+                fDiv.style.padding = '8px';
+                fDiv.style.backgroundColor = '#f8fafc';
+                fDiv.style.border = '1px solid #e2e8f0';
+                fDiv.style.borderRadius = '4px';
+                
+                const fName = document.createElement('span');
+                fName.innerText = f.name;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.innerHTML = '<i class="fas fa-user-times"></i> Remove';
+                removeBtn.className = 'btn-danger';
+                removeBtn.style.padding = '4px 8px';
+                removeBtn.style.fontSize = '0.8rem';
+                
+                if (status !== 'open' && status !== 'in_progress') {
+                    removeBtn.style.display = 'none';
+                } else {
+                    removeBtn.onclick = function() { removeFreelancerAdmin(row.dataset.projectId, f.id, f.name); };
+                }
+                
+                fDiv.appendChild(fName);
+                fDiv.appendChild(removeBtn);
+                freelancersContainer.appendChild(fDiv);
+            });
+        }
         
         // Update status badge display in modal
         const badgeHtml = `<span class="badge badge-status-${status}">${statusDisplay}</span>`;
@@ -215,7 +264,24 @@
         document.getElementById('editProjectModal').style.display = 'none';
     }
 
-    function cancelProjectAdmin() {
+    function showToast(message, type) {
+        const existingToast = document.querySelector('.toast-notification');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `toast-notification ${type}`;
+        const icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+        toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+        document.body.appendChild(toast);
+
+        setTimeout(() => toast.classList.add('show'), 100);
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    function cancelProjectAdmin(btn) {
         const projectId = document.getElementById('editProjectId').value;
         const projectTitle = document.getElementById('displayProjectTitle').value;
         const remainingEscrow = document.getElementById('displayEscrowRemaining').value;
@@ -225,6 +291,10 @@
         if (!confirm(confirmMsg)) {
             return;
         }
+
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cancelling...';
+        btn.disabled = true;
 
         const getCookie = (name) => {
             let cookieValue = null;
@@ -250,15 +320,66 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                alert(data.message);
-                window.location.reload();
+                closeEditProjectModal();
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
             } else {
-                alert(data.message || 'Error cancelling project.');
+                showToast(data.message || 'Error cancelling project.', 'error');
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while cancelling the project.');
+            showToast('An error occurred while cancelling the project.', 'error');
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        });
+    }
+
+    function removeFreelancerAdmin(projectId, freelancerId, freelancerName) {
+        if (!confirm(`Are you sure you want to remove ${freelancerName} from this project?`)) {
+            return;
+        }
+
+        const getCookie = (name) => {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    }
+                }
+            }
+            return cookieValue;
+        };
+
+        const formData = new FormData();
+        formData.append('freelancer_id', freelancerId);
+
+        fetch(`/panel/projects/${projectId}/remove-freelancer/`, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                closeEditProjectModal();
+                showToast(data.message, 'success');
+                setTimeout(() => window.location.reload(), 1000);
+            } else {
+                showToast(data.message || 'Error removing freelancer.', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('An error occurred while removing the freelancer.', 'error');
         });
     }
 

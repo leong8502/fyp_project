@@ -123,6 +123,7 @@ urlpatterns = [
     path('panel/projects/', views.admin_project_management, name='admin_project_management'),
     path('panel/projects/update-status/<int:project_id>/', views.admin_update_project_status, name='admin_update_project_status'),
     path('panel/projects/cancel/<int:project_id>/', views.admin_cancel_project, name='admin_cancel_project'),
+    path('panel/projects/<int:project_id>/remove-freelancer/', views.admin_remove_freelancer, name='admin_remove_freelancer'),
     path('panel/reviews/', views.admin_review_management, name='admin_review_management'),
     path('panel/reviews/update-status/<int:review_id>/', views.admin_update_review_status, name='admin_update_review_status'),
     path('panel/staff/', views.admin_staff_management, name='admin_staff_management'),

@@ -120,6 +120,17 @@
             }
         });
     }
+
+    function updateCancellationInstruction() {
+        const select = document.getElementById('cancel_freelancer');
+        const instruction = document.getElementById('cancellationInstruction');
+        
+        if (select.value === 'all') {
+            instruction.innerHTML = 'This will send a <strong>full project cancellation request</strong> to <strong>all hired freelancers</strong>. If <strong>all freelancers agree</strong>, the project will be fully cancelled and any remaining escrow will be refunded to you. If any freelancer declines, the project will continue.';
+        } else {
+            instruction.innerHTML = 'This will send a <strong>removal request</strong> to the <strong>selected freelancer</strong>. If they agree, their assigned milestones will be unassigned and they will be removed from the project. The project continues for other freelancers.';
+        }
+    }
 </script>
 {% endblock %}
 
@@ -164,7 +175,7 @@
             {% elif project.status == 'in_progress' %}
                 <strong>Project is overdue.</strong>
                 The deadline ({{ project.deadline|date:"M d, Y" }}) has passed.
-                Please communicate with your freelancer to agree on next steps, or use the <em>Request Cancellation</em> flow if needed.
+                Please communicate with your freelancer to agree on next steps, or use the <em>Request Removal/Cancellation</em> flow if needed.
             {% endif %}
         </div>
     </div>
@@ -306,7 +317,7 @@
 
             {% if project.status == 'open' or project.status == 'in_progress' or project.status == 'completed' or hired_freelancers %}
             <div class="info-tabs">
-                {% if project.status == 'open' %}
+                {% if project.status == 'open' or project.status == 'in_progress' %}
                 <button class="tab-btn {% if project.status == 'open' %}active{% endif %}" id="proposals-tab-btn" onclick="switchTab(event, 'proposals-tab')">
                     <i class="fas fa-file-invoice"></i> Manage Proposals
                 </button>
@@ -324,7 +335,7 @@
                 {% endif %}
             </div>
 
-            {% if project.status == 'open' %}
+            {% if project.status == 'open' or project.status == 'in_progress' %}
             <div id="proposals-tab" class="tab-content-v2 {% if project.status == 'open' %}active{% endif %}">
                 <h2>Manage Proposals</h2>
                 {% if project.applications.exists %}
@@ -538,7 +549,15 @@
                     <i class="fas fa-comments"></i> Chat with Freelancer
                 </button>
             {% else %}
-                <button class="btn-primary btn-disabled-v2" disabled>No Freelancer Assigned</button>
+                <button class="btn-primary btn-disabled-v2" disabled style="width: 100%; margin-bottom: 8px;">No Freelancer Assigned</button>
+            {% endif %}
+
+            {% if project.status == 'in_progress' and hired_freelancers|length < project.max_freelancers %}
+                <a href="{% url 'client_projectMatches' project.id %}" style="text-decoration: none;">
+                    <button class="btn-primary" style="width: 100%; margin-bottom: 8px; background-color: #28a745; border-color: #28a745;">
+                        <i class="fas fa-user-plus"></i> Find More Freelancers ({{ hired_freelancers|length }}/{{ project.max_freelancers }})
+                    </button>
+                </a>
             {% endif %}
             
             {% for milestone in project.milestones.all|dictsort:"order" %}
@@ -555,9 +574,14 @@
                 <i class="fas fa-clock"></i> <strong>Cancellation request pending.</strong><br>
                 Waiting for {{ pending_cancellations.count }} freelancer{% if pending_cancellations.count > 1 %}s{% endif %} to respond.
             </div>
+            {% elif not is_cancellation_available %}
+            <div class="cancellation-pending-box" style="background: #f8f9fa; border-color: #dee2e6; color: #6c757d;">
+                <i class="fas fa-info-circle"></i> <strong>Cancellation unavailable.</strong><br>
+                Please approve or revise the current milestone ("{{ current_active_milestone.title }}") before requesting cancellation.
+            </div>
             {% else %}
             <button class="btn-danger mt-8" onclick="openModalV2('requestCancellationModal')">
-                <i class="fas fa-ban"></i> Request Cancellation
+                <i class="fas fa-ban"></i> Request Removal/Cancellation
             </button>
             {% endif %}
 
@@ -732,37 +756,35 @@
     <div class="modal-overlay-v2" onclick="closeModalV2('requestCancellationModal')"></div>
     <div class="modal-content-v2">
         <div class="modal-header-v2">
-            <h2><i class="fas fa-ban text-danger"></i> Request Cancellation</h2>
+            <h2><i class="fas fa-ban text-danger"></i> Request Removal/Cancellation</h2>
             <button type="button" class="modal-close-v2" onclick="closeModalV2('requestCancellationModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         <div class="modal-body-v2">
-            <p class="modal-instruction-v2">
-                This will send a <strong>cancellation request</strong> to <strong>all active freelancers</strong>.
-                The project will only be cancelled if <strong>everyone agrees</strong>. If any freelancer declines, the project continues.
+            <p class="modal-instruction-v2" id="cancellationInstruction">
+                This will send a <strong>removal request</strong> to the <strong>selected freelancer</strong>.
+                If they agree, their assigned milestones will be unassigned and they will be removed from the project. The project continues for other freelancers.
             </p>
 
-            {% if escrow %}
-            <div class="payment-summary-v2">
-                <div class="summary-row-v2">
-                    <span>Released to Freelancer:</span>
-                    <span>RM {{ escrow.released_amount|floatformat:2 }}</span>
-                </div>
-                <div class="summary-row-v2 total-v2">
-                    <span>Potential Refund to You:</span>
-                    <span class="amount-v2 text-success">RM {{ escrow.remaining_amount|floatformat:2 }}</span>
-                </div>
-            </div>
-            {% endif %}
             <form action="{% url 'client_request_cancellation' project.id %}" method="post">
                 {% csrf_token %}
                 <div class="mb-20">
+                    <label for="cancel_freelancer" class="modal-label-v2">Select Freelancer to Remove:</label>
+                    <select name="freelancer_id" id="cancel_freelancer" class="form-control-v2 w-100" required onchange="updateCancellationInstruction()">
+                        <option value="">-- Choose a Freelancer or Action --</option>
+                        <option value="all" class="text-danger font-weight-bold">Cancel Entire Project (All Freelancers)</option>
+                        {% for f in hired_freelancers %}
+                        <option value="{{ f.id }}">{{ f.full_name|default:f.user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-20 mt-15">
                     <label for="cancel_reason" class="modal-label-v2">Reason (Optional):</label>
                     <textarea name="reason" id="cancel_reason" rows="3" class="modal-textarea-v2" 
                         placeholder="E.g., Project scope has changed significantly..."></textarea>
                 </div>
-                <div class="modal-footer-v2">
+                <div class="modal-footer-v2 mt-20">
                     <button type="button" class="btn-secondary" onclick="closeModalV2('requestCancellationModal')">Back</button>
                     <button type="submit" class="btn-danger"><i class="fas fa-paper-plane"></i> Send Request</button>
                 </div>
@@ -770,6 +792,7 @@
         </div>
     </div>
 </div>
+
 {% endif %}
 
 <!-- Report Project Modal -->

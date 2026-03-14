@@ -79,7 +79,19 @@ def client_search(request):
     paginator = Paginator(freelancers, 10)
     page_obj = paginator.get_page(request.GET.get('page'))
 
-    open_projects = Project.objects.filter(client=request.user.client, status='open')
+    from django.db.models import Count, Q, F
+
+    open_projects = Project.objects.annotate(
+        accepted_freelancers_count=Count(
+            'applications',
+            filter=Q(applications__status='accepted')
+        )
+    ).filter(
+        client=request.user.client,
+        status__in=['open', 'in_progress']
+    ).filter(
+        Q(status='open') | Q(accepted_freelancers_count__lt=F('max_freelancers'))
+    )
 
     return render(request, 'core/client_search.html', {
         'freelancers': page_obj,
@@ -95,7 +107,19 @@ def client_search(request):
 def client_freelancerProfile(request, freelancer_id):
     from django.core.paginator import Paginator
     freelancer = get_object_or_404(Freelancer, id=freelancer_id)
-    open_projects = Project.objects.filter(client=request.user.client, status='open')
+    from django.db.models import Count, Q, F
+
+    open_projects = Project.objects.annotate(
+        accepted_freelancers_count=Count(
+            'applications',
+            filter=Q(applications__status='accepted')
+        )
+    ).filter(
+        client=request.user.client,
+        status__in=['open', 'in_progress']
+    ).filter(
+        Q(status='open') | Q(accepted_freelancers_count__lt=F('max_freelancers'))
+    )
     
     # Fetch reviews for the freelancer (excluding hidden reviews)
     reviews_list = freelancer.user.received_reviews.filter(is_hidden=False).order_by('-created_at')
@@ -609,6 +633,12 @@ def client_projectInfo(request, project_id):
 
     activities = project.activities.all()[:10]
 
+    # Simple logic: disable cancellation if current active milestone is 'completed' (Waiting for Approval)
+    current_active_milestone = project.milestones.exclude(status='approved').order_by('order').first()
+    is_cancellation_available = True
+    if current_active_milestone and current_active_milestone.status == 'completed':
+        is_cancellation_available = False
+
     # Pending cancellation requests (for in-progress projects)
     pending_cancellations = project.cancellation_requests.filter(status='pending')
     has_pending_cancellation = pending_cancellations.exists()
@@ -619,6 +649,10 @@ def client_projectInfo(request, project_id):
         'contract_started': contract_started,
         'progress_percentage': progress_percentage,
         'activities': activities,
+        'has_pending_cancellation': has_pending_cancellation,
+        'pending_cancellations': pending_cancellations,
+        'is_cancellation_available': is_cancellation_available,
+        'current_active_milestone': current_active_milestone,
         'has_accepted_freelancers': has_accepted_freelancers,
         'hired_freelancers': hired_freelancers,
         'has_pending_cancellation': has_pending_cancellation,
@@ -726,18 +760,51 @@ def client_request_cancellation(request, project_id):
 
     if request.method == 'POST':
         reason = request.POST.get('reason', '').strip()
+        freelancer_id = request.POST.get('freelancer_id')
         
-        # Check if cancellation is already pending
-        if project.cancellation_requests.filter(status='pending').exists():
-            messages.warning(request, "A cancellation request is already pending.")
+        if not freelancer_id:
+            messages.error(request, "Please select a freelancer to cancel.")
+            return redirect('client_projectInfo', project_id=project.id)
+            
+        if freelancer_id == 'all':
+            # Check if any cancellation requests are already pending
+            if project.cancellation_requests.filter(status='pending').exists():
+                messages.warning(request, "There are already pending cancellation requests. Please wait for them to be resolved.")
+                return redirect('client_projectInfo', project_id=project.id)
+                
+            try:
+                is_cancelled_immediately = ProjectService.request_full_project_cancellation(project, request.user, reason)
+                if is_cancelled_immediately:
+                    messages.success(request, f"Project '{project.title}' has been directly cancelled and escrow refunded as no freelancers were assigned.")
+                else:
+                    messages.success(
+                        request,
+                        "Full project cancellation request sent to all freelancers. "
+                        "The project will be cancelled if all freelancers agree."
+                    )
+            except Exception as e:
+                messages.error(request, f"Failed to request project cancellation: {str(e)}")
+            return redirect('client_projectInfo', project_id=project.id)
+
+        from core.models import Freelancer
+        freelancer = get_object_or_404(Freelancer, id=freelancer_id)
+        
+        # Check if freelancer is hired for this project
+        if not project.applications.filter(freelancer=freelancer, status='accepted').exists():
+            messages.error(request, "Selected freelancer is not active on this project.")
+            return redirect('client_projectInfo', project_id=project.id)
+
+        # Check if cancellation is already pending for this freelancer
+        if project.cancellation_requests.filter(freelancer=freelancer, status='pending').exists():
+            messages.warning(request, "A cancellation request for this freelancer is already pending.")
             return redirect('client_projectInfo', project_id=project.id)
 
         try:
-            ProjectService.request_project_cancellation(project, request.user, reason)
+            ProjectService.request_project_cancellation(project, request.user, reason, freelancer)
             messages.success(
                 request,
-                "Cancellation request sent to all active freelancers. "
-                "The project will be cancelled only if all agree."
+                f"Cancellation request sent to {freelancer.user.username}. "
+                "They will be removed from the project if they agree."
             )
         except Exception as e:
             messages.error(request, f"Failed to send cancellation request: {str(e)}")
@@ -866,7 +933,19 @@ def client_invite_freelancer(request, freelancer_id):
     if request.method == 'POST':
         project_id = request.POST.get('project_id')
         message = request.POST.get('message', '')
-        project = get_object_or_404(Project, id=project_id, client=request.user.client, status='open')
+        project = get_object_or_404(Project, id=project_id, client=request.user.client)
+        
+        can_invite = False
+        if project.status == 'open':
+            can_invite = True
+        elif project.status == 'in_progress':
+            accepted_count = project.applications.filter(status='accepted').count()
+            if accepted_count < project.max_freelancers:
+                can_invite = True
+                
+        if not can_invite:
+            messages.error(request, "Project is not open or is already full.")
+            return redirect('client_freelancerProfile', freelancer_id=freelancer.id)
 
         application = ProjectApplication.objects.filter(project=project, freelancer=freelancer).first()
         if application:
@@ -907,8 +986,8 @@ def accept_application(request, app_id):
         messages.error(request, "Unauthorized to accept this application.")
         return redirect('home')
 
-    if project.status != 'open':
-        messages.error(request, "This project is no longer open.")
+    if project.status not in ['open', 'in_progress']:
+        messages.error(request, "This project is no longer open for new freelancers.")
         return redirect('home')
 
     try:
@@ -966,6 +1045,12 @@ def client_assign_milestone(request, milestone_id):
             messages.error(request, "Freelancer is not hired for this project.")
             return redirect('client_projectInfo', project_id=milestone.project.id)
             
+        if milestone.assigned_to != freelancer:
+            milestone.revision_requested = False
+            milestone.revision_count = 0
+            milestone.revision_reason = ""
+            milestone.attachments.all().delete()
+
         milestone.assigned_to = freelancer
         milestone.save()
         messages.success(request, f"Milestone '{milestone.title}' assigned to {freelancer.user.username}.")

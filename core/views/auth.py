@@ -42,7 +42,7 @@ def login(request):
             if not is_verified:
                 messages.error(request, "Please verify your email before login")
             else:
-                messages.error(request, "Your account has been deactivated. Please contact support.")
+                messages.error(request, "Your account has been deactivated. Please contact us by email.")
             return redirect("login")
 
         user = authenticate(request, username=user.username, password=password)

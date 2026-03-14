@@ -465,6 +465,44 @@ def admin_cancel_project(request, project_id):
         return JsonResponse({'status': 'error', 'message': f'Error cancelling project: {str(e)}'})
 
 @admin_required
+def admin_remove_freelancer(request, project_id):
+    """Admin endpoint to remove a specific freelancer from a project."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+    project = get_object_or_404(Project, id=project_id)
+    freelancer_id = request.POST.get('freelancer_id')
+    
+    if not freelancer_id:
+        return JsonResponse({'status': 'error', 'message': 'Freelancer ID is required.'}, status=400)
+        
+    if project.status not in ['open', 'in_progress']:
+        return JsonResponse({'status': 'error', 'message': f'Cannot modify a project that is {project.status}.'})
+
+    try:
+        from core.models import Freelancer
+        freelancer = get_object_or_404(Freelancer, id=freelancer_id)
+        
+        # Check if freelancer is hired for this project
+        if not project.applications.filter(freelancer=freelancer, status='accepted').exists():
+            return JsonResponse({'status': 'error', 'message': 'Selected freelancer is not active on this project.'}, status=400)
+
+        from core.services.project_service import ProjectService
+        ProjectService.admin_remove_freelancer(project, request.user, freelancer)
+        
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='update',
+            target_model='Project',
+            target_id=str(project.id),
+            description=f"Admin removed freelancer {freelancer.user.username} from project '{project.title}' (ID: {project.id})."
+        )
+        
+        return JsonResponse({'status': 'success', 'message': 'Freelancer successfully removed from project.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Error removing freelancer: {str(e)}'})
+
+@admin_required
 def admin_review_management(request):
     reviews = Review.objects.all().select_related(
         'project', 'reviewer', 'reviewee'
