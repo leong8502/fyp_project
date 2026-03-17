@@ -107,3 +107,11 @@ from core.views.admin import (
     admin_review_management,
     admin_update_review_status,
 )
+
+# ── New standalone match result page (touches no existing views) ───────────
+from core.views.match_result import (
+    freelancer_match_result,
+    freelancer_match_result_by_project,
+    api_freelancer_match_ai_analysis,
+)
+

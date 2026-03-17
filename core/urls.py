@@ -111,6 +111,10 @@ urlpatterns = [
     path('freelancer/search-job/', views.freelancer_search_job, name='freelancer_search_job'),
     path('freelancer/apply/<int:project_id>/', views.freelancer_apply_project, name='freelancer_apply_project'),
     path('freelancer/track-project/', views.freelancer_track_project, name='freelancer_track_project'),
+    # ── Standalone AI Match Result page (new, separate) ───────────────────
+    path('client/match/<int:match_id>/result/', views.freelancer_match_result, name='freelancer_match_result'),
+    path('freelancer/project/<int:project_id>/match-result/', views.freelancer_match_result_by_project, name='freelancer_match_result_by_project'),
+    path('freelancer/project/<int:project_id>/ai-analysis/', views.api_freelancer_match_ai_analysis, name='api_freelancer_match_ai_analysis'),
     path('freelancer/wallet/', views.freelancer_wallet, name='freelancer_wallet'),
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),
     path('freelancer/cancellation/<int:cancellation_id>/respond/', views.freelancer_respond_cancellation, name='freelancer_respond_cancellation'),

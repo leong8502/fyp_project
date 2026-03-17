@@ -1,0 +1,285 @@
+"""
+match_result.py – Standalone views for the AI Match Result detail page.
+These views do NOT modify any existing client views or templates.
+"""
+import os
+import re
+import logging
+from itertools import islice
+
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+
+logger = logging.getLogger(__name__)
+
+
+# ── Proficiency weights (mirrors ai_utils.py) ──────────────────────────────
+_PROFICIENCY_WEIGHT = {
+    'basic':          0.25,
+    'conversational': 0.50,
+    'fluent':         0.85,
+    'native':         1.00,
+}
+
+def _jaccard(a: set, b: set) -> float:
+    if not a and not b:
+        return 0.0
+    union = a | b
+    return len(a & b) / len(union) if union else 0.0
+
+def _to_set(text: str) -> set:
+    if not text:
+        return set()
+    return {t.strip().lower() for t in text.split(',') if t.strip()}
+
+
+def _can_view_match(request, project):
+    """Returns True if the request user is a freelancer."""
+    return hasattr(request.user, 'freelancer')
+
+
+def _compute_match_details(project, freelancer) -> dict:
+    """
+    Recomputes the Jaccard match for a single freelancer↔project pair.
+    Returns a rich dict with per-field breakdown for the UI.
+    """
+    # ── Freelancer data ───────────────────────────────────────────────────────
+    fl_skills_set   = set(freelancer.skills_list) if hasattr(freelancer, 'skills_list') else _to_set(freelancer.skills or '')
+    fl_exp_years    = getattr(freelancer, 'experience_years', 0) or 0
+    fl_availability = getattr(freelancer, 'availability_status', '') or ''
+
+    fl_lang_map = {}
+    try:
+        for lang_obj in freelancer.languages.all():
+            w = _PROFICIENCY_WEIGHT.get(lang_obj.proficiency.lower(), 0.5)
+            fl_lang_map[lang_obj.language.strip().lower()] = w
+    except Exception:
+        pass
+
+    fl_work_titles = set()
+    try:
+        for we in freelancer.work_experiences.all():
+            for token in re.split(r'[\s,/]+', (we.job_title or '').lower()):
+                if len(token) >= 3:
+                    fl_work_titles.add(token)
+    except Exception:
+        pass
+
+    # ── Project data ──────────────────────────────────────────────────────────
+    proj_skills_set   = _to_set(project.required_skills)
+    proj_exp_req      = getattr(project, 'year_of_experience', 0) or 0
+    proj_lang         = (project.preferred_language or '').strip().lower()
+    proj_title_tokens = set(
+        t for t in re.split(r'[\s,/\-]+', project.title.lower()) if len(t) >= 3
+    )
+
+    # ── 1. Skills Jaccard (40%) ───────────────────────────────────────────────
+    common_skills  = fl_skills_set & proj_skills_set
+    missing_skills = proj_skills_set - fl_skills_set
+    extra_skills   = fl_skills_set - proj_skills_set
+    skills_jaccard = _jaccard(fl_skills_set, proj_skills_set)
+
+    # ── 2. Language (20%) ─────────────────────────────────────────────────────
+    if proj_lang:
+        lang_score   = fl_lang_map.get(proj_lang, 0.0)
+        lang_status  = 'found' if lang_score > 0 else 'missing'
+        proficiency  = next(
+            (k for k, v in _PROFICIENCY_WEIGHT.items() if abs(v - lang_score) < 0.01),
+            None
+        )
+    else:
+        lang_score   = 1.0
+        lang_status  = 'any'
+        proficiency  = None
+
+    # ── 3. Experience (20%) ───────────────────────────────────────────────────
+    if proj_exp_req == 0:
+        exp_score = 1.0
+    else:
+        exp_score = min(fl_exp_years / proj_exp_req, 1.0)
+
+    # ── 4. Work Title (10%) ───────────────────────────────────────────────────
+    title_common   = fl_work_titles & proj_title_tokens
+    title_jaccard  = _jaccard(fl_work_titles, proj_title_tokens)
+
+    # ── 5. Availability (10%) ─────────────────────────────────────────────────
+    if not fl_availability or fl_availability == 'not_available':
+        avail_score = 0.0 if fl_availability == 'not_available' else 0.5
+    elif fl_availability in ('full_time', 'contract'):
+        avail_score = 1.0
+    else:
+        avail_score = 0.7  # part_time
+
+    # ── Weighted total ────────────────────────────────────────────────────────
+    total = (
+        0.40 * skills_jaccard +
+        0.20 * lang_score +
+        0.20 * exp_score +
+        0.10 * title_jaccard +
+        0.10 * avail_score
+    ) * 100
+
+    return {
+        # Per-field scores (0–100 %)
+        'skills_pct':       round(skills_jaccard * 100, 1),
+        'language_pct':     round(lang_score      * 100, 1),
+        'experience_pct':   round(exp_score        * 100, 1),
+        'work_title_pct':   round(title_jaccard    * 100, 1),
+        'availability_pct': round(avail_score       * 100, 1),
+        'total_pct':        round(total, 1),
+
+        # Skills detail
+        'proj_skills':     sorted(proj_skills_set),
+        'fl_skills':       sorted(fl_skills_set),
+        'common_skills':   sorted(common_skills),
+        'missing_skills':  sorted(missing_skills),
+        'extra_skills':    sorted(extra_skills),
+
+        # Language detail
+        'proj_lang':       proj_lang.title() if proj_lang else 'Any',
+        'fl_languages':    {k.title(): v for k, v in fl_lang_map.items()},
+        'lang_status':     lang_status,
+        'lang_proficiency': proficiency,
+
+        # Experience detail
+        'fl_exp_years':    fl_exp_years,
+        'proj_exp_req':    proj_exp_req,
+
+        # Work title detail
+        'title_common':    sorted(title_common),
+        'fl_work_titles':  sorted(fl_work_titles),
+        'proj_title_kw':   sorted(proj_title_tokens),
+
+        # Availability detail
+        'fl_availability': fl_availability.replace('_', ' ').title() if fl_availability else 'Not set',
+        'avail_pct':       round(avail_score * 100),
+    }
+
+
+# ── Freelancer view ───────────────────────────────────────────────────────────
+
+@login_required
+def freelancer_match_result_by_project(request, project_id):
+    """Renders the standalone AI match result detail page for a freelancer."""
+    from core.models import Project
+
+    if not hasattr(request.user, 'freelancer'):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("Only freelancers can access this page.")
+
+    project    = get_object_or_404(Project, id=project_id)
+    freelancer = request.user.freelancer
+    details    = _compute_match_details(project, freelancer)
+
+    return render(request, 'core/freelancer_matchresult.html', {
+        'project':    project,
+        'freelancer': freelancer,
+        'details':    details,
+    })
+
+
+# ── Client view (kept for backwards compat if linked from match lists) ────────
+
+@login_required
+def freelancer_match_result(request, match_id):
+    """Client-side view using a precomputed ProjectMatch record."""
+    from core.models import ProjectMatch
+
+    match = get_object_or_404(ProjectMatch, id=match_id)
+    if not (hasattr(request.user, 'client') and match.project.client == request.user.client):
+        from django.http import HttpResponseForbidden
+        return HttpResponseForbidden("You do not have permission to view this page.")
+
+    project    = match.project
+    freelancer = match.freelancer
+    details    = _compute_match_details(project, freelancer)
+
+    return render(request, 'core/freelancer_matchresult.html', {
+        'project':    project,
+        'freelancer': freelancer,
+        'details':    details,
+    })
+
+
+# ── AI analysis API ────────────────────────────────────────────────────────────
+
+@login_required
+def api_freelancer_match_ai_analysis(request, project_id):
+    """
+    JSON endpoint: returns Gemini AI feedback for each scoring field.
+    Called from the match result page via AJAX.
+    """
+    from core.models import Project
+
+    project    = get_object_or_404(Project, id=project_id)
+    freelancer = request.user.freelancer if hasattr(request.user, 'freelancer') else None
+
+    if not freelancer:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+
+    d = _compute_match_details(project, freelancer)
+
+    prompt = f"""You are an expert AI career analyst for TalentSync, a freelancer marketplace.
+
+A freelancer is considering applying for the project: "{project.title}".
+Description: {(project.description or 'N/A')[:300]}
+
+Here is their match breakdown (Jaccard similarity scoring):
+
+1. SKILLS MATCH ({d['skills_pct']}% | weight 40%)
+   - Project needs: {', '.join(d['proj_skills']) or 'not specified'}
+   - Freelancer has: {', '.join(d['fl_skills']) or 'not listed'}
+   - Matched: {', '.join(d['common_skills']) or 'none'}
+   - Missing: {', '.join(d['missing_skills']) or 'none'}
+
+2. LANGUAGE ({d['language_pct']}% | weight 20%)
+   - Project prefers: {d['proj_lang']}
+   - Freelancer speaks: {', '.join(d['fl_languages'].keys()) or 'not listed'}
+   - Status: {d['lang_status']}
+
+3. EXPERIENCE ({d['experience_pct']}% | weight 20%)
+   - Project requires: {d['proj_exp_req']} years
+   - Freelancer has: {d['fl_exp_years']} years
+
+4. WORK TITLE RELEVANCE ({d['work_title_pct']}% | weight 10%)
+   - Common title keywords: {', '.join(d['title_common']) or 'none'}
+
+5. AVAILABILITY ({d['availability_pct']}% | weight 10%)
+   - Freelancer status: {d['fl_availability']}
+
+Overall match score: {d['total_pct']}%
+
+For EACH of the 5 criteria above, write ONE concise sentence (max 20 words) of plain-English feedback.
+Then write ONE overall recommendation sentence.
+
+Respond ONLY in this exact JSON format (no markdown, no extra keys):
+{{
+  "skills": "...",
+  "language": "...",
+  "experience": "...",
+  "work_title": "...",
+  "availability": "...",
+  "overall": "..."
+}}"""
+
+    try:
+        import google.generativeai as genai
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY not configured")
+        genai.configure(api_key=api_key)
+        model    = genai.GenerativeModel('gemini-2.0-flash')
+        response = model.generate_content(prompt)
+
+        # Strip markdown code fences if Gemini wraps in ```json ... ```
+        text = response.text.strip()
+        text = re.sub(r'^```[a-z]*\n?', '', text)
+        text = re.sub(r'\n?```$', '', text)
+
+        import json
+        data = json.loads(text)
+        return JsonResponse({'success': True, 'feedback': data})
+    except Exception as exc:
+        logger.error("Gemini match AI analysis error: %s", exc)
+        return JsonResponse({'success': False, 'feedback': None, 'error': str(exc)}, status=200)

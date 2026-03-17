@@ -231,8 +231,8 @@
                                 <span class="score-badge score-low"><i class="fas fa-info-circle"></i> {{ item.score }}%
                                     Match</span>
                                 {% endif %}
-                                <button class="info-btn" onclick="showInfoModal('infoModal_{{ item.project.id }}')"
-                                    title="How this score was calculated">&#x2139;</button>
+                                <a href="{% url 'freelancer_match_result_by_project' item.project.id %}" class="info-btn"
+                                    title="View Detailed AI Match Analysis">&#x2139;</a>
                             </div>
                         </div>
                     </div>
@@ -296,16 +296,7 @@
                 </div>
             </div>
 
-            <!-- Info modal for this project -->
-            <div id="infoModal_{{ item.project.id }}" class="info-modal-overlay"
-                onclick="closeInfoIfOutside(event, 'infoModal_{{ item.project.id }}')">
-                <div class="info-modal-box">
-                    <button class="info-modal-close"
-                        onclick="hideInfoModal('infoModal_{{ item.project.id }}')">&#x00D7;</button>
-                    <h3>&#x1F4CA; Score Breakdown: {{ item.project.title }}</h3>
-                    <pre>{{ item.calculation_logic }}</pre>
-                </div>
-            </div>
+            <!-- Old Info modol block removed -> moved to separate match result page -->
             {% endfor %}
             {% else %}
             <div class="no-results" style="text-align:center; padding:60px 20px; color:#888;">

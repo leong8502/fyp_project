@@ -1,0 +1,706 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Match Analysis – {{ project.title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{font-size:16px}
+    body{font-family:'Inter',sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh}
+
+    /* ── Topbar ─────────────────────────────────────────────────────── */
+    .topbar{
+      background:rgba(255,255,255,.04);
+      backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.08);
+      padding:14px 28px;display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:100;
+    }
+    .brand{
+      font-size:1.1rem;font-weight:800;text-decoration:none;
+      background:linear-gradient(135deg,#818cf8,#34d399);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      display:flex;align-items:center;gap:8px;
+    }
+    .back-btn{
+      display:inline-flex;align-items:center;gap:7px;
+      font-size:.84rem;font-weight:500;color:#94a3b8;
+      text-decoration:none;padding:7px 14px;
+      border:1px solid rgba(255,255,255,.1);border-radius:8px;transition:all .2s;
+    }
+    .back-btn:hover{background:rgba(255,255,255,.06);color:#e2e8f0;border-color:rgba(255,255,255,.2)}
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .page{max-width:1060px;margin:0 auto;padding:32px 20px 64px}
+
+    /* ── Hero Header ─────────────────────────────────────────────────── */
+    .hero{
+      display:flex;align-items:center;gap:28px;flex-wrap:wrap;
+      background:linear-gradient(135deg,#1e1b4b 0%,#1a2744 100%);
+      border:1px solid rgba(129,140,248,.2);
+      border-radius:20px;padding:32px 36px;margin-bottom:28px;position:relative;overflow:hidden;
+    }
+    .hero::before{
+      content:'';position:absolute;top:-60px;right:-60px;
+      width:220px;height:220px;border-radius:50%;
+      background:radial-gradient(circle,rgba(129,140,248,.15),transparent 70%);
+    }
+    .hero-avatar{
+      width:78px;height:78px;border-radius:50%;object-fit:cover;
+      border:3px solid rgba(129,140,248,.45);flex-shrink:0;position:relative;z-index:1;
+    }
+    .hero-avatar-ph{
+      width:78px;height:78px;border-radius:50%;flex-shrink:0;
+      background:linear-gradient(135deg,#4f46e5,#0ea5e9);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.8rem;font-weight:800;color:#fff;
+      border:3px solid rgba(129,140,248,.4);position:relative;z-index:1;
+    }
+    .hero-info{flex:1;position:relative;z-index:1}
+    .hero-info h1{font-size:1.5rem;font-weight:800;color:#f8fafc;line-height:1.2}
+    .hero-info .sub{font-size:.88rem;color:#94a3b8;margin-top:4px}
+    .hero-score{
+      position:relative;z-index:1;flex-shrink:0;
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+    }
+    .ring-wrap{position:relative;width:110px;height:110px}
+    .ring-wrap svg{transform:rotate(-90deg);width:110px;height:110px}
+    .ring-bg{fill:none;stroke:rgba(255,255,255,.08);stroke-width:9}
+    .ring-fill{fill:none;stroke-width:9;stroke-linecap:round;
+      stroke:url(#rg);
+      stroke-dasharray:283;stroke-dashoffset:283;
+      transition:stroke-dashoffset 1.4s cubic-bezier(.25,.8,.25,1)}
+    .ring-center{
+      position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;
+    }
+    .ring-center .pct{font-size:1.75rem;font-weight:900;color:#f8fafc;line-height:1}
+    .ring-center .lbl{font-size:.65rem;color:#64748b;margin-top:2px}
+    .ring-label{font-size:.72rem;color:#475569;text-transform:uppercase;letter-spacing:.08em}
+
+    /* ── Score summary row ───────────────────────────────────────────── */
+    .score-strip{
+      display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:28px;
+    }
+    .ss-card{
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+      border-radius:12px;padding:14px 16px;
+      display:flex;align-items:center;gap:12px;
+    }
+    .ss-icon{
+      width:38px;height:38px;border-radius:10px;
+      display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0;
+    }
+    .ic-purple{background:rgba(139,92,246,.15);color:#c4b5fd}
+    .ic-blue  {background:rgba(59,130,246,.14) ;color:#93c5fd}
+    .ic-orange{background:rgba(249,115,22,.13) ;color:#fdba74}
+    .ic-cyan  {background:rgba(6,182,212,.13)  ;color:#67e8f9}
+    .ic-green {background:rgba(16,185,129,.12) ;color:#6ee7b7}
+    .ss-val{font-size:1.3rem;font-weight:800;color:#f1f5f9;line-height:1}
+    .ss-lbl{font-size:.71rem;color:#64748b;margin-top:2px}
+
+    /* ── Field cards ─────────────────────────────────────────────────── */
+    .field-card{
+      background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);
+      border-radius:18px;padding:26px 28px;margin-bottom:20px;
+    }
+    .fc-head{
+      display:flex;align-items:center;gap:12px;margin-bottom:16px;
+    }
+    .fc-icon{
+      width:42px;height:42px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;
+    }
+    .fc-title{flex:1}
+    .fc-name{font-size:1rem;font-weight:700;color:#f1f5f9}
+    .fc-weight{font-size:.75rem;color:#475569}
+    .fc-pct{
+      font-size:1.4rem;font-weight:900;color:#f8fafc;
+    }
+
+    /* Progress bar */
+    .pbar-track{height:8px;background:rgba(255,255,255,.07);border-radius:20px;overflow:hidden;margin-bottom:16px}
+    .pbar-fill{height:100%;border-radius:20px;width:0%;transition:width 1.2s cubic-bezier(.25,.8,.25,1)}
+    .fill-purple{background:linear-gradient(90deg,#818cf8,#c084fc)}
+    .fill-blue  {background:linear-gradient(90deg,#3b82f6,#06b6d4)}
+    .fill-orange{background:linear-gradient(90deg,#f59e0b,#f97316)}
+    .fill-cyan  {background:linear-gradient(90deg,#06b6d4,#10b981)}
+    .fill-green {background:linear-gradient(90deg,#10b981,#34d399)}
+
+    /* Calculation box */
+    .calc-box{
+      background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.06);
+      border-radius:12px;padding:16px 18px;margin-bottom:16px;
+    }
+    .calc-box h4{font-size:.78rem;font-weight:700;color:#64748b;
+      text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;
+    }
+    .calc-row{
+      display:flex;justify-content:space-between;align-items:center;
+      padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:.84rem;
+    }
+    .calc-row:last-child{border-bottom:none}
+    .cr-label{color:#94a3b8}
+    .cr-value{font-weight:600;font-size:.88rem}
+    .cv-match {color:#4ade80}
+    .cv-miss  {color:#f87171}
+    .cv-neutral{color:#94a3b8}
+    .cv-partial{color:#fbbf24}
+
+    /* Skill chips */
+    .chip-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px}
+    .chip{
+      display:inline-flex;align-items:center;gap:5px;
+      border-radius:20px;padding:4px 11px;font-size:.76rem;font-weight:500;
+    }
+    .chip-match {background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.25)}
+    .chip-miss  {background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25)}
+    .chip-extra {background:rgba(148,163,184,.08);color:#94a3b8;border:1px solid rgba(148,163,184,.15)}
+
+    /* AI feedback box */
+    .ai-box{
+      background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(16,185,129,.06));
+      border:1px solid rgba(129,140,248,.2);border-radius:12px;
+      padding:16px 18px;
+    }
+    .ai-label{
+      display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;
+      text-transform:uppercase;letter-spacing:.08em;
+      background:linear-gradient(135deg,#818cf8,#34d399);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+      margin-bottom:10px;
+    }
+    .ai-text{font-size:.88rem;line-height:1.75;color:#cbd5e1;min-height:28px}
+    .ai-loading{display:flex;align-items:center;gap:8px;color:#475569;font-size:.85rem}
+    .dot{width:6px;height:6px;border-radius:50%;background:#818cf8;animation:pulse 1.2s infinite}
+    .dot:nth-child(2){animation-delay:.2s}
+    .dot:nth-child(3){animation-delay:.4s}
+    @keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+
+    /* Formula badge */
+    .formula{
+      display:inline-flex;align-items:center;gap:6px;
+      background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+      border-radius:8px;padding:6px 12px;font-size:.78rem;color:#64748b;
+      font-family:'Courier New',monospace;margin-bottom:14px;
+    }
+
+    /* Overall banner */
+    .overall-card{
+      background:linear-gradient(135deg,#1e1b4b 0%,#0f4c3a 100%);
+      border:1px solid rgba(129,140,248,.25);border-radius:18px;
+      padding:26px 30px;margin-top:20px;
+      display:flex;align-items:center;gap:20px;
+    }
+    .overall-card .ai-text{color:#e2e8f0}
+
+    /* CTA */
+    .cta-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:28px}
+    .btn-primary{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:11px 22px;border-radius:10px;
+      background:linear-gradient(135deg,#6366f1,#4f46e5);
+      color:#fff;font-weight:600;font-size:.88rem;
+      border:none;cursor:pointer;text-decoration:none;
+      box-shadow:0 4px 14px rgba(99,102,241,.35);transition:transform .15s,box-shadow .15s;
+    }
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(99,102,241,.45);color:#fff}
+    .btn-outline{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:11px 22px;border-radius:10px;
+      background:transparent;color:#818cf8;font-weight:600;font-size:.88rem;
+      border:1.5px solid rgba(129,140,248,.4);cursor:pointer;text-decoration:none;
+      transition:background .15s,color .15s;
+    }
+    .btn-outline:hover{background:rgba(99,102,241,.12);color:#a5b4fc}
+
+    /* Modal */
+    .modal-overlay{
+      display:none;position:fixed;inset:0;
+      background:rgba(0,0,0,.65);backdrop-filter:blur(4px);
+      z-index:9999;align-items:center;justify-content:center;
+    }
+    .modal-overlay.open{display:flex}
+    .modal-box{
+      background:#1e1b2e;border:1px solid rgba(129,140,248,.2);
+      border-radius:18px;padding:28px;max-width:500px;width:90%;
+      box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;
+    }
+    .modal-close{
+      position:absolute;top:14px;right:18px;
+      background:none;border:none;font-size:1.4rem;color:#475569;cursor:pointer;
+    }
+    .modal-box h3{font-size:1.1rem;font-weight:700;color:#f1f5f9;margin-bottom:6px}
+    .modal-box p{font-size:.85rem;color:#64748b;margin-bottom:16px}
+    .modal-box label{display:block;font-size:.84rem;color:#94a3b8;margin-bottom:6px}
+    .modal-box textarea{
+      width:100%;background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.1);border-radius:10px;resize:vertical;
+      padding:12px;color:#e2e8f0;font-family:'Inter',sans-serif;font-size:.87rem;
+    }
+    .modal-box textarea:focus{outline:none;border-color:rgba(129,140,248,.5)}
+    .modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+
+    @media(max-width:860px){
+      .score-strip{grid-template-columns:repeat(3,1fr)}
+      .hero{flex-direction:column;text-align:center;padding:24px 20px}
+    }
+    @media(max-width:560px){
+      .score-strip{grid-template-columns:repeat(2,1fr)}
+      .topbar{padding:12px 14px}
+      .page{padding:20px 12px 50px}
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="rg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#34d399"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<!-- Topbar -->
+<nav class="topbar">
+  <a href="{% url 'freelancer_home' %}" class="brand"><i class="fas fa-bolt"></i> TalentSync</a>
+  <a href="javascript:history.back()" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+</nav>
+
+<div class="page">
+
+  <!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+  <div class="hero">
+    {% if freelancer.profile_image %}
+      <img src="{{ freelancer.profile_image.url }}" class="hero-avatar" alt="">
+    {% else %}
+      <div class="hero-avatar-ph">{{ freelancer.full_name|slice:":1"|default:"F" }}</div>
+    {% endif %}
+
+    <div class="hero-info">
+      <h1>{{ freelancer.full_name|default:freelancer.user.username }}</h1>
+      <div class="sub">Analysing match for: <strong style="color:#a5b4fc">{{ project.title }}</strong></div>
+      <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
+        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:.78rem;color:#cbd5e1"><i class="fas fa-briefcase" style="color:#818cf8;margin-right:5px"></i>{{ freelancer.experience_years }} yr exp</span>
+        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:.78rem;color:#cbd5e1"><i class="fas fa-clock" style="color:#34d399;margin-right:5px"></i>{{ freelancer.get_availability_status_display }}</span>
+      </div>
+    </div>
+
+    <!-- Ring -->
+    <div class="hero-score">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 110 110">
+          <circle class="ring-bg" cx="55" cy="55" r="45"/>
+          <circle class="ring-fill" cx="55" cy="55" r="45" id="mainRing" data-pct="{{ details.total_pct }}"/>
+        </svg>
+        <div class="ring-center">
+          <span class="pct">{{ details.total_pct }}%</span>
+          <span class="lbl">overall</span>
+        </div>
+      </div>
+      <span class="ring-label">Match Score</span>
+    </div>
+  </div>
+
+  <!-- ── 5-stat strip ───────────────────────────────────────────────────────── -->
+  <div class="score-strip">
+    <div class="ss-card">
+      <div class="ss-icon ic-purple"><i class="fas fa-laptop-code"></i></div>
+      <div><div class="ss-val">{{ details.skills_pct }}%</div><div class="ss-lbl">Skills (×40%)</div></div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-icon ic-blue"><i class="fas fa-globe"></i></div>
+      <div><div class="ss-val">{{ details.language_pct }}%</div><div class="ss-lbl">Language (×20%)</div></div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-icon ic-orange"><i class="fas fa-briefcase"></i></div>
+      <div><div class="ss-val">{{ details.experience_pct }}%</div><div class="ss-lbl">Experience (×20%)</div></div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-icon ic-cyan"><i class="fas fa-id-badge"></i></div>
+      <div><div class="ss-val">{{ details.work_title_pct }}%</div><div class="ss-lbl">Work Title (×10%)</div></div>
+    </div>
+    <div class="ss-card">
+      <div class="ss-icon ic-green"><i class="fas fa-clock"></i></div>
+      <div><div class="ss-val">{{ details.availability_pct }}%</div><div class="ss-lbl">Availability (×10%)</div></div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- FIELD 1: Skills                                                         -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <div class="field-card">
+    <div class="fc-head">
+      <div class="fc-icon ic-purple"><i class="fas fa-laptop-code"></i></div>
+      <div class="fc-title">
+        <div class="fc-name">1. Skills Match</div>
+        <div class="fc-weight">Jaccard Similarity — Weight: <strong>40%</strong></div>
+      </div>
+      <div class="fc-pct">{{ details.skills_pct }}%</div>
+    </div>
+
+    <div class="pbar-track"><div class="pbar-fill fill-purple" data-w="{{ details.skills_pct }}"></div></div>
+
+    <div class="formula">
+      |Matched ∩ Required| / |Matched ∪ Required| × 100
+    </div>
+
+    <div class="calc-box">
+      <h4>How your skills compare</h4>
+      <div class="calc-row">
+        <span class="cr-label">Project requires</span>
+        <span class="cr-value cv-neutral">{{ details.proj_skills|join:", "|default:"Not specified" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Your skills</span>
+        <span class="cr-value cv-neutral">{{ details.fl_skills|join:", "|default:"Not listed" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">✓ Matched</span>
+        <span class="cr-value cv-match">{{ details.common_skills|join:", "|default:"None" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">✗ Missing</span>
+        <span class="cr-value cv-miss">{{ details.missing_skills|join:", "|default:"None" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Jaccard score</span>
+        <span class="cr-value cv-match">{{ details.common_skills|length }} / ({{ details.common_skills|length }} + {{ details.missing_skills|length }} + {{ details.extra_skills|length }}) = {{ details.skills_pct }}%</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Weighted contribution</span>
+        <span class="cr-value cv-match">{{ details.skills_pct }}% × 40% = <strong>{{ details.skills_pct|floatformat:0|add:"0" }}pt</strong></span>
+      </div>
+    </div>
+
+    <div class="chip-row" style="margin-bottom:14px">
+      {% for s in details.common_skills %}<span class="chip chip-match"><i class="fas fa-check-circle"></i>{{ s }}</span>{% endfor %}
+      {% for s in details.missing_skills %}<span class="chip chip-miss"><i class="fas fa-times-circle"></i>{{ s }}</span>{% endfor %}
+      {% for s in details.extra_skills %}<span class="chip chip-extra">{{ s }}</span>{% endfor %}
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-label"><i class="fas fa-robot"></i> AI Feedback</div>
+      <div class="ai-text" id="ai-skills">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- FIELD 2: Language                                                        -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <div class="field-card">
+    <div class="fc-head">
+      <div class="fc-icon ic-blue"><i class="fas fa-globe"></i></div>
+      <div class="fc-title">
+        <div class="fc-name">2. Language Match</div>
+        <div class="fc-weight">Proficiency weighted check — Weight: <strong>20%</strong></div>
+      </div>
+      <div class="fc-pct">{{ details.language_pct }}%</div>
+    </div>
+
+    <div class="pbar-track"><div class="pbar-fill fill-blue" data-w="{{ details.language_pct }}"></div></div>
+
+    <div class="formula">
+      If required language found in profile → proficiency weight (0–100%), else 0%
+    </div>
+
+    <div class="calc-box">
+      <h4>Language breakdown</h4>
+      <div class="calc-row">
+        <span class="cr-label">Project prefers</span>
+        <span class="cr-value {% if details.lang_status != 'any' %}cv-neutral{% else %}cv-match{% endif %}">{{ details.proj_lang }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Your languages</span>
+        <span class="cr-value cv-neutral">
+          {% if details.fl_languages %}
+            {% for lang, w in details.fl_languages.items %}{{ lang }} ({{ w|floatformat:0 }}%){% if not forloop.last %}, {% endif %}{% endfor %}
+          {% else %}Not listed{% endif %}
+        </span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Status</span>
+        {% if details.lang_status == 'found' %}
+          <span class="cr-value cv-match">✓ Found — proficiency score: {{ details.language_pct }}%</span>
+        {% elif details.lang_status == 'any' %}
+          <span class="cr-value cv-match">✓ No language preference — full marks</span>
+        {% else %}
+          <span class="cr-value cv-miss">✗ Language not in your profile</span>
+        {% endif %}
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Weighted contribution</span>
+        <span class="cr-value cv-neutral">{{ details.language_pct }}% × 20%</span>
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-label"><i class="fas fa-robot"></i> AI Feedback</div>
+      <div class="ai-text" id="ai-language">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- FIELD 3: Experience                                                      -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <div class="field-card">
+    <div class="fc-head">
+      <div class="fc-icon ic-orange"><i class="fas fa-briefcase"></i></div>
+      <div class="fc-title">
+        <div class="fc-name">3. Experience Match</div>
+        <div class="fc-weight">Numerical ratio — Weight: <strong>20%</strong></div>
+      </div>
+      <div class="fc-pct">{{ details.experience_pct }}%</div>
+    </div>
+
+    <div class="pbar-track"><div class="pbar-fill fill-orange" data-w="{{ details.experience_pct }}"></div></div>
+
+    <div class="formula">
+      min(your_years / required_years, 1.0) × 100 &nbsp; (capped at 100%)
+    </div>
+
+    <div class="calc-box">
+      <h4>Experience breakdown</h4>
+      <div class="calc-row">
+        <span class="cr-label">Project requires</span>
+        <span class="cr-value cv-neutral">{{ details.proj_exp_req }} year{{ details.proj_exp_req|pluralize }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Your experience</span>
+        <span class="cr-value {% if details.fl_exp_years >= details.proj_exp_req %}cv-match{% else %}cv-partial{% endif %}">{{ details.fl_exp_years }} year{{ details.fl_exp_years|pluralize }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Formula</span>
+        <span class="cr-value cv-neutral">
+          {% if details.proj_exp_req == 0 %}
+            No minimum → 100%
+          {% else %}
+            min({{ details.fl_exp_years }} ÷ {{ details.proj_exp_req }}, 1.0) = {{ details.experience_pct }}%
+          {% endif %}
+        </span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Weighted contribution</span>
+        <span class="cr-value cv-neutral">{{ details.experience_pct }}% × 20%</span>
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-label"><i class="fas fa-robot"></i> AI Feedback</div>
+      <div class="ai-text" id="ai-experience">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- FIELD 4: Work Title                                                      -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <div class="field-card">
+    <div class="fc-head">
+      <div class="fc-icon ic-cyan"><i class="fas fa-id-badge"></i></div>
+      <div class="fc-title">
+        <div class="fc-name">4. Work Title Relevance</div>
+        <div class="fc-weight">Title keyword Jaccard — Weight: <strong>10%</strong></div>
+      </div>
+      <div class="fc-pct">{{ details.work_title_pct }}%</div>
+    </div>
+
+    <div class="pbar-track"><div class="pbar-fill fill-cyan" data-w="{{ details.work_title_pct }}"></div></div>
+
+    <div class="formula">
+      |Title keywords ∩ Your past job titles| / |union| × 100
+    </div>
+
+    <div class="calc-box">
+      <h4>Title keyword breakdown</h4>
+      <div class="calc-row">
+        <span class="cr-label">Project title keywords</span>
+        <span class="cr-value cv-neutral">{{ details.proj_title_kw|join:", "|default:"—" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Your past title keywords</span>
+        <span class="cr-value cv-neutral">{{ details.fl_work_titles|join:", "|default:"No work history listed" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Overlapping keywords</span>
+        <span class="cr-value {% if details.title_common %}cv-match{% else %}cv-miss{% endif %}">{{ details.title_common|join:", "|default:"None" }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Weighted contribution</span>
+        <span class="cr-value cv-neutral">{{ details.work_title_pct }}% × 10%</span>
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-label"><i class="fas fa-robot"></i> AI Feedback</div>
+      <div class="ai-text" id="ai-work_title">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <!-- FIELD 5: Availability                                                   -->
+  <!-- ════════════════════════════════════════════════════════════════════════ -->
+  <div class="field-card">
+    <div class="fc-head">
+      <div class="fc-icon ic-green"><i class="fas fa-clock"></i></div>
+      <div class="fc-title">
+        <div class="fc-name">5. Availability</div>
+        <div class="fc-weight">Status scoring — Weight: <strong>10%</strong></div>
+      </div>
+      <div class="fc-pct">{{ details.availability_pct }}%</div>
+    </div>
+
+    <div class="pbar-track"><div class="pbar-fill fill-green" data-w="{{ details.availability_pct }}"></div></div>
+
+    <div class="formula">
+      Full-time/Contract = 100% | Part-time = 70% | Not available = 0% | Unknown = 50%
+    </div>
+
+    <div class="calc-box">
+      <h4>Availability breakdown</h4>
+      <div class="calc-row">
+        <span class="cr-label">Your current status</span>
+        <span class="cr-value {% if details.avail_pct >= 90 %}cv-match{% elif details.avail_pct >= 60 %}cv-partial{% else %}cv-miss{% endif %}">{{ details.fl_availability }}</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Score mapping</span>
+        <span class="cr-value cv-neutral">{{ details.fl_availability }} → {{ details.avail_pct }}%</span>
+      </div>
+      <div class="calc-row">
+        <span class="cr-label">Weighted contribution</span>
+        <span class="cr-value cv-neutral">{{ details.avail_pct }}% × 10%</span>
+      </div>
+    </div>
+
+    <div class="ai-box">
+      <div class="ai-label"><i class="fas fa-robot"></i> AI Feedback</div>
+      <div class="ai-text" id="ai-availability">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Overall AI Summary ─────────────────────────────────────────────────── -->
+  <div class="overall-card">
+    <div style="flex-shrink:0;width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,rgba(129,140,248,.25),rgba(52,211,153,.15));display:flex;align-items:center;justify-content:center;font-size:1.3rem">🤖</div>
+    <div style="flex:1">
+      <div class="ai-label"><i class="fas fa-star"></i> Overall Recommendation</div>
+      <div class="ai-text" id="ai-overall">
+        <div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>
+      </div>
+    </div>
+    <div style="font-size:2rem;font-weight:900;color:#f8fafc;flex-shrink:0">{{ details.total_pct }}%</div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-row">
+    <button onclick="document.getElementById('applyModal').classList.add('open')" class="btn-primary">
+      <i class="fas fa-paper-plane"></i> Apply Now
+    </button>
+    <a href="javascript:history.back()" class="btn-outline">
+      <i class="fas fa-search"></i> Back to Search
+    </a>
+  </div>
+
+</div><!-- /page -->
+
+<!-- Apply Modal -->
+<div id="applyModal" class="modal-overlay">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('applyModal').classList.remove('open')">&times;</button>
+    <h3>Apply for: {{ project.title }}</h3>
+    <p>Write a short cover letter to impress the client.</p>
+    <form action="{% url 'freelancer_apply_project' project.id %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label>Cover Letter / Message</label>
+      <textarea name="message" rows="5" placeholder="Introduce yourself and explain why you're a great fit…" required></textarea>
+      <label style="margin-top:10px;display:block">Attachment (Optional — PDF)</label>
+      <input type="file" name="attachment" accept=".pdf" style="width:100%;padding:10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.05);color:#e2e8f0;margin-bottom:14px">
+      <div class="modal-footer">
+        <button type="button" class="btn-outline" onclick="document.getElementById('applyModal').classList.remove('open')">Cancel</button>
+        <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Submit Application</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const PROJECT_ID = {{ project.id }};
+
+/* ── Animate ring ────────────────────────────────────────────────── */
+document.addEventListener('DOMContentLoaded', () => {
+  const ring  = document.getElementById('mainRing');
+  const pct   = parseFloat(ring.getAttribute('data-pct')) || 0;
+  const circ  = 2 * Math.PI * 45;
+  ring.style.strokeDasharray  = circ;
+  ring.style.strokeDashoffset = circ;
+  setTimeout(() => {
+    ring.style.strokeDashoffset = circ - (pct / 100) * circ;
+  }, 200);
+
+  /* animate bars */
+  setTimeout(() => {
+    document.querySelectorAll('.pbar-fill').forEach(el => {
+      el.style.width = (parseFloat(el.getAttribute('data-w')) || 0) + '%';
+    });
+  }, 300);
+
+  /* load AI */
+  loadAIFeedback();
+});
+
+/* ── Fetch AI feedback per field ─────────────────────────────────── */
+async function loadAIFeedback() {
+  const fields = ['skills','language','experience','work_title','availability','overall'];
+  const loading = name => `<div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>`;
+
+  try {
+    const res  = await fetch(`/freelancer/project/${PROJECT_ID}/ai-analysis/`);
+    const data = await res.json();
+
+    if (data.success && data.feedback) {
+      for (const key of fields) {
+        const el = document.getElementById('ai-' + key);
+        if (el && data.feedback[key]) {
+          el.innerHTML = '';
+          typewrite(el, data.feedback[key]);
+        }
+      }
+    } else {
+      setFallback();
+    }
+  } catch {
+    setFallback();
+  }
+}
+
+function typewrite(el, text) {
+  let i = 0;
+  const iv = setInterval(() => {
+    if (i < text.length) { el.textContent += text[i]; i++; }
+    else clearInterval(iv);
+  }, 11);
+}
+
+function setFallback() {
+  ['skills','language','experience','work_title','availability','overall'].forEach(k => {
+    const el = document.getElementById('ai-' + k);
+    if (el) el.innerHTML = '<em style="color:#475569">AI feedback unavailable. Check GEMINI_API_KEY.</em>';
+  });
+}
+</script>
+</body>
+</html>
