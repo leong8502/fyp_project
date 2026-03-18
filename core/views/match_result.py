@@ -183,6 +183,21 @@ def freelancer_match_result_by_project(request, project_id):
     freelancer = request.user.freelancer
     details    = _compute_match_details(project, freelancer)
 
+    # ── Use stored search-time score if available (ensures consistency with search list) ──
+    # The search view saves scores to MatchScore; we display that score here so the
+    # "42%" shown on the card always matches the "42%" shown on the detail page.
+    try:
+        from core.models import MatchScore
+        stored_ms = MatchScore.objects.filter(
+            project=project,
+            freelancer=freelancer,
+        ).order_by('-created_at').first()
+        if stored_ms is not None and stored_ms.overall_score is not None:
+            details = dict(details)
+            details['total_pct'] = round(float(stored_ms.overall_score), 1)
+    except Exception:
+        pass  # If MatchScore table doesn't exist or query fails, use computed value
+
     return render(request, 'core/freelancer_matchresult.html', {
         'project':    project,
         'freelancer': freelancer,

@@ -20,30 +20,140 @@ from itertools import islice
 
 
 # ---------------------------------------------------------------------------
-# Keyword parsing
+# Tech synonym / alias dictionary
+# ---------------------------------------------------------------------------
+
+# Maps a normalised query term → set of equivalent tokens to search in project text.
+_TECH_SYNONYMS: dict = {
+    # Full-stack variations
+    'fullstack':    {'full-stack', 'full stack', 'frontend', 'backend', 'python', 'react', 'node', 'django', 'javascript'},
+    'full-stack':   {'fullstack', 'full stack', 'frontend', 'backend', 'python', 'react', 'node'},
+    'full stack':   {'fullstack', 'full-stack', 'frontend', 'backend'},
+    # Front-end / back-end
+    'frontend':     {'front-end', 'front end', 'react', 'vue', 'angular', 'javascript', 'html', 'css'},
+    'front-end':    {'frontend', 'front end', 'react', 'vue', 'angular', 'javascript'},
+    'backend':      {'back-end', 'back end', 'server', 'api', 'django', 'flask', 'node', 'express'},
+    'back-end':     {'backend', 'back end', 'server', 'api'},
+    # ML / AI / Data
+    'ml':           {'machine learning', 'deep learning', 'ai', 'artificial intelligence', 'tensorflow', 'pytorch'},
+    'ai':           {'artificial intelligence', 'machine learning', 'ml', 'deep learning'},
+    'datascience':  {'data science', 'data scientist', 'machine learning', 'analytics', 'pandas', 'python'},
+    'data science': {'datascience', 'data scientist', 'machine learning', 'analytics'},
+    # Mobile
+    'mobile':       {'android', 'ios', 'flutter', 'react native', 'swift', 'kotlin'},
+    # E-commerce
+    'ecommerce':    {'e-commerce', 'e commerce', 'shopify', 'woocommerce', 'payment', 'cart'},
+    'e-commerce':   {'ecommerce', 'e commerce', 'shopify', 'woocommerce', 'payment'},
+    # DevOps / Cloud
+    'devops':       {'dev-ops', 'ci/cd', 'docker', 'kubernetes', 'aws', 'cloud'},
+    'cloud':        {'aws', 'azure', 'gcp', 'google cloud', 'docker', 'kubernetes'},
+    # Design
+    'design':       {'ui', 'ux', 'figma', 'adobe', 'photoshop', 'graphic', 'ui/ux'},
+    'ui':           {'ux', 'figma', 'design', 'user interface', 'frontend', 'css'},
+    'ux':           {'ui', 'figma', 'design', 'user experience', 'wireframe'},
+    # Abbreviations
+    'js':           {'javascript'},
+    'ts':           {'typescript'},
+    'py':           {'python'},
+    'db':           {'database', 'sql', 'mysql', 'postgresql', 'mongodb'},
+    'seo':          {'search engine', 'digital marketing', 'google ads', 'content'},
+}
+
+
+def _expand_with_synonyms(tokens: list) -> list:
+    """Expand query tokens with synonym sets for broader project text matching."""
+    expanded: set = set()
+    for t in tokens:
+        expanded.add(t)
+        if t in _TECH_SYNONYMS:
+            expanded.update(_TECH_SYNONYMS[t])
+    return list(expanded)
+
+
+def _gemini_parse_query(raw_query: str):
+    """
+    Uses Gemini to parse a natural-language search query into structured fields.
+    Returns dict or None if Gemini unavailable.
+    """
+    try:
+        import os, json
+        import google.generativeai as genai
+        try:
+            from django.conf import settings as _s
+            api_key = getattr(_s, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
+        except Exception:
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+
+        if not api_key:
+            return None
+
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel('gemini-2.0-flash')
+        prompt = (
+            'You are a search query parser for a freelancer job-matching platform.\n'
+            f'Parse this query: "{raw_query}"\n\n'
+            'Extract:\n'
+            '- skills: list of technology/skill keywords (normalise e.g. "fullstack"→"full-stack", "js"→"javascript")\n'
+            '- experience_years: integer or null (recognise "3 yr", "3yrs", "three years" etc.)\n'
+            '- availability: "full_time", "part_time", "contract", or null\n'
+            '- languages: list of spoken languages (e.g. "english", "malay")\n\n'
+            'Respond ONLY in JSON, no markdown:\n'
+            '{"skills": [...], "experience_years": null, "availability": null, "languages": []}'
+        )
+        resp = model.generate_content(prompt)
+        text = resp.text.strip()
+        text = re.sub(r'^```[a-z]*\n?', '', text)
+        text = re.sub(r'\n?```$', '', text)
+        import json
+        data = json.loads(text)
+        return {
+            'skills':       [str(s).lower() for s in data.get('skills', []) if s],
+            'experience':   int(data['experience_years']) if data.get('experience_years') is not None else None,
+            'availability': data.get('availability'),
+            'languages':    [str(l).lower() for l in data.get('languages', []) if l],
+        }
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Keyword parsing (NLP-enhanced)
 # ---------------------------------------------------------------------------
 
 def parse_keywords(query: str) -> dict:
     """
-    Parses a raw search query string into structured fields.
+    Parses a raw search query into structured fields.
+    Tries Gemini NLP first; falls back to regex + synonym expansion.
 
     Returns:
         {
-          'skills':       list[str],   # remaining tokens after extraction
-          'experience':   int | None,  # years extracted from e.g. "5 years"
+          'skills':       list[str],   # tech/skill tokens (with synonyms expanded)
+          'experience':   int | None,
           'availability': str | None,  # 'full_time' | 'part_time' | 'contract'
+          'languages':    list[str],
         }
     """
+    # ── Try Gemini NLP first ───────────────────────────────────────
+    gemini_result = _gemini_parse_query(query)
+    if gemini_result is not None:
+        expanded = _expand_with_synonyms(gemini_result.get('skills', []))
+        return {
+            'skills':       expanded,
+            'languages':    gemini_result.get('languages', []),
+            'experience':   gemini_result.get('experience'),
+            'availability': gemini_result.get('availability'),
+        }
+
+    # ── Regex fallback ───────────────────────────────────────────
     raw = query.lower()
 
-    # --- Extract experience years ---
-    # Handles: "3 years", "3 year", "3 yrs", "3 yr", "3yr", "3+years", "3 + yrs" etc.
+    # Extract experience years
     exp_match = re.search(r'(\d+)\s*(?:\+\s*)?(?:years?|yrs?)', raw)
     experience = int(exp_match.group(1)) if exp_match else None
     if exp_match:
         raw = raw.replace(exp_match.group(0), '', 1)
 
-    # --- Extract availability ---
+    # Extract availability
     availability = None
     if re.search(r'\bfull[\s-]?time\b', raw):
         availability = 'full_time'
@@ -55,22 +165,27 @@ def parse_keywords(query: str) -> dict:
         availability = 'contract'
         raw = re.sub(r'\bcontract\b', '', raw)
 
-# --- Extract languages ---
-    _KNOWN_LANGS = {'english', 'malay', 'chinese', 'mandarin', 'tamil', 'hindi', 'japanese', 'korean', 'french', 'german', 'spanish'}
+    # Extract spoken languages
+    _KNOWN_LANGS = {'english', 'malay', 'chinese', 'mandarin', 'tamil', 'hindi',
+                    'japanese', 'korean', 'french', 'german', 'spanish'}
     query_langs = []
-    for l in _KNOWN_LANGS:
-        if re.search(r'\b' + re.escape(l) + r'\b', raw):
-            query_langs.append(l)
-            raw = re.sub(r'\b' + re.escape(l) + r'\b', '', raw)
+    for lang in _KNOWN_LANGS:
+        if re.search(r'\b' + re.escape(lang) + r'\b', raw):
+            query_langs.append(lang)
+            raw = re.sub(r'\b' + re.escape(lang) + r'\b', '', raw)
 
-    # --- Remaining tokens are skills / tech keywords ---
+    # Remaining tokens = tech/skill keywords
     _stop = {'and', 'or', 'the', 'a', 'an', 'for', 'in', 'with', 'to', 'of',
              'is', 'are', 'was', 'were', 'my', 'i', 'have', 'has', 'using',
-             'experience', 'developer', 'engineer', 'working', 'stack', 'full'}
-    tokens = [t for t in re.split(r'[\s,;/|]+', raw) if len(t) >= 2 and t not in _stop]
+             'experience', 'developer', 'engineer', 'working'}
+    raw_tokens = [t for t in re.split(r'[\s,;/|]+', raw)
+                  if len(t) >= 2 and t not in _stop]
+
+    # Expand with synonyms (e.g. 'fullstack' → full-stack, react, django …)
+    expanded = _expand_with_synonyms(raw_tokens)
 
     return {
-        'skills':       tokens,
+        'skills':       expanded,
         'languages':    query_langs,
         'experience':   experience,
         'availability': availability,
@@ -210,9 +325,11 @@ class AISearchManager:
         query_exp    = parsed.get('experience')    # int or None
         query_avail  = parsed.get('availability')  # str or None
 
-        # ── Merge profile + query for effective values ─────────────────
-        # Skills: profile skills ∪ query-typed skills
-        effective_skills = fl_skills_set | query_skills
+        # ── Effective values for scoring ───────────────────────────────
+        # IMPORTANT: effective_skills uses only the freelancer's PROFILE skills for Jaccard.
+        # query_skills are used ONLY for the relevance gate (below), NOT for scoring.
+        # This ensures the score on the search card is IDENTICAL to the detail page score.
+        effective_skills = fl_skills_set
 
         # Experience: prefer query if specified, else profile
         effective_exp = query_exp if query_exp is not None else fl_exp_years
