@@ -232,7 +232,7 @@
                                 <span class="score-badge score-low"><i class="fas fa-info-circle"></i> {{ item.score }}%
                                     Match</span>
                                 {% endif %}
-                                <a href="{% url 'freelancer_match_result_by_project' item.project.id %}" class="info-btn"
+                                <a href="{% url 'freelancer_match_result_by_project' item.project.id %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="info-btn"
                                     title="View Detailed AI Match Analysis">&#x2139;</a>
                             </div>
                         </div>

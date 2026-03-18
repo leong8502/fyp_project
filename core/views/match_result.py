@@ -39,11 +39,14 @@ def _can_view_match(request, project):
     return hasattr(request.user, 'freelancer')
 
 
-def _compute_match_details(project, freelancer) -> dict:
+def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     """
     Recomputes the Jaccard match for a single freelancer↔project pair.
+    query_skills: set of skill tokens typed in the search bar (merged into effective skills).
     Returns a rich dict with per-field breakdown for the UI.
     """
+    if query_skills is None:
+        query_skills = set()
     # ── Freelancer data ───────────────────────────────────────────────────────
     fl_skills_set   = set(freelancer.skills_list) if hasattr(freelancer, 'skills_list') else _to_set(freelancer.skills or '')
     fl_exp_years    = getattr(freelancer, 'experience_years', 0) or 0
@@ -86,9 +89,11 @@ def _compute_match_details(project, freelancer) -> dict:
     )
 
     # ── 1. Skills Jaccard (40%) ───────────────────────────────────────────────
-    common_skills  = fl_skills_set & proj_skills_set
-    missing_skills = proj_skills_set - fl_skills_set
-    extra_skills   = fl_skills_set - proj_skills_set
+    effective_fl_skills = fl_skills_set | query_skills
+    common_skills  = effective_fl_skills & proj_skills_set
+    missing_skills = proj_skills_set - effective_fl_skills
+    extra_skills   = effective_fl_skills - proj_skills_set
+    # Note: Jaccard score uses base fl_skills_set so scores match the search list
     skills_jaccard = _jaccard(fl_skills_set, proj_skills_set)
 
     # ── 2. Language (20%) ─────────────────────────────────────────────────────
@@ -142,7 +147,7 @@ def _compute_match_details(project, freelancer) -> dict:
 
         # Skills detail
         'proj_skills':     sorted(proj_skills_set),
-        'fl_skills':       sorted(fl_skills_set),
+        'fl_skills':       sorted(effective_fl_skills),
         'common_skills':   sorted(common_skills),
         'missing_skills':  sorted(missing_skills),
         'extra_skills':    sorted(extra_skills),
@@ -174,6 +179,7 @@ def _compute_match_details(project, freelancer) -> dict:
 def freelancer_match_result_by_project(request, project_id):
     """Renders the standalone AI match result detail page for a freelancer."""
     from core.models import Project
+    from core.ai_utils import parse_keywords
 
     if not hasattr(request.user, 'freelancer'):
         from django.http import HttpResponseForbidden
@@ -181,7 +187,12 @@ def freelancer_match_result_by_project(request, project_id):
 
     project    = get_object_or_404(Project, id=project_id)
     freelancer = request.user.freelancer
-    details    = _compute_match_details(project, freelancer)
+    
+    q_str = request.GET.get('q', '')
+    parsed = parse_keywords(q_str) if q_str else {}
+    query_skills = set(parsed.get('skills', []))
+    
+    details    = _compute_match_details(project, freelancer, query_skills)
 
     # ── Use stored search-time score if available (ensures consistency with search list) ──
     # The search view saves scores to MatchScore; we display that score here so the
@@ -237,6 +248,10 @@ def api_freelancer_match_ai_analysis(request, project_id):
     Called from the match result page via AJAX.
     """
     from core.models import Project
+    from core.ai_utils import parse_keywords
+    from django.core.cache import cache
+    import json
+    import time
 
     project    = get_object_or_404(Project, id=project_id)
     freelancer = request.user.freelancer if hasattr(request.user, 'freelancer') else None
@@ -244,7 +259,17 @@ def api_freelancer_match_ai_analysis(request, project_id):
     if not freelancer:
         return JsonResponse({'error': 'Forbidden'}, status=403)
 
-    d = _compute_match_details(project, freelancer)
+    q_str = request.GET.get('q', '')
+    parsed = parse_keywords(q_str) if q_str else {}
+    query_skills = set(parsed.get('skills', []))
+
+    # Use Django's cache to store AI responses for 24h to completely bypass API quotas for repeated views
+    cache_key = f"ai_feedback_{project.id}_{freelancer.id}_{hash(q_str)}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return JsonResponse({'success': True, 'feedback': cached_data})
+
+    d = _compute_match_details(project, freelancer, query_skills)
 
     prompt = f"""You are an expert AI career analyst for TalentSync, a freelancer marketplace.
 
@@ -302,16 +327,28 @@ Respond ONLY in this exact JSON format (no markdown, no extra keys):
             raise ValueError("GEMINI_API_KEY not configured")
         genai.configure(api_key=api_key)
         model    = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(prompt)
+        
+        # Exponential backoff loop to automatically handle 429 errors from Google
+        MAX_RETRIES = 3
+        for attempt in range(MAX_RETRIES):
+            try:
+                response = model.generate_content(prompt)
+                
+                text = response.text.strip()
+                text = re.sub(r'^```[a-z]*\n?', '', text)
+                text = re.sub(r'\n?```$', '', text)
 
-        # Strip markdown code fences if Gemini wraps in ```json ... ```
-        text = response.text.strip()
-        text = re.sub(r'^```[a-z]*\n?', '', text)
-        text = re.sub(r'\n?```$', '', text)
-
-        import json
-        data = json.loads(text)
-        return JsonResponse({'success': True, 'feedback': data})
+                data = json.loads(text)
+                cache.set(cache_key, data, 86400) # Save in cache for 24 hrs
+                return JsonResponse({'success': True, 'feedback': data})
+                
+            except Exception as loop_exc:
+                err_str = str(loop_exc).lower()
+                if attempt < MAX_RETRIES - 1 and ('429' in err_str or 'quota' in err_str or 'exhausted' in err_str or 'rate' in err_str):
+                    time.sleep(2 ** attempt) # Sleep 1s, then 2s, then give up
+                    continue
+                raise loop_exc
+                
     except Exception as exc:
         logger.error("Gemini match AI analysis error: %s", exc)
         return JsonResponse({'success': False, 'feedback': None, 'error': str(exc)}, status=200)

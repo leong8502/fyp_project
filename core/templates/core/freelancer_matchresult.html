@@ -667,8 +667,12 @@ async function loadAIFeedback() {
   const fields = ['skills','language','experience','work_title','availability','overall'];
   const loading = name => `<div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>`;
 
+  // Read the original query from the URL so we pass it to the analysis API
+  const urlParams = new URLSearchParams(window.location.search);
+  const qStr = urlParams.has('q') ? '?q=' + encodeURIComponent(urlParams.get('q')) : '';
+
   try {
-    const res  = await fetch(`/freelancer/project/${PROJECT_ID}/ai-analysis/`);
+    const res  = await fetch(`/freelancer/project/${PROJECT_ID}/ai-analysis/${qStr}`);
     const data = await res.json();
 
     if (data.success && data.feedback) {
@@ -680,10 +684,10 @@ async function loadAIFeedback() {
         }
       }
     } else {
-      setFallback();
+      setFallback(data.error || 'AI feedback unavailable.');
     }
-  } catch {
-    setFallback();
+  } catch(err) {
+    setFallback(err.message || 'Network error fetching AI analysis.');
   }
 }
 
@@ -695,10 +699,10 @@ function typewrite(el, text) {
   }, 11);
 }
 
-function setFallback() {
+function setFallback(errorMsg="AI feedback unavailable. Check GEMINI_API_KEY.") {
   ['skills','language','experience','work_title','availability','overall'].forEach(k => {
     const el = document.getElementById('ai-' + k);
-    if (el) el.innerHTML = '<em style="color:#475569">AI feedback unavailable. Check GEMINI_API_KEY.</em>';
+    if (el) el.innerHTML = `<em style="color:#475569">${errorMsg}</em>`;
   });
 }
 </script>
