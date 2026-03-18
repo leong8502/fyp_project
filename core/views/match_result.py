@@ -65,6 +65,17 @@ def _compute_match_details(project, freelancer) -> dict:
                     fl_work_titles.add(token)
     except Exception:
         pass
+    # Also include portfolio titles and descriptions (work title relevance, part 4)
+    try:
+        for pf in freelancer.portfolios.all():
+            for token in re.split(r'[\s,/\-_]+', (pf.title or '').lower()):
+                if len(token) >= 3:
+                    fl_work_titles.add(token)
+            for token in re.split(r'[\s,/\-_]+', (pf.description or '').lower()):
+                if len(token) >= 3:
+                    fl_work_titles.add(token)
+    except Exception:
+        pass
 
     # ── Project data ──────────────────────────────────────────────────────────
     proj_skills_set   = _to_set(project.required_skills)
@@ -265,7 +276,13 @@ Respond ONLY in this exact JSON format (no markdown, no extra keys):
 
     try:
         import google.generativeai as genai
-        api_key = os.environ.get("GEMINI_API_KEY", "")
+        # Try Django settings first (loaded from .env via python-dotenv), then os.environ
+        try:
+            from django.conf import settings as django_settings
+            api_key = getattr(django_settings, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
+        except Exception:
+            api_key = os.environ.get('GEMINI_API_KEY', '')
+
         if not api_key:
             raise ValueError("GEMINI_API_KEY not configured")
         genai.configure(api_key=api_key)

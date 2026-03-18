@@ -153,13 +153,14 @@
                 <div class="filter-option"><input type="checkbox" id="expert"> <label for="expert">Expert</label></div>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Category</label>
-                <div class="filter-option"><input type="checkbox" id="web"> <label for="web">Web Development</label>
-                </div>
-                <div class="filter-option"><input type="checkbox" id="design"> <label for="design">Graphic
-                        Design</label></div>
+                <label class="filter-label">Experience Required</label>
+                <div class="filter-option"><input type="checkbox" id="exp1" name="exp_filter" value="1"> <label for="exp1">1 yr</label></div>
+                <div class="filter-option"><input type="checkbox" id="exp2" name="exp_filter" value="2"> <label for="exp2">2 yr</label></div>
+                <div class="filter-option"><input type="checkbox" id="exp3" name="exp_filter" value="3"> <label for="exp3">3 yr</label></div>
+                <div class="filter-option"><input type="checkbox" id="exp4" name="exp_filter" value="4"> <label for="exp4">4 yr</label></div>
+                <div class="filter-option"><input type="checkbox" id="exp5" name="exp_filter" value="5"> <label for="exp5">5+ yr</label></div>
             </div>
-            <button class="apply-filters-btn">Apply Filters</button>
+            <button class="apply-filters-btn" onclick="applyExpFilter()">Apply Filters</button>
         </div>
     </aside>
 
@@ -210,7 +211,7 @@
 
             {% if matched %}
             {% for item in matched %}
-            <div class="job-item-card" id="project-{{ item.project.id }}">
+            <div class="job-item-card" id="project-{{ item.project.id }}" data-exp="{{ item.project.year_of_experience }}">
                 <div class="job-item-header">
                     <div class="client-info">
                         {% if item.project.client.profile_image %}
@@ -270,8 +271,7 @@
                             </div>
                             <div class="detail-item">
                                 <label>Experience Required:</label>
-                                <span>{{ item.project.year_of_experience }} yr{{
-                                    item.project.year_of_experience|pluralize }}</span>
+                                <span>{{ item.project.year_of_experience }} yr{% if item.project.year_of_experience != 1 %}s{% endif %}</span>
                             </div>
                             <div class="detail-item">
                                 <label>Budget:</label>
@@ -390,5 +390,34 @@
             document.body.style.overflow = '';
         }
     });
+
+    // Experience Required filter
+    function applyExpFilter() {
+        var checked = Array.from(document.querySelectorAll('input[name="exp_filter"]:checked'))
+                          .map(function(cb) { return parseInt(cb.value); });
+
+        var cards = document.querySelectorAll('.job-item-card[data-exp]');
+        cards.forEach(function(card) {
+            if (checked.length === 0) {
+                card.style.display = '';
+                return;
+            }
+            var exp = parseInt(card.getAttribute('data-exp')) || 0;
+            var show = checked.some(function(v) {
+                if (v === 5) return exp >= 5;   // "5+ yr" bucket
+                return exp === v;
+            });
+            card.style.display = show ? '' : 'none';
+        });
+
+        // Update visible result count
+        var visible = document.querySelectorAll('.job-item-card[data-exp]');
+        var visibleCount = 0;
+        visible.forEach(function(c) { if (c.style.display !== 'none') visibleCount++; });
+        var countEl = document.querySelector('.results-count strong');
+        if (countEl && checked.length > 0) {
+            countEl.textContent = visibleCount;
+        }
+    }
 </script>
 {% endblock %}

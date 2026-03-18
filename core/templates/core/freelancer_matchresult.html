@@ -519,7 +519,7 @@
     <div class="pbar-track"><div class="pbar-fill fill-cyan" data-w="{{ details.work_title_pct }}"></div></div>
 
     <div class="formula">
-      |Title keywords ∩ Your past job titles| / |union| × 100
+      |Title keywords ∩ Your past job &amp; portfolio titles| / |union| × 100
     </div>
 
     <div class="calc-box">
@@ -529,8 +529,8 @@
         <span class="cr-value cv-neutral">{{ details.proj_title_kw|join:", "|default:"—" }}</span>
       </div>
       <div class="calc-row">
-        <span class="cr-label">Your past title keywords</span>
-        <span class="cr-value cv-neutral">{{ details.fl_work_titles|join:", "|default:"No work history listed" }}</span>
+        <span class="cr-label">Your past job &amp; portfolio title keywords</span>
+        <span class="cr-value cv-neutral">{{ details.fl_work_titles|join:", "|default:"No work history or portfolio listed" }}</span>
       </div>
       <div class="calc-row">
         <span class="cr-label">Overlapping keywords</span>

@@ -37,11 +37,10 @@ def parse_keywords(query: str) -> dict:
     raw = query.lower()
 
     # --- Extract experience years ---
-    exp_match = re.search(r'(\d+)\s*(?:\+\s*)?years?', raw)
+    # Handles: "3 years", "3 year", "3 yrs", "3 yr", "3yr", "3+years", "3 + yrs" etc.
+    exp_match = re.search(r'(\d+)\s*(?:\+\s*)?(?:years?|yrs?)', raw)
     experience = int(exp_match.group(1)) if exp_match else None
     if exp_match:
-        # Avoid IDE type checking errors for slicing by using re.sub or substring replace
-        # We replace the exact match with an empty string
         raw = raw.replace(exp_match.group(0), '', 1)
 
     # --- Extract availability ---
@@ -179,11 +178,21 @@ class AISearchManager:
             except Exception:
                 pass
 
-            # Work title keywords (all past job titles combined)
+            # Work title keywords: past job titles + portfolio titles/descriptions
             fl_work_titles = set()
             try:
                 for we in freelancer.work_experiences.all():
                     for token in re.split(r'[\s,/]+', (we.job_title or '').lower()):
+                        if len(token) >= 3:
+                            fl_work_titles.add(token)
+            except Exception:
+                pass
+            try:
+                for pf in freelancer.portfolios.all():
+                    for token in re.split(r'[\s,/\-_]+', (pf.title or '').lower()):
+                        if len(token) >= 3:
+                            fl_work_titles.add(token)
+                    for token in re.split(r'[\s,/\-_]+', (pf.description or '').lower()):
                         if len(token) >= 3:
                             fl_work_titles.add(token)
             except Exception:
@@ -218,6 +227,13 @@ class AISearchManager:
             effective_lang_map[ql] = max(effective_lang_map.get(ql, 0.0), 0.95)
 
         # ── Relevance gate (only when a query is provided) ─────────────
+        # If a query was given but produced NO skill tokens (e.g. "hi", "hello"),
+        # suppress ALL results — nothing can match an empty keyword set.
+        if has_query and not query_skills:
+            logic = "Search query did not contain any recognisable skill keywords."
+            sentence = "No recognisable keywords found — please try a specific skill, technology, or role."
+            return 0.0, sentence, logic
+
         # At least ONE query skill token must appear in project title, description,
         # or required_skills to pass. This prevents unrelated projects from showing up.
         if has_query and query_skills:
