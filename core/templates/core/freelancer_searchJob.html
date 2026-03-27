@@ -135,6 +135,14 @@
         background: #f9f9f9;
         font-size: 0.9rem;
     }
+
+    /* Override external css to ensure sticky works (fixing cache issues) */
+    .filter-card {
+        position: sticky !important;
+        top: 110px !important;
+        max-height: calc(100vh - 130px) !important;
+        overflow-y: auto !important;
+    }
 </style>
 {% endblock %}
 
@@ -146,14 +154,15 @@
             <h3 class="filter-title">Apply some filter</h3>
             <div class="filter-group">
                 <label class="filter-label">Experience Level</label>
-                <div class="filter-option"><input type="checkbox" id="entry"> <label for="entry">Entry Level</label>
+                <div class="filter-option"><input type="checkbox" id="entry" name="level_filter" value="entry"> <label for="entry">Entry Level</label>
                 </div>
-                <div class="filter-option"><input type="checkbox" id="intermediate"> <label
+                <div class="filter-option"><input type="checkbox" id="intermediate" name="level_filter" value="intermediate"> <label
                         for="intermediate">Intermediate</label></div>
-                <div class="filter-option"><input type="checkbox" id="expert"> <label for="expert">Expert</label></div>
+                <div class="filter-option"><input type="checkbox" id="expert" name="level_filter" value="expert"> <label for="expert">Expert</label></div>
             </div>
             <div class="filter-group">
                 <label class="filter-label">Experience Required</label>
+                <div class="filter-option"><input type="checkbox" id="exp0" name="exp_filter" value="0"> <label for="exp0">0 yr</label></div>
                 <div class="filter-option"><input type="checkbox" id="exp1" name="exp_filter" value="1"> <label for="exp1">1 yr</label></div>
                 <div class="filter-option"><input type="checkbox" id="exp2" name="exp_filter" value="2"> <label for="exp2">2 yr</label></div>
                 <div class="filter-option"><input type="checkbox" id="exp3" name="exp_filter" value="3"> <label for="exp3">3 yr</label></div>
@@ -204,14 +213,13 @@
             </p>
             {% else %}
             <p class="results-count">
-                Found <strong>{{ matched|length }}</strong> project{{ matched|length|pluralize }} with &ge; {{ threshold
-                }}% match for your profile
+                Found <strong>{{ matched|length }}</strong> project{{ matched|length|pluralize }} recommended for you (&ge; {{ threshold }}% match)
             </p>
             {% endif %}
 
             {% if matched %}
             {% for item in matched %}
-            <div class="job-item-card" id="project-{{ item.project.id }}" data-exp="{{ item.project.year_of_experience }}">
+            <div class="job-item-card" id="project-{{ item.project.id }}" data-exp="{{ item.project.year_of_experience }}" data-level="{{ item.project.experience_level }}">
                 <div class="job-item-header">
                     <div class="client-info">
                         {% if item.project.client.profile_image %}
@@ -393,21 +401,35 @@
 
     // Experience Required filter
     function applyExpFilter() {
-        var checked = Array.from(document.querySelectorAll('input[name="exp_filter"]:checked'))
-                          .map(function(cb) { return parseInt(cb.value); });
+        var expChecked = Array.from(document.querySelectorAll('input[name="exp_filter"]:checked'))
+                              .map(function(cb) { return parseInt(cb.value); });
+
+        var levelChecked = Array.from(document.querySelectorAll('input[name="level_filter"]:checked'))
+                                .map(function(cb) { return cb.value; });
 
         var cards = document.querySelectorAll('.job-item-card[data-exp]');
         cards.forEach(function(card) {
-            if (checked.length === 0) {
-                card.style.display = '';
-                return;
-            }
             var exp = parseInt(card.getAttribute('data-exp')) || 0;
-            var show = checked.some(function(v) {
-                if (v === 5) return exp >= 5;   // "5+ yr" bucket
-                return exp === v;
-            });
-            card.style.display = show ? '' : 'none';
+            var level = card.getAttribute('data-level') || '';
+            
+            var matchExp = false;
+            if (expChecked.length === 0) {
+                matchExp = true;
+            } else {
+                matchExp = expChecked.some(function(v) {
+                    if (v === 5) return exp >= 5;   // "5+ yr" bucket
+                    return exp === v;
+                });
+            }
+            
+            var matchLevel = false;
+            if (levelChecked.length === 0) {
+                matchLevel = true;
+            } else {
+                matchLevel = levelChecked.includes(level);
+            }
+            
+            card.style.display = (matchExp && matchLevel) ? '' : 'none';
         });
 
         // Update visible result count
@@ -415,7 +437,7 @@
         var visibleCount = 0;
         visible.forEach(function(c) { if (c.style.display !== 'none') visibleCount++; });
         var countEl = document.querySelector('.results-count strong');
-        if (countEl && checked.length > 0) {
+        if (countEl) {
             countEl.textContent = visibleCount;
         }
     }

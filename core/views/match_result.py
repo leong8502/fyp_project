@@ -381,9 +381,11 @@ Respond ONLY in this exact JSON format (no markdown, no extra keys):
         # Try Django settings first (loaded from .env via python-dotenv), then os.environ
         try:
             from django.conf import settings as django_settings
-            api_key = getattr(django_settings, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
+            api_key = getattr(django_settings, 'FREELANCER_GEMINI_API_KEY', '') or os.environ.get('FREELANCER_GEMINI_API_KEY', '')
+            if not api_key:
+                api_key = getattr(django_settings, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
         except Exception:
-            api_key = os.environ.get('GEMINI_API_KEY', '')
+            api_key = os.environ.get('FREELANCER_GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
 
         if not api_key:
             raise ValueError("GEMINI_API_KEY not configured")

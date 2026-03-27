@@ -80,9 +80,11 @@ def _gemini_parse_query(raw_query: str):
         import google.generativeai as genai
         try:
             from django.conf import settings as _s
-            api_key = getattr(_s, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
+            api_key = getattr(_s, 'FREELANCER_GEMINI_API_KEY', '') or os.environ.get('FREELANCER_GEMINI_API_KEY', '')
+            if not api_key:
+                api_key = getattr(_s, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
         except Exception:
-            api_key = os.environ.get('GEMINI_API_KEY', '')
+            api_key = os.environ.get('FREELANCER_GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
 
         if not api_key:
             return None
