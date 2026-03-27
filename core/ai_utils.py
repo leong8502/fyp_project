@@ -295,23 +295,12 @@ class AISearchManager:
             except Exception:
                 pass
 
-            # Work title keywords: past job titles + portfolio titles/descriptions
+            # Past project required skills (replaces old work title logic)
             fl_work_titles = set()
             try:
-                for we in freelancer.work_experiences.all():
-                    for token in re.split(r'[\s,/]+', (we.job_title or '').lower()):
-                        if len(token) >= 3:
-                            fl_work_titles.add(token)
-            except Exception:
-                pass
-            try:
-                for pf in freelancer.portfolios.all():
-                    for token in re.split(r'[\s,/\-_]+', (pf.title or '').lower()):
-                        if len(token) >= 3:
-                            fl_work_titles.add(token)
-                    for token in re.split(r'[\s,/\-_]+', (pf.description or '').lower()):
-                        if len(token) >= 3:
-                            fl_work_titles.add(token)
+                for app in freelancer.applications.filter(status='accepted'):
+                    if app.project.required_skills:
+                        fl_work_titles.update(_to_set(app.project.required_skills))
             except Exception:
                 pass
         else:
@@ -371,10 +360,8 @@ class AISearchManager:
         proj_exp_req    = getattr(project, 'year_of_experience', 0) or 0
         proj_lang       = (project.preferred_language or '').strip().lower()
 
-        # Project title keywords for work-title match
-        proj_title_tokens = set(
-            t for t in re.split(r'[\s,/\-]+', project.title.lower()) if len(t) >= 3
-        )
+        # Project skills for past-project match (replaces title keywords)
+        proj_title_tokens = proj_skills_set
 
         # ── Component scores ───────────────────────────────────────────
 
@@ -396,8 +383,13 @@ class AISearchManager:
         else:
             exp_score = min(effective_exp / proj_exp_req, 1.0)
 
-        # 4) Work title Jaccard (10%)
-        work_title_jaccard = _jaccard(fl_work_titles, proj_title_tokens)
+        # 4) Work title Jaccard (now computes coverage of current project skills)
+        title_count  = len(fl_work_titles & proj_title_tokens)
+        title_detail = f"Shared {title_count} past project overlap skills"
+        if not proj_title_tokens:
+            work_title_jaccard = 1.0
+        else:
+            work_title_jaccard = title_count / len(proj_title_tokens)
 
         # 5) Availability (10%)
         if not effective_avail:
@@ -442,7 +434,7 @@ class AISearchManager:
             f"({len(common_skills)} common: {common_list}) x 40%\n"
             f"Language ({lang_display}): {lang_score:.0%}{lang_source} x 20%\n"
             f"Experience: {effective_exp} yr / {proj_exp_req} yr req -> {exp_score:.0%} x 20%\n"
-            f"Work Title overlap: {work_title_jaccard:.0%} x 10%\n"
+            f"Past Project overlap: {work_title_jaccard:.0%} x 10%\n"
             f"Availability ({effective_avail or 'unknown'}): {avail_score:.0%} x 10%\n"
             f"Total: {score:.1f}%"
         )

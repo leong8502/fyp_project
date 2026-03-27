@@ -69,13 +69,15 @@ def _generate_fallback_feedback(d: dict) -> dict:
     else:
         feedback['experience'] = f"Your {d['fl_exp_years']} years of experience is below the {d['proj_exp_req']} year requirement, which could be a slight disadvantage."
         
-    # 4. Title
-    if d['work_title_pct'] >= 50.0:
-        feedback['work_title'] = "Your past job titles and portfolio items perfectly align with this project's keywords."
+    # 4. Past Projects
+    if d['work_title_pct'] == 100.0:
+        feedback['work_title'] = "You have proven experience on this platform entirely covering this project's required skills."
+    elif d['work_title_pct'] >= 50.0:
+        feedback['work_title'] = "Your past completed projects cover a majority of the core requirements for this role."
     elif d['work_title_pct'] > 0:
-        feedback['work_title'] = "Some of your past roles share keywords with this position's core requirements."
+        feedback['work_title'] = "You have previously completed projects that share some skills with this position."
     else:
-        feedback['work_title'] = "Your past job titles don't strongly overlap with this project's specific focus area."
+        feedback['work_title'] = "You haven't completed past projects on this platform with these specific skills yet."
 
     # 5. Availability
     if d['availability_pct'] == 100.0:
@@ -122,23 +124,12 @@ def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     except Exception:
         pass
 
+    # Past project required skills (replaces old work title logic)
     fl_work_titles = set()
     try:
-        for we in freelancer.work_experiences.all():
-            for token in re.split(r'[\s,/]+', (we.job_title or '').lower()):
-                if len(token) >= 3:
-                    fl_work_titles.add(token)
-    except Exception:
-        pass
-    # Also include portfolio titles and descriptions (work title relevance, part 4)
-    try:
-        for pf in freelancer.portfolios.all():
-            for token in re.split(r'[\s,/\-_]+', (pf.title or '').lower()):
-                if len(token) >= 3:
-                    fl_work_titles.add(token)
-            for token in re.split(r'[\s,/\-_]+', (pf.description or '').lower()):
-                if len(token) >= 3:
-                    fl_work_titles.add(token)
+        for app in freelancer.applications.filter(status='accepted'):
+            if app.project.required_skills:
+                fl_work_titles.update(_to_set(app.project.required_skills))
     except Exception:
         pass
 
@@ -146,9 +137,7 @@ def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     proj_skills_set   = _to_set(project.required_skills)
     proj_exp_req      = getattr(project, 'year_of_experience', 0) or 0
     proj_lang         = (project.preferred_language or '').strip().lower()
-    proj_title_tokens = set(
-        t for t in re.split(r'[\s,/\-]+', project.title.lower()) if len(t) >= 3
-    )
+    proj_title_tokens = proj_skills_set
 
     # ── 1. Skills Jaccard (40%) ───────────────────────────────────────────────
     effective_fl_skills = fl_skills_set | query_skills
@@ -177,9 +166,12 @@ def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     else:
         exp_score = min(fl_exp_years / proj_exp_req, 1.0)
 
-    # ── 4. Work Title (10%) ───────────────────────────────────────────────────
+    # ── 4. Past Project Relevance (10%) ───────────────────────────────────────
     title_common   = fl_work_titles & proj_title_tokens
-    title_jaccard  = _jaccard(fl_work_titles, proj_title_tokens)
+    if not proj_title_tokens:
+        title_jaccard = 1.0
+    else:
+        title_jaccard = len(title_common) / len(proj_title_tokens)
 
     # ── 5. Availability (10%) ─────────────────────────────────────────────────
     if not fl_availability or fl_availability == 'not_available':
@@ -355,8 +347,8 @@ Here is their match breakdown (Jaccard similarity scoring):
    - Project requires: {d['proj_exp_req']} years
    - Freelancer has: {d['fl_exp_years']} years
 
-4. WORK TITLE RELEVANCE ({d['work_title_pct']}% | weight 10%)
-   - Common title keywords: {', '.join(d['title_common']) or 'none'}
+4. PAST PROJECT RELEVANCE ({d['work_title_pct']}% | weight 10%)
+   - Overlapping past project skills: {', '.join(d['title_common']) or 'none'}
 
 5. AVAILABILITY ({d['availability_pct']}% | weight 10%)
    - Freelancer status: {d['fl_availability']}

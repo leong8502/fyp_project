@@ -323,8 +323,8 @@
       <div><div class="ss-val">{{ details.experience_pct }}%</div><div class="ss-lbl">Experience (×20%)</div></div>
     </div>
     <div class="ss-card">
-      <div class="ss-icon ic-cyan"><i class="fas fa-id-badge"></i></div>
-      <div><div class="ss-val">{{ details.work_title_pct }}%</div><div class="ss-lbl">Work Title (×10%)</div></div>
+      <div class="ss-icon ic-cyan"><i class="fas fa-history"></i></div>
+      <div><div class="ss-val">{{ details.work_title_pct }}%</div><div class="ss-lbl">Past Projects (×10%)</div></div>
     </div>
     <div class="ss-card">
       <div class="ss-icon ic-green"><i class="fas fa-clock"></i></div>
@@ -504,14 +504,14 @@
   </div>
 
   <!-- ════════════════════════════════════════════════════════════════════════ -->
-  <!-- FIELD 4: Work Title                                                      -->
+  <!-- FIELD 4: Past Projects                                                      -->
   <!-- ════════════════════════════════════════════════════════════════════════ -->
   <div class="field-card">
     <div class="fc-head">
-      <div class="fc-icon ic-cyan"><i class="fas fa-id-badge"></i></div>
+      <div class="fc-icon ic-cyan"><i class="fas fa-history"></i></div>
       <div class="fc-title">
-        <div class="fc-name">4. Work Title Relevance</div>
-        <div class="fc-weight">Title keyword Jaccard — Weight: <strong>10%</strong></div>
+        <div class="fc-name">4. Past Project Relevance</div>
+        <div class="fc-weight">Past project skills coverage — Weight: <strong>10%</strong></div>
       </div>
       <div class="fc-pct">{{ details.work_title_pct }}%</div>
     </div>
@@ -519,18 +519,18 @@
     <div class="pbar-track"><div class="pbar-fill fill-cyan" data-w="{{ details.work_title_pct }}"></div></div>
 
     <div class="formula">
-      |Title keywords ∩ Your past job &amp; portfolio titles| / |union| × 100
+      |Past project skills ∩ Current project skills| / |Current project skills| × 100
     </div>
 
     <div class="calc-box">
-      <h4>Title keyword breakdown</h4>
+      <h4>Past Project Skills breakdown</h4>
       <div class="calc-row">
-        <span class="cr-label">Project title keywords</span>
+        <span class="cr-label">Current project skills</span>
         <span class="cr-value cv-neutral">{{ details.proj_title_kw|join:", "|default:"—" }}</span>
       </div>
       <div class="calc-row">
-        <span class="cr-label">Your past job &amp; portfolio title keywords</span>
-        <span class="cr-value cv-neutral">{{ details.fl_work_titles|join:", "|default:"No work history or portfolio listed" }}</span>
+        <span class="cr-label">Your past projects' required skills</span>
+        <span class="cr-value cv-neutral">{{ details.fl_work_titles|join:", "|default:"No past accepted projects found" }}</span>
       </div>
       <div class="calc-row">
         <span class="cr-label">Overlapping keywords</span>
