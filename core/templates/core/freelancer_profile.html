@@ -219,7 +219,17 @@
                             </span>
                         </div>
                         {% if project.review %}
-                        <div class="project-feedback">"{{ project.review.comment }}"</div>
+                            {% if project.review.comment %}
+                            <div class="project-feedback">"{{ project.review.comment }}"</div>
+                            {% endif %}
+                            
+                            {% if project.review.feedback_tags %}
+                            <div class="project-tags mt-2">
+                                {% for tag in project.review.feedback_tags %}
+                                <span class="badge bg-secondary me-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
                         {% endif %}
                     </div>
                     {% empty %}
