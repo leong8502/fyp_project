@@ -42,7 +42,7 @@ def _generate_fallback_feedback(d: dict) -> dict:
     feedback = {}
     
     # 1. Skills
-    if d['skills_pct'] == 100.0:
+    if not d['missing_skills']:
         feedback['skills'] = "Excellent match! You possess all the required core skills for this position."
     elif d['skills_pct'] >= 40.0:
         missing_str = ", ".join(d['missing_skills'][:2])
@@ -155,8 +155,8 @@ def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     common_skills  = effective_fl_skills & proj_skills_set
     missing_skills = proj_skills_set - effective_fl_skills
     extra_skills   = effective_fl_skills - proj_skills_set
-    # Note: Jaccard score uses base fl_skills_set so scores match the search list
-    skills_jaccard = _jaccard(fl_skills_set, proj_skills_set)
+    # Note: Jaccard score uses effective_fl_skills so the math matches the display
+    skills_jaccard = _jaccard(effective_fl_skills, proj_skills_set)
 
     # ── 2. Language (20%) ─────────────────────────────────────────────────────
     if proj_lang:

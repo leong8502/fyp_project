@@ -328,10 +328,8 @@ class AISearchManager:
         query_avail  = parsed.get('availability')  # str or None
 
         # ── Effective values for scoring ───────────────────────────────
-        # IMPORTANT: effective_skills uses only the freelancer's PROFILE skills for Jaccard.
-        # query_skills are used ONLY for the relevance gate (below), NOT for scoring.
-        # This ensures the score on the search card is IDENTICAL to the detail page score.
-        effective_skills = fl_skills_set
+        # User requested: use BOTH the freelancer's profile skills AND the queried skills for Jaccard.
+        effective_skills = fl_skills_set | query_skills
 
         # Experience: prefer query if specified, else profile
         effective_exp = query_exp if query_exp is not None else fl_exp_years
