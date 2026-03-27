@@ -333,6 +333,11 @@ def freelancer_profile(request):
     ).order_by('-created_at').distinct()
     reviews = Review.objects.filter(reviewee=freelancer.user, is_hidden=False).order_by('-created_at')
 
+    # Attach reviews to completed projects for the template
+    review_map = {r.project_id: r for r in reviews}
+    for project in completed_projects:
+        project.review = review_map.get(project.id)
+
     # Forms
     header_form = FreelancerHeaderForm(instance=freelancer)
     rate_form = FreelancerRateForm(instance=freelancer)

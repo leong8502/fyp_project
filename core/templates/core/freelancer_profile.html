@@ -1,6 +1,18 @@
 {% extends 'core/freelancer_master.html' %}
 {% load static %}
 
+{% block title %}{{ freelancer.full_name|default:freelancer.user.username }} | Freelancer Profile{% endblock %}
+
+{% block meta %}
+<meta property="og:title" content="{{ freelancer.full_name|default:freelancer.user.username }} - Freelancer Profile" />
+<meta property="og:description" content="{{ freelancer.tagline|default:'Skilled freelancer on TalentSync' }}" />
+{% if freelancer.profile_image %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ freelancer.profile_image.url }}" />
+{% endif %}
+<meta property="og:url" content="{{ request.build_absolute_uri }}" />
+<meta property="og:type" content="profile" />
+{% endblock %}
+
 {% block content %}
 <link rel="stylesheet" href="{% static 'core/css/freelancer_profile.css' %}">
 
@@ -348,16 +360,8 @@
                 <h3>Stats</h3>
                 <ul class="stats-list">
                     <li>
-                        <span>Job Success</span>
-                        {% if freelancer.average_rating >= 4.5 %}
-                        <span class="badge badge-success">100%</span>
-                        {% else %}
-                        <span>New</span>
-                        {% endif %}
-                    </li>
-                    <li>
                         <span>Jobs Completed</span>
-                        <span>{{ freelancer.total_jobs_completed }}</span>
+                        <span>{{ completed_projects|length }}</span>
                     </li>
                 </ul>
             </div>

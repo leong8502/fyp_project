@@ -421,11 +421,26 @@ class FreelancerSkillsForm(forms.ModelForm):
         }
 
 class FreelancerLanguageForm(forms.ModelForm):
+    LANGUAGE_CHOICES = [
+        ('English', 'English'),
+        ('Mandarin (Chinese)', 'Mandarin (Chinese)'),
+        ('Malay', 'Malay'),
+        ('Spanish', 'Spanish'),
+        ('French', 'French'),
+        ('German', 'German'),
+        ('Hindi', 'Hindi'),
+        ('Tamil', 'Tamil'),
+        ('Japanese', 'Japanese'),
+        ('Korean', 'Korean'),
+        ('Arabic', 'Arabic'),
+        ('Other', 'Other')
+    ]
+    language = forms.ChoiceField(choices=LANGUAGE_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+
     class Meta:
         model = FreelancerLanguage 
         fields = ['language', 'proficiency']
         widgets = {
-            'language': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. English'}),
             'proficiency': forms.Select(attrs={'class': 'form-control'}),
         }
 
