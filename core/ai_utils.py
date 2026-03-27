@@ -365,9 +365,12 @@ class AISearchManager:
 
         # ── Component scores ───────────────────────────────────────────
 
-        # 1) Skills Jaccard (40%) — uses merged profile+query skills
-        skills_jaccard = _jaccard(effective_skills, proj_skills_set)
+        # 1) Skills Coverage (40%) — uses merged profile+query skills
         common_skills  = effective_skills & proj_skills_set
+        if not proj_skills_set:
+            skills_jaccard = 1.0
+        else:
+            skills_jaccard = len(common_skills) / len(proj_skills_set)
 
         # 2) Language match (20%)
         if proj_lang:
@@ -430,7 +433,7 @@ class AISearchManager:
                 lang_source = ' (not found)'
 
         logic = (
-            f"Skills Jaccard: {skills_jaccard:.0%} "
+            f"Skills Coverage: {skills_jaccard:.0%} "
             f"({len(common_skills)} common: {common_list}) x 40%\n"
             f"Language ({lang_display}): {lang_score:.0%}{lang_source} x 20%\n"
             f"Experience: {effective_exp} yr / {proj_exp_req} yr req -> {exp_score:.0%} x 20%\n"

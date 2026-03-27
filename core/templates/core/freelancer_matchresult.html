@@ -340,7 +340,7 @@
       <div class="fc-icon ic-purple"><i class="fas fa-laptop-code"></i></div>
       <div class="fc-title">
         <div class="fc-name">1. Skills Match</div>
-        <div class="fc-weight">Jaccard Similarity — Weight: <strong>40%</strong></div>
+        <div class="fc-weight">Skills Coverage — Weight: <strong>40%</strong></div>
       </div>
       <div class="fc-pct">{{ details.skills_pct }}%</div>
     </div>
@@ -348,7 +348,7 @@
     <div class="pbar-track"><div class="pbar-fill fill-purple" data-w="{{ details.skills_pct }}"></div></div>
 
     <div class="formula">
-      |Matched ∩ Required| / |Matched ∪ Required| × 100
+      |Matched ∩ Required| / |Required| × 100
     </div>
 
     <div class="calc-box">
@@ -370,8 +370,8 @@
         <span class="cr-value cv-miss">{{ details.missing_skills|join:", "|default:"None" }}</span>
       </div>
       <div class="calc-row">
-        <span class="cr-label">Jaccard score</span>
-        <span class="cr-value cv-match">{{ details.common_skills|length }} / ({{ details.common_skills|length }} + {{ details.missing_skills|length }} + {{ details.extra_skills|length }}) = {{ details.skills_pct }}%</span>
+        <span class="cr-label">Match score</span>
+        <span class="cr-value cv-match">{{ details.common_skills|length }} / {{ details.proj_skills|length }} = {{ details.skills_pct }}%</span>
       </div>
       <div class="calc-row">
         <span class="cr-label">Weighted contribution</span>

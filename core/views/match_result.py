@@ -139,13 +139,16 @@ def _compute_match_details(project, freelancer, query_skills=None) -> dict:
     proj_lang         = (project.preferred_language or '').strip().lower()
     proj_title_tokens = proj_skills_set
 
-    # ── 1. Skills Jaccard (40%) ───────────────────────────────────────────────
+    # ── 1. Skills Match (40%) ──────────────────────────────────────────────────
     effective_fl_skills = fl_skills_set | query_skills
     common_skills  = effective_fl_skills & proj_skills_set
     missing_skills = proj_skills_set - effective_fl_skills
     extra_skills   = effective_fl_skills - proj_skills_set
-    # Note: Jaccard score uses effective_fl_skills so the math matches the display
-    skills_jaccard = _jaccard(effective_fl_skills, proj_skills_set)
+    # Note: Score uses coverage logic (Matched / Required)
+    if not proj_skills_set:
+        skills_jaccard = 1.0
+    else:
+        skills_jaccard = len(common_skills) / len(proj_skills_set)
 
     # ── 2. Language (20%) ─────────────────────────────────────────────────────
     if proj_lang:
