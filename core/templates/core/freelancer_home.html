@@ -1,59 +1,321 @@
 {% extends 'core/freelancer_master.html' %}
-
-{% block title %}Freelancer Dashboard - TalentSync{% endblock %}
+{% load static %}
+{% block title %}Freelancer Dashboard – TalentSync{% endblock %}
 
 {% block content %}
-{% load static %}
 <link rel="stylesheet" href="{% static 'core/css/freelancer_home.css' %}">
 
-<section class="hero-section">
-    <div class="hero-content">
-        <h1 class="hero-title">Startup your freelance at here</h1>
-        <p class="hero-subtitle">
-            Do you think you have a lot of potential? Why not give it a try!<br>
-            Find the perfect freelance career for you in the vast ocean of opportunities.
-        </p>
-        <div class="search-container">
-            <form method="get" action="{% url 'freelancer_search_job' %}" class="search-bar">
-                <input type="text" name="q" id="search-input" class="search-input"
-                    placeholder="Find your next project..." required>
-                <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
-            </form>
-            <div class="quick-actions">
-                <button type="button" class="action-btn" onclick="setSearch('Web Development')">Web Development</button>
-                <button type="button" class="action-btn" onclick="setSearch('Software Development')">Software
-                    Development</button>
-                <button type="button" class="action-btn" onclick="setSearch('Video Editing')">Video Editing</button>
-            </div>
+<!-- ===================================================
+     HERO SECTION
+=================================================== -->
+<section class="fh-hero">
+
+  <!-- Decorative blobs (subtle, white-bg friendly) -->
+  <div class="fh-blob fh-blob-1"></div>
+  <div class="fh-blob fh-blob-2"></div>
+
+  <div class="fh-hero-inner">
+
+    <!-- Left: text + search -->
+    <div class="fh-hero-text">
+      <span class="fh-badge">✦ Powered by AI Matching</span>
+      <h1 class="fh-title">
+        Launch Your Freelance<br>
+        <span class="fh-gradient">Career Today</span>
+      </h1>
+      <p class="fh-subtitle">
+        Discover projects matched to your skills. Get paid fairly.
+        Build a portfolio that speaks for itself.
+      </p>
+
+      <!-- Search bar -->
+      <form class="fh-search-form" method="get" action="{% url 'freelancer_search_job' %}">
+        <div class="fh-search-wrap">
+          <i class="fas fa-search fh-search-icon"></i>
+          <input type="text" name="q" id="fh-search-input"
+                 class="fh-search-input" placeholder="Search for projects…" autocomplete="off">
+          <button type="submit" class="fh-search-btn">Find Jobs</button>
         </div>
+      </form>
+
+      <!-- Quick filters -->
+      <div class="fh-quick-filters">
+        <span class="fh-filter-label">Popular:</span>
+        <button type="button" class="fh-chip" onclick="fhSearch('Web Development')">Web Dev</button>
+        <button type="button" class="fh-chip" onclick="fhSearch('Software Development')">Software</button>
+        <button type="button" class="fh-chip" onclick="fhSearch('Video Editing')">Video Editing</button>
+        <button type="button" class="fh-chip" onclick="fhSearch('UI UX Design')">UI/UX</button>
+        <button type="button" class="fh-chip" onclick="fhSearch('Data Science')">Data Science</button>
+      </div>
+
+      <!-- CTA buttons -->
+      <div class="fh-cta-row">
+        <a href="{% url 'freelancer_search_job' %}" class="fh-btn-primary">
+          <i class="fas fa-briefcase"></i> Browse All Jobs
+        </a>
+        <a href="{% url 'freelancer_track_project' %}" class="fh-btn-ghost">
+          My Projects <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
     </div>
+
+    <!-- Right: illustration -->
+    <div class="fh-hero-visual">
+      <div class="fh-illustration-wrap">
+        <img src="{% static 'core/images/freelancer_hero_illustration.png' %}"
+             alt="Freelancer working" class="fh-illustration">
+        <!-- Floating accent cards -->
+        <div class="fh-float-card fh-float-top">
+          <span class="fh-float-icon">🤖</span>
+          <div>
+            <strong>AI Matched</strong>
+            <span>96% fit for you</span>
+          </div>
+        </div>
+        <div class="fh-float-card fh-float-bottom">
+          <span class="fh-float-icon">💼</span>
+          <div>
+            <strong>New Project</strong>
+            <span>Posted just now</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </section>
 
-<section class="recommendations-section">
-    <div class="container">
-        <h2 class="section-title">Recommendations</h2>
-        <div class="recommendations-grid">
-            {% for project, score in recommendations %}
-            <div class="job-card">
-                <div class="match-badge">{{ score }}% Match</div>
-                <h3 class="job-title">{{ project.title }}</h3>
-                <div class="job-meta">
-                    <span class="budget">Budget: RM{{ project.budget }}</span>
-                    <span class="experience">Level: {{ project.get_experience_level_display }}</span>
-                </div>
-                <p class="job-description">{{ project.description|truncatewords:20 }}</p>
-                <a href="{% url 'freelancer_search_job' %}?q={{ project.title }}" class="view-btn">View Details</a>
-            </div>
-            {% empty %}
-            <p class="no-data">No recommendations available at the moment.</p>
-            {% endfor %}
-        </div>
+<!-- ===================================================
+     STATS BAR
+=================================================== -->
+<section class="fh-stats-bar">
+  <div class="fh-stats-inner">
+    <div class="fh-stat">
+      <span class="fh-stat-number">500+</span>
+      <span class="fh-stat-label">Active Projects</span>
     </div>
+    <div class="fh-stat-divider"></div>
+    <div class="fh-stat">
+      <span class="fh-stat-number">1,200+</span>
+      <span class="fh-stat-label">Registered Freelancers</span>
+    </div>
+    <div class="fh-stat-divider"></div>
+    <div class="fh-stat">
+      <span class="fh-stat-number">98%</span>
+      <span class="fh-stat-label">Satisfaction Rate</span>
+    </div>
+    <div class="fh-stat-divider"></div>
+    <div class="fh-stat">
+      <span class="fh-stat-number">RM 2M+</span>
+      <span class="fh-stat-label">Paid Out to Freelancers</span>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     HOW IT WORKS
+=================================================== -->
+<section class="fh-how">
+  <div class="fh-section-inner">
+    <div class="fh-section-header">
+      <span class="fh-section-badge">Simple Process</span>
+      <h2 class="fh-section-title">How it works for Freelancers</h2>
+      <p class="fh-section-sub">Get hired in three easy steps and grow your freelance business</p>
+    </div>
+    <div class="fh-steps">
+      <div class="fh-step-card">
+        <div class="fh-step-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+          <i class="fas fa-user-edit"></i>
+        </div>
+        <div class="fh-step-num">01</div>
+        <h3>Build Your Profile</h3>
+        <p>Showcase your skills, experience and portfolio. A strong profile attracts better-paying projects.</p>
+      </div>
+      <div class="fh-step-arrow">→</div>
+      <div class="fh-step-card">
+        <div class="fh-step-icon" style="background: linear-gradient(135deg, #00c6ff, #0072ff);">
+          <i class="fas fa-robot"></i>
+        </div>
+        <div class="fh-step-num">02</div>
+        <h3>Get AI-Matched</h3>
+        <p>Our AI engine reads your skills and recommends projects where you have the highest chance of success.</p>
+      </div>
+      <div class="fh-step-arrow">→</div>
+      <div class="fh-step-card">
+        <div class="fh-step-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+          <i class="fas fa-hand-holding-usd"></i>
+        </div>
+        <div class="fh-step-num">03</div>
+        <h3>Deliver &amp; Get Paid</h3>
+        <p>Complete milestones and receive secure payments directly to your wallet — every single time.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     RECOMMENDATIONS
+=================================================== -->
+<section class="fh-recs">
+  <div class="fh-section-inner">
+    <div class="fh-recs-header">
+      <div>
+        <span class="fh-section-badge blue">Personalised For You</span>
+        <h2 class="fh-section-title">Recommended Projects</h2>
+        <p class="fh-section-sub">Curated by our AI based on your skill set and preferences</p>
+      </div>
+      <a href="{% url 'freelancer_search_job' %}" class="fh-view-all-btn">
+        View All Jobs <i class="fas fa-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="fh-rec-grid">
+      {% for project, score in recommendations %}
+      <div class="fh-rec-card">
+        <!-- Match badge -->
+        <div class="fh-match-badge
+          {% if score >= 80 %}fh-match-high
+          {% elif score >= 50 %}fh-match-mid
+          {% else %}fh-match-low{% endif %}">
+          <i class="fas fa-bolt"></i> {{ score }}% Match
+        </div>
+
+        <!-- Project icon -->
+        <div class="fh-rec-icon">
+          <i class="fas fa-layer-group"></i>
+        </div>
+
+        <h3 class="fh-rec-title">{{ project.title }}</h3>
+
+        <div class="fh-rec-meta">
+          <span class="fh-meta-chip fh-chip-green">
+            <i class="fas fa-wallet"></i> RM{{ project.budget }}
+          </span>
+          <span class="fh-meta-chip fh-chip-blue">
+            <i class="fas fa-signal"></i> {{ project.get_experience_level_display }}
+          </span>
+        </div>
+
+        <p class="fh-rec-desc">{{ project.description|truncatewords:22 }}</p>
+
+        <a href="{% url 'freelancer_search_job' %}?q={{ project.title }}"
+           class="fh-rec-btn">
+          View Details <i class="fas fa-arrow-right"></i>
+        </a>
+      </div>
+      {% empty %}
+      <div class="fh-empty-state">
+        <div class="fh-empty-icon"><i class="fas fa-compass"></i></div>
+        <h3>No Recommendations Yet</h3>
+        <p>Complete your profile so our AI can match you with the right projects.</p>
+        <a href="{% url 'freelancer_profile' %}" class="fh-btn-primary">
+          <i class="fas fa-user-edit"></i> Update Profile
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ===================================================
+     FEATURES HIGHLIGHT
+=================================================== -->
+<section class="fh-features">
+  <div class="fh-section-inner fh-features-inner">
+
+    <div class="fh-features-text">
+      <span class="fh-section-badge">Why TalentSync</span>
+      <h2 class="fh-section-title">Everything you need to<br><span class="fh-gradient">freelance with confidence</span></h2>
+
+      <div class="fh-feature-list">
+        <div class="fh-feature-item">
+          <div class="fh-feature-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+            <i class="fas fa-robot"></i>
+          </div>
+          <div>
+            <h4>Smart AI Matching</h4>
+            <p>Our algorithm analyses your skills and history to surface projects you'll actually win.</p>
+          </div>
+        </div>
+        <div class="fh-feature-item">
+          <div class="fh-feature-icon" style="background: linear-gradient(135deg, #00c6ff, #0072ff);">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div>
+            <h4>Secure Escrow Payments</h4>
+            <p>Funds are locked in escrow before work starts — you always get paid for your effort.</p>
+          </div>
+        </div>
+        <div class="fh-feature-item">
+          <div class="fh-feature-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7);">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <div>
+            <h4>Milestone Tracking</h4>
+            <p>Break projects into milestones, submit your deliverables, and get approved step by step.</p>
+          </div>
+        </div>
+        <div class="fh-feature-item">
+          <div class="fh-feature-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c);">
+            <i class="fas fa-comments"></i>
+          </div>
+          <div>
+            <h4>Built-In Messaging</h4>
+            <p>Chat directly with clients in real time. No need for external tools or email chains.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fh-features-cards">
+      <div class="fh-feat-card fh-feat-card-a">
+        <div class="fh-feat-chip"><i class="fas fa-bolt"></i> Just Matched</div>
+        <div class="fh-feat-project-row">
+          <div class="fh-feat-avatar" style="background: linear-gradient(135deg, #667eea, #764ba2);">P</div>
+          <div>
+            <p class="fh-feat-name">Python Automation Script</p>
+            <p class="fh-feat-sub">Backend · RM 800 – 1,200</p>
+          </div>
+          <span class="fh-feat-score">92%</span>
+        </div>
+        <div class="fh-feat-tags">
+          <span>Python</span><span>Automation</span><span>API</span>
+        </div>
+      </div>
+      <div class="fh-feat-card fh-feat-card-b">
+        <i class="fas fa-lock fh-lock-icon"></i>
+        <p class="fh-feat-card-b-title">Escrow Protected</p>
+        <p class="fh-feat-card-b-sub">Payment held securely until you approve</p>
+        <div class="fh-escrow-bar">
+          <div class="fh-escrow-fill" style="width: 70%;"></div>
+        </div>
+        <p class="fh-escrow-label">Milestone 2 of 3 completed</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===================================================
+     CTA BANNER
+=================================================== -->
+<section class="fh-cta">
+  <div class="fh-cta-inner">
+    <div class="fh-cta-text">
+      <h2>Ready to find your next project?</h2>
+      <p>Join thousands of freelancers earning on TalentSync today.</p>
+    </div>
+    <a href="{% url 'freelancer_search_job' %}" class="fh-btn-primary fh-cta-action">
+      <i class="fas fa-search"></i> Explore Jobs
+    </a>
+  </div>
 </section>
 
 <script>
-    function setSearch(value) {
-        document.getElementById('search-input').value = value;
-    }
+  function fhSearch(value) {
+    document.getElementById('fh-search-input').value = value;
+    document.querySelector('.fh-search-form').submit();
+  }
 </script>
+
 {% endblock %}
