@@ -1,0 +1,287 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Transaction History - TalentSync{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'core/css/client_wallet.css' %}">
+<style>
+    .freelancer-transactions {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .page-header {
+        margin-bottom: 30px;
+        border-left: 5px solid #007bff;
+        padding-left: 20px;
+    }
+
+    .page-header h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 8px;
+    }
+
+    .page-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    /* Modern Filter Bar */
+    .filters-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        background: #f8fafc;
+        padding: 15px 25px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .filter-pills {
+        display: flex;
+        gap: 10px;
+    }
+
+    .pill-btn {
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #64748b;
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+        text-decoration: none;
+    }
+
+    .pill-btn:hover {
+        border-color: #007bff;
+        color: #007bff;
+    }
+
+    .pill-btn.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+    }
+
+    /* Transaction Card UI */
+    .transaction-cards-list {
+        display: grid;
+        gap: 15px;
+    }
+
+    .transaction-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px 25px;
+        display: grid;
+        grid-template-columns: auto 1fr auto auto;
+        align-items: center;
+        gap: 25px;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .transaction-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    }
+
+    .card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+
+    .icon-top_up { background: #e0f2fe; color: #0ea5e9; }
+    .icon-withdrawal { background: #fee2e2; color: #ef4444; }
+    .icon-payment { background: #dcfce7; color: #22c55e; }
+    .icon-payout { background: #fef9c3; color: #ca8a04; }
+    .icon-refund { background: #f1f5f9; color: #64748b; }
+
+    .card-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .card-title {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 1.1rem;
+        margin-bottom: 4px;
+    }
+
+    .card-subtitle {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .card-meta {
+        text-align: right;
+        min-width: 120px;
+    }
+
+    .card-date {
+        color: #64748b;
+        font-size: 0.9rem;
+    }
+
+    .card-amount {
+        font-size: 1.2rem;
+        font-weight: 800;
+        margin-top: 4px;
+    }
+
+    .amt-positive { color: #10b981; }
+    .amt-negative { color: #ef4444; }
+    .amt-pending { color: #f59e0b; }
+
+    .card-status {
+        min-width: 120px;
+        text-align: right;
+    }
+
+    .status-pill {
+        display: inline-block;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .pill-pending { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; }
+    .pill-completed { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+    .pill-failed { background: #fef2f2; color: #b91c1c; border: 1px solid #fee2e2; }
+    .pill-cancelled { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .transaction-card {
+            grid-template-columns: auto 1fr;
+            grid-template-rows: auto auto;
+            gap: 15px;
+        }
+        .card-meta, .card-status {
+            text-align: left;
+            grid-column: 2;
+        }
+        .filters-container {
+            flex-direction: column;
+            gap: 15px;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="freelancer-transactions">
+
+    <div class="page-header">
+        <h1>Financial Records</h1>
+        <p>Review your earnings, withdrawals, and platform transactions.</p>
+    </div>
+
+    <!-- Enhanced Filters Bar -->
+    <div class="filters-container">
+        <div class="filter-pills">
+            <a href="?type=&sort={{ current_sort }}" class="pill-btn {% if not current_type %}active{% endif %}">All</a>
+            <a href="?type=top_up&sort={{ current_sort }}" class="pill-btn {% if current_type == 'top_up' %}active{% endif %}">Top Up</a>
+            <a href="?type=withdrawal&sort={{ current_sort }}" class="pill-btn {% if current_type == 'withdrawal' %}active{% endif %}">Withdrawal</a>
+            <a href="?type=payment&sort={{ current_sort }}" class="pill-btn {% if current_type == 'payment' %}active{% endif %}">Payment</a>
+            <a href="?type=refund&sort={{ current_sort }}" class="pill-btn {% if current_type == 'refund' %}active{% endif %}">Refund</a>
+        </div>
+
+        <select class="filter-select" onchange="window.location.href='?type={{ current_type }}&sort=' + this.value" style="border-radius: 12px; padding: 8px 15px; border: 1px solid #e2e8f0;">
+            <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+            <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+            <option value="highest" {% if current_sort == 'highest' %}selected{% endif %}>Highest Amount</option>
+        </select>
+    </div>
+
+    <!-- Transaction cards list -->
+    <div class="transaction-cards-list">
+        {% for transaction in transactions %}
+        <div class="transaction-card">
+            <div class="card-icon icon-{{ transaction.transaction_type }}">
+                {% if transaction.transaction_type == 'top_up' %}
+                    <i class="fas fa-plus"></i>
+                {% elif transaction.transaction_type == 'withdrawal' %}
+                    <i class="fas fa-university"></i>
+                {% elif transaction.transaction_type == 'payment' %}
+                    <i class="fas fa-arrow-up"></i>
+                {% elif transaction.transaction_type == 'payout' %}
+                    <i class="fas fa-arrow-down"></i>
+                {% else %}
+                    <i class="fas fa-exchange-alt"></i>
+                {% endif %}
+            </div>
+
+            <div class="card-info">
+                <span class="card-title">{{ transaction.description|mask_account_in_description }}</span>
+                <span class="card-subtitle">ID: #{{ transaction.reference_id|default:transaction.id }}</span>
+            </div>
+
+            <div class="card-meta">
+                <div class="card-date">{{ transaction.created_at|date:"M d, Y" }}</div>
+                <div class="card-amount {% if transaction.status == 'pending' %}amt-pending{% elif transaction.direction == 'credit' %}amt-positive{% else %}amt-negative{% endif %}">
+                    {% if transaction.direction == 'credit' %}+{% else %}-{% endif %} RM {{ transaction.amount }}
+                </div>
+            </div>
+
+            <div class="card-status">
+                <span class="status-pill pill-{{ transaction.status }}">{{ transaction.get_status_display }}</span>
+                {% if transaction.status == 'pending' and transaction.transaction_type == 'top_up' %}
+                <div style="margin-top: 10px; display: flex; gap: 8px; justify-content: flex-end;">
+                    <a href="{% url 'payment_continue' transaction.id %}" class="btn-action btn-pay" style="padding: 4px 10px; font-size: 0.8rem;">Pay</a>
+                    <form action="{% url 'payment_cancel_pending' transaction.id %}" method="POST" style="margin: 0;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-action btn-cancel" style="padding: 4px 10px; font-size: 0.8rem;" onclick="return confirm('Cancel this top-up?')">Cancel</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="transaction-card" style="justify-content: center; padding: 40px; color: #64748b;">
+            <p>No transaction history found.</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Custom Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination" style="margin-top: 40px; justify-content: center; display: flex; gap: 8px;">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&type={{ current_type }}&sort={{ current_sort }}" class="pill-btn"><i class="fas fa-chevron-left"></i></a>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="pill-btn active">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}&type={{ current_type }}&sort={{ current_sort }}" class="pill-btn">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&type={{ current_type }}&sort={{ current_sort }}" class="pill-btn"><i class="fas fa-chevron-right"></i></a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</main>
+{% endblock %}

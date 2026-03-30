@@ -11,14 +11,15 @@ from django.utils import timezone
 from core.decorators import freelancer_required
 from core.models import (
     Project, ProjectApplication, Review, Wallet, Transaction,
-    UserSecurity, Milestone, MilestoneAttachment, CancellationRequest
+    UserSecurity, Milestone, MilestoneAttachment, CancellationRequest,
+    Ticket
 )
 from core.forms import (
     SecurePinForm,
     FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm,
     FreelancerCertificationForm, FreelancerHeaderForm, FreelancerRateForm,
     FreelancerBackgroundForm, FreelancerSocialForm, FreelancerBioForm,
-    FreelancerSkillsForm, FreelancerLanguageForm,
+    FreelancerSkillsForm, FreelancerLanguageForm, SupportForm,
 )
 from core.services.project_service import ProjectService
 from core.ai_utils import get_recommendations
@@ -280,6 +281,37 @@ def freelancer_submit_milestone(request, milestone_id):
 
 
 # ---------------------------------------------------------------------------
+# Support
+# ---------------------------------------------------------------------------
+
+@freelancer_required
+def freelancer_support(request):
+    if request.method == 'POST':
+        form = SupportForm(request.POST, user=request.user)
+        if form.is_valid():
+            Ticket.objects.create(
+                user=request.user,
+                title=form.cleaned_data['title'],
+                category=form.cleaned_data['category'],
+                description=form.cleaned_data['description'],
+                status='open'
+            )
+            messages.success(request, "Your support ticket has been submitted. We will get back to you soon!")
+            return redirect('freelancer_support')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = SupportForm(user=request.user)
+
+    user_tickets = Ticket.objects.filter(user=request.user).order_by('-created_at')
+
+    return render(request, 'core/freelancer_support.html', {
+        'form': form,
+        'user_tickets': user_tickets
+    })
+
+
+# ---------------------------------------------------------------------------
 # Wallet
 # ---------------------------------------------------------------------------
 
@@ -290,6 +322,39 @@ def freelancer_wallet(request):
     return render(request, 'core/freelancer_wallet.html', {
         'wallet': wallet,
         'recent_transactions': recent_transactions,
+    })
+
+
+@freelancer_required
+def freelancer_transaction(request):
+    from django.core.paginator import Paginator
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+    page_obj = None
+
+    if wallet:
+        qs = Transaction.objects.filter(wallet=wallet)
+
+        filter_type = request.GET.get('type')
+        if filter_type in ['top_up', 'withdrawal', 'payment', 'refund']:
+            qs = qs.filter(transaction_type=filter_type)
+
+        sort_by = request.GET.get('sort', 'newest')
+        if sort_by == 'oldest':
+            qs = qs.order_by('created_at')
+        elif sort_by == 'highest':
+            qs = qs.order_by('-amount')
+        else:
+            qs = qs.order_by('-created_at')
+
+        paginator = Paginator(qs, 8)
+        page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'core/freelancer_transaction.html', {
+        'wallet': wallet,
+        'transactions': page_obj,
+        'page_obj': page_obj,
+        'current_type': request.GET.get('type', ''),
+        'current_sort': request.GET.get('sort', 'newest'),
     })
 
 

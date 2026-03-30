@@ -72,8 +72,10 @@ from core.views.freelancer import (
     freelancer_apply_project,
     freelancer_submit_milestone,
     freelancer_wallet,
+    freelancer_transaction,
     freelancer_settings,
     freelancer_profile,
+    freelancer_support,
     freelancer_respond_cancellation,
 )
 

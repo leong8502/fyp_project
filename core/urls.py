@@ -117,7 +117,9 @@ urlpatterns = [
     path('freelancer/project/<int:project_id>/match-result/', views.freelancer_match_result_by_project, name='freelancer_match_result_by_project'),
     path('freelancer/project/<int:project_id>/ai-analysis/', views.api_freelancer_match_ai_analysis, name='api_freelancer_match_ai_analysis'),
     path('freelancer/wallet/', views.freelancer_wallet, name='freelancer_wallet'),
+    path('freelancer/wallet/transaction/', views.freelancer_transaction, name='freelancer_transaction'),
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),
+    path('freelancer/support/', views.freelancer_support, name='freelancer_support'),
     path('freelancer/cancellation/<int:cancellation_id>/respond/', views.freelancer_respond_cancellation, name='freelancer_respond_cancellation'),
 
     # ── Admin ──────────────────────────────────────────────────────────────

@@ -1,0 +1,228 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}Freelancer Support - TalentSync{% endblock %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'core/css/freelancer_support.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="support-container">
+    <div class="support-header">
+        <h1>How can we help you?</h1>
+        <p>Submit a ticket and our support team will get back to you shortly.</p>
+    </div>
+
+    <!-- Support Tabs -->
+    <div class="support-tabs">
+        <div class="tab-btn active" data-tab="submit">Submit Ticket</div>
+        <div class="tab-btn" data-tab="history">My Tickets</div>
+    </div>
+
+    <!-- Tab Content: Submit Ticket -->
+    <div id="submit-tab" class="tab-content active">
+        <form method="post" class="support-form" novalidate>
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <!-- Sender Field -->
+                <div class="form-group half-width">
+                    <label for="{{ form.sender.id_for_label }}">{{ form.sender.label }}</label>
+                    {{ form.sender }}
+                </div>
+
+                <!-- Category Field -->
+                <div class="form-group half-width">
+                    <label for="{{ form.category.id_for_label }}">{{ form.category.label }}</label>
+                    {{ form.category }}
+                </div>
+            </div>
+
+            <!-- Title Field -->
+            <div class="form-group">
+                <label for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <ul class="error-list text-danger small mt-1">
+                        {% for error in form.title.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <!-- Description Field -->
+            <div class="form-group">
+                <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <ul class="error-list text-danger small mt-1">
+                        {% for error in form.description.errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+
+            <div class="btn-submit-container">
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-paper-plane"></i> Submit Ticket
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tab Content: My Tickets History -->
+    <div id="history-tab" class="tab-content">
+        <div class="ticket-history">
+            {% if user_tickets %}
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Date Submitted</th>
+                                <th style="width: 100px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in user_tickets %}
+                                <tr data-title="{{ ticket.title }}" 
+                                    data-category="{{ ticket.get_category_display }}"
+                                    data-status="{{ ticket.get_status_display }}"
+                                    data-status-raw="{{ ticket.status }}"
+                                    data-date="{{ ticket.created_at|date:'d M Y, H:i' }}"
+                                    data-description="{{ ticket.description }}">
+                                    <td>
+                                        <div class="ticket-title">{{ ticket.title }}</div>
+                                    </td>
+                                    <td>{{ ticket.get_category_display }}</td>
+                                    <td>
+                                        <span class="status-badge status-{{ ticket.status }}">
+                                            {{ ticket.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ ticket.created_at|date:"d M Y, H:i" }}</td>
+                                    <td>
+                                        <button class="btn-view-ticket" title="View Content">
+                                            <i class="fas fa-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="no-tickets">
+                    <i class="fas fa-ticket-alt"></i>
+                    <p>You haven't submitted any tickets yet.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ticket Detail Modal -->
+<div id="ticketDetailModal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Ticket Details</h2>
+            <button type="button" class="btn-close-modal" id="closeModal"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Subject</label>
+                <div class="detail-frame" id="modalTitle"></div>
+            </div>
+            
+            <div class="detail-grid">
+                <div class="form-group">
+                    <label>Category</label>
+                    <div class="detail-frame" id="modalCategory"></div>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <div class="detail-frame" style="display: flex; align-items: center;">
+                        <span id="modalStatus" class="status-badge"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Date Submitted</label>
+                <div class="detail-frame" id="modalDate"></div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label>Message Content</label>
+                <div class="detail-description" id="modalDescription"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-close-btn" id="closeModalBtn">Close</button>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        // Tab Switching Logic
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabId = btn.dataset.tab;
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById(tabId + '-tab').classList.add('active');
+            });
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('ticketDetailModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalCategory = document.getElementById('modalCategory');
+        const modalStatus = document.getElementById('modalStatus');
+        const modalDate = document.getElementById('modalDate');
+        const modalDescription = document.getElementById('modalDescription');
+        const closeBtns = [document.getElementById('closeModal'), document.getElementById('closeModalBtn')];
+
+        document.querySelectorAll('.btn-view-ticket').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const row = this.closest('tr');
+                const data = row.dataset;
+
+                modalTitle.textContent = data.title;
+                modalCategory.textContent = data.category;
+                modalStatus.textContent = data.status;
+                modalStatus.className = 'status-badge status-' + data.statusRaw;
+                modalStatus.id = 'modalStatus'; // Keep ID for reuse
+                modalDate.textContent = data.date;
+                modalDescription.textContent = data.description;
+
+                modal.style.display = 'flex';
+            });
+        });
+
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %}
