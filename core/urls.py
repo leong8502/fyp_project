@@ -104,6 +104,7 @@ urlpatterns = [
     # ── Ami AI Chatbox ─────────────────────────────────────────────────────
     path('ami/ask/', views.chat_ami, name='ami_ask'),
     path('ami/history/', views.ami_history, name='ami_history'),
+    path('ami/quota/', views.ami_quota, name='ami_quota'),
 
     # ── Freelancer ─────────────────────────────────────────────────────────
     path('freelancer/home/', views.freelancer_home, name='freelancer_home'),

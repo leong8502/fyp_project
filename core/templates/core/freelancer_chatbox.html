@@ -1,0 +1,534 @@
+{% load static %}
+{% if user.is_authenticated and user.freelancer %}
+<style>
+    /* ── Ami Chatbox ────────────────────────────────────── */
+    #ami-fab {
+        position: fixed;
+        bottom: 28px;
+        right: 28px;
+        width: 58px;
+        height: 58px;
+        background: linear-gradient(135deg, #1b5e20, #2e7d32, #43a047);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 20px rgba(46,125,50,.50);
+        z-index: 9000;
+        transition: transform .25s, box-shadow .25s;
+        border: none;
+    }
+    #ami-fab:hover {
+        transform: scale(1.12) rotate(-5deg);
+        box-shadow: 0 8px 28px rgba(46,125,50,.65);
+    }
+    #ami-fab span { font-size: 26px; line-height: 1; }
+    #ami-fab .ami-badge {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        background: #e53935;
+        color: #fff;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+        font-weight: 700;
+        display: none;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ── Chat window ──
+       - bottom: 98px keeps it above the FAB
+       - max-height: calc(100vh - 120px) prevents the window from going above
+         the viewport top regardless of how many messages there are            */
+    #ami-window {
+        position: fixed;
+        bottom: 98px;
+        right: 28px;
+        width: 370px;
+        /* Responsive height: fills screen but never overlaps the very top */
+        max-height: calc(100vh - 120px);
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 12px 50px rgba(0,0,0,.18);
+        display: flex;
+        flex-direction: column;
+        z-index: 9001;
+        overflow: hidden;
+        transform: scale(0);
+        transform-origin: bottom right;
+        transition: transform .28s cubic-bezier(.34,1.56,.64,1), opacity .22s;
+        opacity: 0;
+    }
+    #ami-window.open {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    /* ── Header ── */
+    #ami-header {
+        background: linear-gradient(135deg, #1b5e20, #2e7d32, #43a047);
+        color: #fff;
+        padding: 12px 14px 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-shrink: 0;
+    }
+    #ami-header .ami-avatar {
+        width: 38px;
+        height: 38px;
+        background: rgba(255,255,255,.22);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+    }
+    #ami-header .ami-info { flex: 1; min-width: 0; }
+    #ami-header .ami-title { font-weight: 700; font-size: .95rem; line-height: 1.2; }
+
+    /* Subtitle row: TalentSync text + quota pill side by side */
+    #ami-header .ami-sub {
+        font-size: .68rem;
+        opacity: .85;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 2px;
+        flex-wrap: wrap;
+    }
+    /* Quota pill */
+    #ami-quota-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        background: rgba(255,255,255,.20);
+        border: 1px solid rgba(255,255,255,.35);
+        border-radius: 50px;
+        padding: 1px 7px;
+        font-size: .65rem;
+        font-weight: 600;
+        letter-spacing: .01em;
+        white-space: nowrap;
+        transition: background .25s;
+    }
+    #ami-quota-pill.low  { background: rgba(255,152,0,.35);  border-color: rgba(255,152,0,.6); }
+    #ami-quota-pill.zero { background: rgba(229,57,53,.35);  border-color: rgba(229,57,53,.6); }
+    #ami-quota-num { font-weight: 700; }
+
+    #ami-header .ami-close {
+        margin-left: auto;
+        cursor: pointer;
+        font-size: 18px;
+        opacity: .75;
+        background: none;
+        border: none;
+        color: #fff;
+        padding: 4px;
+        border-radius: 50%;
+        transition: background .2s, opacity .2s;
+        flex-shrink: 0;
+    }
+    #ami-header .ami-close:hover { opacity: 1; background: rgba(255,255,255,.15); }
+
+    /* ── Messages area ── */
+    #ami-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 14px 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background: #f7f9f7;
+        scrollbar-width: thin;
+        scrollbar-color: #c8e6c9 transparent;
+        /* min-height so a fresh chat looks good */
+        min-height: 180px;
+    }
+
+    .ami-msg {
+        max-width: 88%;
+        padding: 10px 14px;
+        border-radius: 18px;
+        font-size: .86rem;
+        line-height: 1.55;
+        word-break: break-word;
+        animation: ami-pop .2s ease-out;
+    }
+    @keyframes ami-pop {
+        from { transform: scale(.92); opacity: 0; }
+        to   { transform: scale(1);   opacity: 1; }
+    }
+    .ami-msg.ami {
+        background: #e8f5e9;
+        color: #1b5e20;
+        border-radius: 18px 18px 18px 4px;
+        align-self: flex-start;
+        border: 1px solid #c8e6c9;
+    }
+    .ami-msg.ami a {
+        color: #2e7d32;
+        font-weight: 700;
+        text-decoration: underline;
+    }
+    .ami-msg.user {
+        background: linear-gradient(135deg, #2e7d32, #43a047);
+        color: #fff;
+        border-radius: 18px 18px 4px 18px;
+        align-self: flex-end;
+        box-shadow: 0 2px 8px rgba(46,125,50,.25);
+    }
+
+    /* ── Typing indicator ── */
+    #ami-typing {
+        display: none;
+        align-self: flex-start;
+        padding: 10px 16px;
+        background: #e8f5e9;
+        border-radius: 18px 18px 18px 4px;
+        border: 1px solid #c8e6c9;
+        gap: 4px;
+        align-items: center;
+    }
+    #ami-typing .dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #388e3c;
+        animation: ami-bounce .9s infinite;
+    }
+    #ami-typing .dot:nth-child(2) { animation-delay: .18s; }
+    #ami-typing .dot:nth-child(3) { animation-delay: .36s; }
+    @keyframes ami-bounce {
+        0%, 80%, 100% { transform: translateY(0);    opacity: .6; }
+        40%            { transform: translateY(-6px); opacity: 1;  }
+    }
+
+    /* ── Quick suggestion chips ── */
+    #ami-suggestions {
+        padding: 8px 12px 4px;
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        flex-shrink: 0;
+        background: #f7f9f7;
+        border-top: 1px solid #e8f5e9;
+    }
+    .ami-chip {
+        padding: 5px 12px;
+        background: #fff;
+        border: 1.5px solid #a5d6a7;
+        border-radius: 50px;
+        font-size: .76rem;
+        color: #2e7d32;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background .2s, border-color .2s, transform .15s;
+        white-space: nowrap;
+        font-family: inherit;
+    }
+    .ami-chip:hover {
+        background: #e8f5e9;
+        border-color: #2e7d32;
+        transform: translateY(-1px);
+    }
+
+    /* ── Input row ── */
+    #ami-input-row {
+        display: flex;
+        gap: 8px;
+        padding: 10px 12px;
+        border-top: 1px solid #e0e0e0;
+        background: #fff;
+        flex-shrink: 0;
+        align-items: center;
+    }
+    #ami-input {
+        flex: 1;
+        border: 1.5px solid #c8e6c9;
+        border-radius: 22px;
+        padding: 9px 14px;
+        font-size: .87rem;
+        outline: none;
+        transition: border-color .2s, box-shadow .2s;
+        font-family: inherit;
+    }
+    #ami-input:focus {
+        border-color: #2e7d32;
+        box-shadow: 0 0 0 3px rgba(46,125,50,.1);
+    }
+    #ami-send {
+        background: linear-gradient(135deg, #2e7d32, #43a047);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: #fff;
+        font-size: 15px;
+        transition: transform .15s, box-shadow .15s;
+        box-shadow: 0 2px 8px rgba(46,125,50,.3);
+    }
+    #ami-send:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(46,125,50,.45); }
+    #ami-send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+
+    /* ── Branding strip (replaces old footer, much subtler) ── */
+    #ami-branding {
+        text-align: center;
+        font-size: .6rem;
+        color: #aaa;
+        padding: 4px 0 5px;
+        letter-spacing: .03em;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
+    @media (max-width: 480px) {
+        #ami-window { width: calc(100vw - 20px); right: 10px; bottom: 82px; max-height: calc(100vh - 100px); }
+        #ami-fab { right: 16px; bottom: 16px; }
+    }
+</style>
+
+<!-- ── Floating button ── -->
+<button id="ami-fab" onclick="amiToggle()" aria-label="Open Ami chatbox">
+    <span>💬</span>
+</button>
+
+<!-- ── Chat window ── -->
+<div id="ami-window" role="dialog" aria-label="Ami AI Chatbox">
+
+    <!-- Header -->
+    <div id="ami-header">
+        <div class="ami-avatar">🤖</div>
+        <div class="ami-info">
+            <div class="ami-title">Ami</div>
+            <div class="ami-sub">
+                <span>TalentSync Assistant</span>
+                <span id="ami-quota-pill" title="Daily limit: 20 questions. Resets ~3–4 pm Malaysia time.">
+                    <span>🔋</span>
+                    <span>Daily Remaining questions:</span>
+                    <span id="ami-quota-num">–</span>
+                </span>
+            </div>
+        </div>
+        <button class="ami-close" onclick="amiToggle()" aria-label="Close">✕</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="ami-messages">
+        <div id="ami-typing">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+    </div>
+
+    <!-- Quick suggestion chips (shown when chat opens fresh) -->
+    <div id="ami-suggestions">
+        {% if user.freelancer %}
+        <button class="ami-chip" onclick="amiChip('How do I withdraw my earnings?')">💰 Withdraw</button>
+        <button class="ami-chip" onclick="amiChip('How do I find a job?')">🔍 Find Jobs</button>
+        <button class="ami-chip" onclick="amiChip('How do I submit a milestone?')">📋 Milestones</button>
+        <button class="ami-chip" onclick="amiChip('How do I update my profile?')">👤 Profile</button>
+        {% else %}
+        <button class="ami-chip" onclick="amiChip('How do I top up my wallet?')">💳 Top Up</button>
+        <button class="ami-chip" onclick="amiChip('How do I post a project?')">📝 Post Project</button>
+        <button class="ami-chip" onclick="amiChip('How do I hire a freelancer?')">🤝 Hire</button>
+        <button class="ami-chip" onclick="amiChip('How do I release payment?')">💰 Payment</button>
+        {% endif %}
+    </div>
+
+    <!-- Input row -->
+    <div id="ami-input-row">
+        <input id="ami-input" type="text"
+               placeholder="Ask me anything about TalentSync…"
+               autocomplete="off"
+               onkeydown="if(event.key==='Enter' && !event.shiftKey) amiSend()">
+        <button id="ami-send" onclick="amiSend()" aria-label="Send">
+            <i class="fas fa-paper-plane"></i>
+        </button>
+    </div>
+
+    <!-- Subtle branding strip -->
+    <div id="ami-branding">TalentSync · Ami AI</div>
+</div>
+
+<script>
+(function () {
+    const GREETINGS = [
+        "Hi there! 👋 I'm <strong>Ami</strong>, your TalentSync assistant. Ask me anything — I'm here to help!",
+        "Hello! I'm <strong>Ami</strong> 😊 How can I help you navigate TalentSync today?",
+        "Hey! Great to see you. I'm <strong>Ami</strong>, your TalentSync guide. What's on your mind? 🌟",
+        "Welcome back! I'm <strong>Ami</strong> 👋 Ask me about your wallet, projects, profile, or anything else!",
+    ];
+
+    let opened  = false;
+    let sending = false;
+    const CSRF  = '{{ csrf_token }}';
+
+    /* ── Quota display ── */
+    function updateQuotaPill(remaining) {
+        const pill  = document.getElementById('ami-quota-pill');
+        const num   = document.getElementById('ami-quota-num');
+        const input = document.getElementById('ami-input');
+        const btn   = document.getElementById('ami-send');
+        if (remaining === null || remaining === undefined) return;
+
+        num.textContent = remaining;
+        pill.classList.remove('low', 'zero');
+
+        if (remaining === 0) {
+            pill.classList.add('zero');
+            // Lock input — quota exhausted
+            if (!sending) {
+                input.disabled    = true;
+                btn.disabled      = true;
+                input.placeholder = 'Daily limit reached. Resets ~3–4 pm (MYT).';
+            }
+        } else {
+            if (remaining <= 5) pill.classList.add('low');  // warn at ≤5 of 20
+            // Restore input if it was locked by quota (not by a pending send)
+            if (!sending) {
+                input.disabled    = false;
+                btn.disabled      = false;
+                input.placeholder = 'Ask me anything about TalentSync…';
+            }
+        }
+    }
+
+    /* Fetch quota from server and update the pill */
+    function fetchQuota() {
+        fetch('{% url "ami_quota" %}', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => updateQuotaPill(data.remaining))
+            .catch(() => {/* silently ignore */});
+    }
+
+    /* ── Fetch quota immediately on page load (persists across login/logout) ── */
+    fetchQuota();
+
+    /* ── Auto-refresh quota every 2 minutes in case of background changes ── */
+    setInterval(fetchQuota, 2 * 60 * 1000);
+
+    /* ── Toggle open / close ── */
+    window.amiToggle = function () {
+        const win    = document.getElementById('ami-window');
+        const isOpen = win.classList.toggle('open');
+        if (isOpen && !opened) {
+            opened = true;
+            loadHistory();
+            fetchQuota();  // refresh on first open too
+        }
+        if (isOpen) {
+            setTimeout(() => document.getElementById('ami-input').focus(), 280);
+        }
+    };
+
+    /* ── Quick-chip shortcut ── */
+    window.amiChip = function (text) {
+        document.getElementById('ami-input').value = text;
+        document.getElementById('ami-suggestions').style.display = 'none';
+        amiSend();
+    };
+
+    /* ── Add a message bubble ── */
+    function addMsg(html, who) {
+        const box    = document.getElementById('ami-messages');
+        const typing = document.getElementById('ami-typing');
+        const div    = document.createElement('div');
+        div.className = `ami-msg ${who}`;
+        div.innerHTML  = html;
+        box.insertBefore(div, typing);
+        box.scrollTop  = box.scrollHeight;
+    }
+
+    /* ── Typing indicator ── */
+    function setTyping(show) {
+        const t = document.getElementById('ami-typing');
+        t.style.display = show ? 'flex' : 'none';
+        if (show) document.getElementById('ami-messages').scrollTop = 99999;
+    }
+
+    /* ── Disable / enable send while a request is in-flight ── */
+    function setSending(val) {
+        sending = val;
+        const btn = document.getElementById('ami-send');
+        const inp = document.getElementById('ami-input');
+        btn.disabled = val;
+        inp.disabled = val;
+    }
+
+    /* ── Load history ── */
+    function loadHistory() {
+        fetch('{% url "ami_history" %}', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.history && data.history.length > 0) {
+                    document.getElementById('ami-suggestions').style.display = 'none';
+                    data.history.forEach(h => {
+                        addMsg(h.message, 'user');
+                        addMsg(h.response, 'ami');
+                    });
+                } else {
+                    const greet = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+                    addMsg(greet, 'ami');
+                }
+            })
+            .catch(() => {
+                const greet = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
+                addMsg(greet, 'ami');
+            });
+    }
+
+    /* ── Send a message ── */
+    window.amiSend = function () {
+        if (sending) return;
+        const input = document.getElementById('ami-input');
+        const msg   = input.value.trim();
+        if (!msg) return;
+
+        input.value = '';
+        document.getElementById('ami-suggestions').style.display = 'none';
+
+        addMsg(msg, 'user');
+        setTyping(true);
+        setSending(true);
+
+        const form = new FormData();
+        form.append('message', msg);
+        form.append('csrfmiddlewaretoken', CSRF);
+
+        fetch('{% url "ami_ask" %}', {
+            method: 'POST',
+            body:   form,
+            credentials: 'same-origin',
+        })
+        .then(r => r.json())
+        .then(data => {
+            setTyping(false);
+            setSending(false);
+            addMsg(data.response || "Oops! Something went wrong.", 'ami');
+            // Always update pill from authoritative server value
+            if (data.remaining !== undefined) {
+                updateQuotaPill(data.remaining);
+            } else {
+                fetchQuota();  // fallback: re-fetch from server
+            }
+        })
+        .catch(() => {
+            setTyping(false);
+            setSending(false);
+            addMsg("Hmm, I couldn't reach the server. Please try again! 😅", 'ami');
+        });
+    };
+})();
+</script>
+{% endif %}
