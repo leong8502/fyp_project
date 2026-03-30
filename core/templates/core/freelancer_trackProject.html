@@ -4,288 +4,480 @@
 {% block title %}Track Projects - TalentSync{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/freelancer_track.css' %}">
+<style>
+    .track-page-container {
+        max-width: 1100px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    /* Modern Header Style */
+    .track-header {
+        margin-bottom: 30px;
+        border-left: 5px solid #007bff;
+        padding-left: 20px;
+    }
+
+    .track-header h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 10px;
+    }
+
+    .track-header p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    /* Tabs Header - Using Specificity instead of !important */
+    .track-page-container .track-tabs-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        background: #f8fafc;
+        padding: 15px 25px;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .track-page-container .filter-pills {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .track-page-container .pill-btn {
+        padding: 8px 22px;
+        border-radius: 30px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: #64748b;
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
+    .track-page-container .pill-btn:hover {
+        border-color: #007bff;
+        color: #007bff;
+        background: #f0f9ff;
+    }
+
+    .track-page-container .pill-btn.active {
+        background: #007bff;
+        color: white;
+        border-color: #007bff;
+        box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
+    }
+
+    .track-page-container .header-actions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-grow: 1;
+        justify-content: flex-end;
+    }
+
+    .track-page-container .header-search-container {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 8px 16px;
+        min-width: 300px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+    }
+
+    .track-page-container .header-search-container input {
+        border: none;
+        outline: none;
+        font-size: 0.95rem;
+        flex-grow: 1;
+        color: #1e293b;
+        background: transparent;
+        padding-left: 10px;
+    }
+
+    .track-page-container .header-search-container i {
+        color: #94a3b8;
+    }
+
+    /* Cards Grid */
+    .track-page-container .projects-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 25px;
+    }
+
+    .track-page-container .track-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 30px;
+        display: flex;
+        flex-direction: row;
+        gap: 30px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .track-page-container .track-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .track-page-container .track-card-image {
+        width: 100px;
+        height: 100px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid #f1f5f9;
+        flex-shrink: 0;
+        background: #f8fafc;
+        padding: 10px;
+    }
+
+    .track-page-container .track-card-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .track-page-container .track-card-title {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 20px;
+    }
+
+    /* Info Row - Improved Layout */
+    .track-page-container .info-grid {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 40px;
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .track-page-container .info-item {
+        display: flex;
+        flex-direction: column;
+        min-width: 120px;
+    }
+
+    .track-page-container .info-label {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        margin-bottom: 6px;
+    }
+
+    .track-page-container .info-value {
+        font-weight: 600;
+        color: #334155;
+        font-size: 1.05rem;
+    }
+
+    .track-page-container .status-badge {
+        display: inline-block;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .status-in_progress { background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; }
+    .status-open { background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; }
+    .status-completed { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+
+    /* Milestone Styles */
+    .track-page-container .milestone-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+
+    .track-page-container .milestone-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .track-page-container .btn-submit-milestone {
+        width: 100%;
+        padding: 12px;
+        border-radius: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        background: #007bff;
+        color: white;
+        transition: all 0.2s;
+    }
+
+    .track-page-container .btn-submit-milestone:hover {
+        background: #0056b3;
+        transform: translateY(-1px);
+    }
+
+    /* Result Not Found UI */
+    .no-results-message {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        padding: 60px 40px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    @media (max-width: 900px) {
+        .track-page-container .track-card {
+            flex-direction: column;
+            gap: 20px;
+        }
+        .track-page-container .track-tabs-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .track-page-container .header-search-container {
+            min-width: 100%;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="track-page-container">
+    <div class="track-header">
+        <h1>Project Tracking</h1>
+        <p>Manage your active engagements, view invitation details, and browse your project history.</p>
+    </div>
+
     <div class="track-tabs-header">
-        <nav class="tabs-nav">
-            <a onclick="showTab('current')" id="tab-current" class="tab-link active">Current Project</a>
-            <a onclick="showTab('invitations')" id="tab-invitations" class="tab-link">Invitations {% if pending_applications.count > 0 %}<span style="background: red; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.8em; margin-left: 5px;">{{ pending_applications.count }}</span>{% endif %}</a>
-            <a onclick="showTab('pass')" id="tab-pass" class="tab-link">Pass Project</a>
-        </nav>
+        <div class="filter-pills">
+            <div onclick="showTab('current')" id="tab-current" class="pill-btn active">Current Projects</div>
+            <div onclick="showTab('invitations')" id="tab-invitations" class="pill-btn">
+                Invitations 
+                {% if pending_applications.count > 0 %}
+                <span style="background: #ef4444; color: white; border-radius: 50%; padding: 0 7px; font-size: 0.75rem; margin-line: 6px; font-weight: 800;">{{ pending_applications.count }}</span>
+                {% endif %}
+            </div>
+            <div onclick="showTab('pass')" id="tab-pass" class="pill-btn">Past Projects</div>
+        </div>
 
         <div class="header-actions">
             <div class="header-search-container">
-                <input type="text" placeholder="What are you looking for...">
                 <i class="fas fa-search"></i>
+                <input type="text" placeholder="Search projects..." id="projectSearch">
             </div>
-            <button class="filter-icon-btn">
-                <i class="fas fa-filter"></i>
-            </button>
         </div>
     </div>
 
-    <!-- Current Projects Section -->
+    <!-- Sections -->
     <div id="section-current" class="projects-section">
         <div class="projects-grid">
             {% for project in current_projects %}
             <div class="track-card">
-                {% if project.client.profile_image %}
-                <img src="{{ project.client.profile_image.url }}" class="track-card-image">
-                {% else %}
-                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
-                {% endif %}
+                <img src="{% if project.client.profile_image %}{{ project.client.profile_image.url }}{% else %}{% static 'core/images/logo.png' %}{% endif %}" class="track-card-image" alt="Logo">
                 <div class="track-card-content">
-                    <h3 class="track-card-title">{{ project.title }}</h3>
-                    <div class="info-row">
-                        <span class="info-label">Duration:</span>
-                        <span class="info-value">{{ project.duration|default:"Not specified" }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Client:</span>
-                        <span class="info-value">{{ project.client.company_name }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
+                    <h3 class="track-card-title search-title">{{ project.title }}</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Duration</span>
+                            <span class="info-value">{{ project.duration|default:"Not specified" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Client</span>
+                            <span class="info-value search-client">{{ project.client.company_name }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Status</span>
+                            <div><span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span></div>
+                        </div>
                     </div>
 
                     {% if project.status == 'in_progress' %}
-                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                        <h4 style="margin-bottom: 10px; font-size: 14px; color: #555;">Milestones:</h4>
+                    <div class="milestones-section">
+                        <h4 style="font-weight: 700; margin-bottom: 15px;"><i class="fas fa-tasks"></i> Active Milestones</h4>
                         {% for milestone in project.milestones.all %}
                         {% if milestone.assigned_to == request.user.freelancer %}
                         {% if milestone.status == 'in_progress' %}
-                            <div style="background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                            <div class="milestone-card">
+                                <div class="milestone-main">
                                     <div>
-                                        <strong style="display: block; font-size: 14px; color: #333;">{{ milestone.title }}</strong>
-                                        <span style="font-size: 12px; color: #888;">Due: {{ milestone.deadline|date:"M d, Y" }}</span>
-                                        {% if milestone.is_late %}
-                                        <div style="margin-top: 4px;">
-                                            <span class="status-late">
-                                                <i class="fas fa-clock"></i> Late
-                                            </span>
-                                        </div>
-                                        {% endif %}
+                                        <div style="font-weight: 700; color: #1e293b;">{{ milestone.title }}</div>
+                                        <div style="font-size: 0.85rem; color: #94a3b8; margin-top: 4px;">Due: {{ milestone.deadline|date:"M d, Y" }}</div>
                                     </div>
-                                    <span style="font-weight: bold; color: #2e7d32;">RM {{ milestone.amount|floatformat:0 }}</span>
+                                    <div style="font-weight: 800; color: #10b981; font-size: 1.1rem;">RM {{ milestone.amount|floatformat:0 }}</div>
                                 </div>
-                                
-                                {% if milestone.revision_reason %}
-                                <div style="background: #fff3cd; color: #856404; padding: 8px 12px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; border: 1px solid #ffeeba;">
-                                    <strong>Client Revision Request:</strong> {{ milestone.revision_reason }}
-                                </div>
-                                {% endif %}
-
                                 <form action="{% url 'freelancer_submit_milestone' milestone.id %}" method="post" enctype="multipart/form-data">
                                     {% csrf_token %}
-                                    <div style="margin-bottom: 10px;">
-                                        <label style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px; color: #555;">Upload Deliverables (You can select multiple files if supported by browser/form, otherwise zip them):</label>
-                                        <input type="file" name="attachments" multiple required style="width: 100%; padding: 8px; border: 1px dashed #ccc; border-radius: 6px; background: white; font-size: 13px;">
-                                    </div>
-                                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 8px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none;">Submit Milestone</button>
+                                    <input type="file" name="attachments" multiple required style="width: 100%; padding: 10px; border: 2px dashed #cbd5e1; border-radius: 12px; margin-bottom: 15px;">
+                                    <button type="submit" class="btn-submit-milestone">Submit Milestone</button>
                                 </form>
                             </div>
                         {% elif milestone.status == 'completed' %}
-                            <div style="background: #ebf5fb; border: 1px solid #bce8f1; border-radius: 8px; padding: 10px 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <strong style="font-size: 13px; color: #31708f;">{{ milestone.title }}</strong>
-                                    <span style="display: block; font-size: 11px; color: #31708f;">Submitted on {{ milestone.completed_at|date:"M d, Y" }}</span>
-                                    {% if milestone.was_completed_late %}
-                                    <div style="margin-top: 4px;">
-                                        <span class="status-completed-late">
-                                            <i class="fas fa-history"></i> Completed Late
-                                        </span>
-                                    </div>
-                                    {% endif %}
+                            <div class="milestone-card" style="opacity: 0.8; border-style: dashed;">
+                                <div class="milestone-main" style="margin-bottom: 0;">
+                                    <div style="font-weight: 700; color: #475569;">{{ milestone.title }} (Submitted)</div>
+                                    <span class="status-badge" style="background: #e0f2fe; color: #0369a1;">Pending Approval</span>
                                 </div>
-                                <span style="font-size: 12px; font-weight: 600; color: #31708f; background: white; padding: 4px 8px; border-radius: 12px; border: 1px solid #bce8f1;">Waiting for Approval</span>
                             </div>
                         {% endif %}
                         {% endif %}
                         {% endfor %}
                     </div>
-                    {% elif project.status == 'open' %}
-                    <div style="margin-top: 15px; background: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 10px; padding: 16px; text-align: center;">
-                        <p style="color: #2e7d32; font-weight: 600; margin: 0;">
-                            <i class="fas fa-info-circle"></i> Application Accepted! Waiting for client to start the project.
-                        </p>
-                    </div>
-                    {% endif %}
-
-                    {% if project.status == 'in_progress' %}
-                    <!-- Cancellation Request Banner -->
-                    {% if project.pending_cancellation %}
-                    <div style="margin-top: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 10px; padding: 16px;">
-                        <p style="font-weight: 700; color: #856404; margin: 0 0 6px 0; font-size: 14px;">
-                            <i class="fas fa-exclamation-circle"></i> Removal/Cancellation Requested
-                        </p>
-                        {% if project.pending_cancellation.reason %}
-                        <p style="font-size: 13px; color: #555; margin: 0 0 12px 0;">
-                            <strong>Reason:</strong> {{ project.pending_cancellation.reason }}
-                        </p>
-                        {% else %}
-                        <p style="font-size: 13px; color: #999; margin: 0 0 12px 0; font-style: italic;">No reason provided.</p>
-                        {% endif %}
-                        <div style="display: flex; gap: 10px;">
-                            <form action="{% url 'freelancer_respond_cancellation' project.pending_cancellation.id %}" method="post" style="flex: 1;">
-                                {% csrf_token %}
-                                <input type="hidden" name="response" value="agree">
-                                <button type="submit" class="btn btn-danger"
-                                    onclick="return confirm('Are you sure to agree to get removed from this project?')"
-                                    style="width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; border: none; cursor: pointer; background: #dc3545; color: white; font-weight: 600;">
-                                    <i class="fas fa-check"></i> Agree
-                                </button>
-                            </form>
-                            <form action="{% url 'freelancer_respond_cancellation' project.pending_cancellation.id %}" method="post" style="flex: 1;">
-                                {% csrf_token %}
-                                <input type="hidden" name="response" value="decline">
-                                <button type="submit"
-                                    style="width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; border: 2px solid #6c757d; cursor: pointer; background: white; color: #6c757d; font-weight: 600;">
-                                    <i class="fas fa-times"></i> Decline
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endif %}
                     {% endif %}
                 </div>
             </div>
             {% empty %}
-            <div class="empty-state">
-                <h3>No projects found at this moment</h3>
-                <p>You haven't joined any project yet. Start searching for jobs!</p>
-                <a href="{% url 'freelancer_search_job' %}" class="btn btn-primary mt-3">Find Jobs</a>
-            </div>
+            <div style="text-align: center; padding: 60px; color: #94a3b8;">No projects found.</div>
             {% endfor %}
+            <div class="no-results-message" style="display: none;">
+                <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
+                <h3 style="color: #64748b; font-weight: 700;">Result not found</h3>
+                <p style="color: #94a3b8;">Try adjusting your keyword to find what you're looking for.</p>
+            </div>
         </div>
     </div>
 
-    <!-- Invitations Section -->
     <div id="section-invitations" class="projects-section" style="display: none;">
         <div class="projects-grid">
             {% for app in pending_applications %}
             <div class="track-card">
-                {% if app.project.client.profile_image %}
-                <img src="{{ app.project.client.profile_image.url }}" class="track-card-image">
-                {% else %}
-                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
-                {% endif %}
+                <img src="{% if app.project.client.profile_image %}{{ app.project.client.profile_image.url }}{% else %}{% static 'core/images/logo.png' %}{% endif %}" class="track-card-image" alt="Logo">
                 <div class="track-card-content">
-                    <h3 class="track-card-title">{{ app.project.title }}</h3>
-                    <div class="info-row">
-                        <span class="info-label">Client:</span>
-                        <span class="info-value">{{ app.project.client.company_name }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Budget:</span>
-                        <span class="info-value">RM {{ app.project.budget|floatformat:0 }}</span>
-                    </div>
-                    
-                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                        {% if app.application_type == 'invite' %}
-                            <h4 style="margin-bottom: 5px; font-size: 14px; color: #1976d2;"><i class="fas fa-envelope"></i> Invitation Received</h4>
-                        {% else %}
-                            <h4 style="margin-bottom: 5px; font-size: 14px; color: #888;">Your Application</h4>
-                        {% endif %}
-                        <p style="font-size: 13px; color: #555; background: #f9f9f9; padding: 10px; border-radius: 6px;">{{ app.message|default:"No message provided." }}</p>
-                        
-                        <div style="margin-top: 15px; display: flex; gap: 10px;">
-                            {% if app.application_type == 'invite' %}
-                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;" onsubmit="return confirm('Are you sure you want to accept this invitation?');">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-success" style="width: 100%; border: none; cursor: pointer; padding: 8px;">Accept</button>
-                            </form>
-                            <form action="{% url 'reject_application' app.id %}" method="post" style="flex: 1;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-secondary" style="width: 100%; border: none; cursor: pointer; padding: 8px; background-color: #dc3545; color: white;">Decline</button>
-                            </form>
-                            {% else %}
-                            <span style="font-size: 13px; color: #e65100; font-weight: 500; display: block; width: 100%; text-align: center; padding: 10px; background: #fff3e0; border-radius: 6px;">
-                                <i class="fas fa-clock"></i> Waiting for client review
-                            </span>
-                            {% endif %}
+                    <h3 class="track-card-title search-title">{{ app.project.title }}</h3>
+                    <div class="info-grid">
+                        <div class="info-item" style="flex-grow: 2;">
+                            <span class="info-label">Client</span>
+                            <span class="info-value search-client">{{ app.project.client.company_name }}</span>
                         </div>
+                        <div class="info-item">
+                            <span class="info-label">Budget</span>
+                            <span class="info-value" style="color: #10b981;">RM {{ app.project.budget|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px; padding: 18px; background: #f8fafc; border-radius: 12px; font-size: 0.95rem; color: #475569; border: 1px solid #e2e8f0;">
+                        {{ app.message|default:"No message attached." }}
+                    </div>
+                    <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        {% if app.application_type == 'invite' %}
+                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;"><button class="btn-submit-milestone" style="background: #10b981;">Accept</button></form>
+                        {% else %}
+                            <div style="width: 100%; text-align: center; padding: 10px; background: #fffbeb; color: #854d0e; border-radius: 10px;">Awaiting Review</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="empty-state">
-                <h3>No pending invitations or applications</h3>
-                <p>Send more applications to land your next project!</p>
-            </div>
             {% endfor %}
+            <div class="no-results-message" style="display: none;">
+                <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
+                <h3 style="color: #64748b; font-weight: 700;">Result not found</h3>
+            </div>
         </div>
     </div>
 
-    <!-- Pass Projects Section -->
     <div id="section-pass" class="projects-section" style="display: none;">
         <div class="projects-grid">
             {% for project in pass_projects %}
             <div class="track-card">
-                {% if project.client.profile_image %}
-                <img src="{{ project.client.profile_image.url }}" class="track-card-image">
-                {% else %}
-                <img src="{% static 'core/images/logo.png' %}" class="track-card-image">
-                {% endif %}
+                <img src="{% if project.client.profile_image %}{{ project.client.profile_image.url }}{% else %}{% static 'core/images/logo.png' %}{% endif %}" class="track-card-image" alt="Logo">
                 <div class="track-card-content">
-                    <h3 class="track-card-title">{{ project.title }}</h3>
-                    <div class="info-row">
-                        <span class="info-label">Duration:</span>
-                        <span class="info-value">{{ project.duration|default:"Not specified" }}</span>
+                    <h3 class="track-card-title search-title">{{ project.title }}</h3>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="info-label">Completed</span>
+                            <span class="info-value">{{ project.updated_at|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">Client</span>
+                            <span class="info-value search-client">{{ project.client.company_name }}</span>
+                        </div>
                     </div>
-                    <div class="info-row">
-                        <span class="info-label">Client:</span>
-                        <span class="info-value">{{ project.client.company_name }}</span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="status-badge status-{{ project.status }}">{{ project.get_status_display }}</span>
-                    </div>
-                    
-                    <div style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
-                        {% if project.has_reviewed %}
-                            <button class="btn btn-secondary" disabled style="width: 100%; padding: 8px; border-radius: 6px; font-size: 13px; cursor: not-allowed; border: none; background-color: #ccc; color: #666;">Review Submitted</button>
-                        {% else %}
-                            <a href="{% url 'submit_review' project.id %}" class="btn btn-primary" style="display: block; width: 100%; text-align: center; padding: 8px; border-radius: 6px; font-size: 13px; text-decoration: none; font-weight: 500;">Review Client</a>
-                        {% endif %}
+                    <div style="margin-top: 15px; text-align: center; background: #f8fafc; padding: 10px; border-radius: 12px; color: #94a3b8; font-weight: 600;">
+                        {% if project.has_reviewed %}Review Submitted{% else %}Completed{% endif %}
                     </div>
                 </div>
             </div>
-            {% empty %}
-            <div class="empty-state">
-                <h3>No previous projects found</h3>
-                <p>Once you complete a project, it will appear here.</p>
-            </div>
             {% endfor %}
+            <div class="no-results-message" style="display: none;">
+                <i class="fas fa-search" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 15px;"></i>
+                <h3 style="color: #64748b; font-weight: 700;">Result not found</h3>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
     function showTab(tabName) {
-        // Toggle tabs
-        document.getElementById('tab-current').classList.remove('active');
-        document.getElementById('tab-invitations').classList.remove('active');
-        document.getElementById('tab-pass').classList.remove('active');
-        document.getElementById('tab-' + tabName).classList.add('active');
+        document.querySelectorAll('.pill-btn').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById('tab-' + tabName);
+        if (activeBtn) activeBtn.classList.add('active');
 
-        // Toggle sections
-        document.getElementById('section-current').style.display = tabName === 'current' ? 'block' : 'none';
-        document.getElementById('section-invitations').style.display = tabName === 'invitations' ? 'block' : 'none';
-        document.getElementById('section-pass').style.display = tabName === 'pass' ? 'block' : 'none';
+        document.querySelectorAll('.projects-section').forEach(s => s.style.display = 'none');
+        const activeSection = document.getElementById('section-' + tabName);
+        if (activeSection) {
+            activeSection.style.display = 'block';
+            runSearch();
+        }
+
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabName);
+        window.history.pushState({}, '', url);
     }
 
-    // Initialize tab from URL parameter
+    function runSearch() {
+        const term = document.getElementById('projectSearch').value.toLowerCase().trim();
+        const activeSection = document.querySelector('.projects-section[style*="display: block"]');
+        if (!activeSection) return;
+
+        const cards = activeSection.querySelectorAll('.track-card');
+        const noResult = activeSection.querySelector('.no-results-message');
+        let foundAny = false;
+
+        cards.forEach(card => {
+            const title = card.querySelector('.search-title').textContent.toLowerCase();
+            const client = card.querySelector('.search-client').textContent.toLowerCase();
+            
+            if (term === '' || title.includes(term) || client.includes(term)) {
+                card.style.display = 'flex';
+                foundAny = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        if (noResult) {
+            noResult.style.display = (!foundAny && term !== '') ? 'block' : 'none';
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const urlParams = new URLSearchParams(window.location.search);
-        const activeTab = urlParams.get('tab') || '{{ active_tab|default:"current" }}';
-        if (activeTab && ['current', 'invitations', 'pass'].includes(activeTab)) {
-            showTab(activeTab);
-        }
+        const activeTab = urlParams.get('tab') || 'current';
+        showTab(activeTab);
+
+        document.getElementById('projectSearch').addEventListener('input', runSearch);
     });
 </script>
 {% endblock %}
