@@ -201,8 +201,7 @@
             <a href="?type=&sort={{ current_sort }}" class="pill-btn {% if not current_type %}active{% endif %}">All</a>
             <a href="?type=top_up&sort={{ current_sort }}" class="pill-btn {% if current_type == 'top_up' %}active{% endif %}">Top Up</a>
             <a href="?type=withdrawal&sort={{ current_sort }}" class="pill-btn {% if current_type == 'withdrawal' %}active{% endif %}">Withdrawal</a>
-            <a href="?type=payment&sort={{ current_sort }}" class="pill-btn {% if current_type == 'payment' %}active{% endif %}">Payment</a>
-            <a href="?type=refund&sort={{ current_sort }}" class="pill-btn {% if current_type == 'refund' %}active{% endif %}">Refund</a>
+            <a href="?type=income&sort={{ current_sort }}" class="pill-btn {% if current_type == 'income' %}active{% endif %}">Income</a>
         </div>
 
         <select class="filter-select" onchange="window.location.href='?type={{ current_type }}&sort=' + this.value" style="border-radius: 12px; padding: 8px 15px; border: 1px solid #e2e8f0;">

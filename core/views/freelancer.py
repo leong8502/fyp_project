@@ -335,7 +335,9 @@ def freelancer_transaction(request):
         qs = Transaction.objects.filter(wallet=wallet)
 
         filter_type = request.GET.get('type')
-        if filter_type in ['top_up', 'withdrawal', 'payment', 'refund']:
+        if filter_type == 'income':
+            qs = qs.filter(transaction_type__in=['payment', 'payout'])
+        elif filter_type in ['top_up', 'withdrawal']:
             qs = qs.filter(transaction_type=filter_type)
 
         sort_by = request.GET.get('sort', 'newest')
