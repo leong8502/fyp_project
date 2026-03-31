@@ -3,147 +3,8 @@
 
 {% block title %}Search Jobs - TalentSync{% endblock %}
 
-{% block extra_css %}
+{% block extra_js %}
 <link rel="stylesheet" href="{% static 'core/css/freelancer_search.css' %}">
-<style>
-    .score-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        padding: 4px 10px;
-        border-radius: 20px;
-        letter-spacing: 0.02em;
-    }
-
-    .score-high {
-        background: #d4edda;
-        color: #155724;
-    }
-
-    .score-mid {
-        background: #fff3cd;
-        color: #856404;
-    }
-
-    .score-low {
-        background: #f8d7da;
-        color: #721c24;
-    }
-
-    .info-btn {
-        background: none;
-        border: 1px solid #ccc;
-        border-radius: 50%;
-        width: 26px;
-        height: 26px;
-        cursor: pointer;
-        font-size: 13px;
-        color: #555;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.2s;
-    }
-
-    .info-btn:hover {
-        background: #e8f0fe;
-        border-color: #1976d2;
-        color: #1976d2;
-    }
-
-    .info-modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.45);
-        z-index: 2000;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .info-modal-overlay.active {
-        display: flex;
-    }
-
-    .info-modal-box {
-        background: #fff;
-        border-radius: 14px;
-        padding: 28px;
-        max-width: 480px;
-        width: 90%;
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-        position: relative;
-    }
-
-    .info-modal-box h3 {
-        margin: 0 0 14px;
-        font-size: 1.1rem;
-        color: #1a1a2e;
-    }
-
-    .info-modal-box pre {
-        background: #f4f6fa;
-        border-radius: 8px;
-        padding: 14px;
-        font-size: 0.82rem;
-        line-height: 1.65;
-        white-space: pre-wrap;
-        margin: 0;
-        color: #333;
-    }
-
-    .info-modal-close {
-        position: absolute;
-        top: 14px;
-        right: 18px;
-        background: none;
-        border: none;
-        font-size: 22px;
-        cursor: pointer;
-        color: #888;
-    }
-
-    .info-modal-close:hover {
-        color: #333;
-    }
-
-    .suitability-sentence {
-        font-size: 0.87rem;
-        color: #555;
-        font-style: italic;
-        margin-top: 8px;
-        margin-bottom: 4px;
-        border-left: 3px solid #1976d2;
-        padding-left: 10px;
-    }
-
-    .threshold-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-top: 10px;
-        font-size: 0.9rem;
-        color: #444;
-    }
-
-    .threshold-select {
-        padding: 5px 10px;
-        border-radius: 8px;
-        border: 1px solid #ccc;
-        background: #f9f9f9;
-        font-size: 0.9rem;
-    }
-
-    /* Override external css to ensure sticky works (fixing cache issues) */
-    .filter-card {
-        position: sticky !important;
-        top: 110px !important;
-        max-height: calc(100vh - 130px) !important;
-        overflow-y: auto !important;
-    }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -154,10 +15,8 @@
             <h3 class="filter-title">Apply some filter</h3>
             <div class="filter-group">
                 <label class="filter-label">Experience Level</label>
-                <div class="filter-option"><input type="checkbox" id="entry" name="level_filter" value="entry"> <label for="entry">Entry Level</label>
-                </div>
-                <div class="filter-option"><input type="checkbox" id="intermediate" name="level_filter" value="intermediate"> <label
-                        for="intermediate">Intermediate</label></div>
+                <div class="filter-option"><input type="checkbox" id="entry" name="level_filter" value="entry"> <label for="entry">Entry Level</label></div>
+                <div class="filter-option"><input type="checkbox" id="intermediate" name="level_filter" value="intermediate"> <label for="intermediate">Intermediate</label></div>
                 <div class="filter-option"><input type="checkbox" id="expert" name="level_filter" value="expert"> <label for="expert">Expert</label></div>
             </div>
             <div class="filter-group">
@@ -187,21 +46,21 @@
                 <label for="thresholdSelect"><i class="fas fa-sliders-h"></i> Min Match Score:</label>
                 <select id="thresholdSelect" name="threshold" class="threshold-select" form="searchForm"
                     onchange="document.getElementById('searchForm').submit()">
-                    <option value="5" {% if threshold == 5 %}selected{% endif %}>5%</option>
-                    <option value="10" {% if threshold == 10 %}selected{% endif %}>10%</option>
-                    <option value="15" {% if threshold == 15 %}selected{% endif %}>15%</option>
-                    <option value="20" {% if threshold == 20 %}selected{% endif %}>20%</option>
-                    <option value="25" {% if threshold == 25 %}selected{% endif %}>25%</option>
-                    <option value="30" {% if threshold == 30 %}selected{% endif %}>30%</option>
-                    <option value="40" {% if threshold == 40 %}selected{% endif %}>40%</option>
-                    <option value="50" {% if threshold == 50 %}selected{% endif %}>50%</option>
-                    <option value="60" {% if threshold == 60 %}selected{% endif %}>60%</option>
-                    <option value="70" {% if threshold == 70 %}selected{% endif %}>70%</option>
-                    <option value="80" {% if threshold == 80 %}selected{% endif %}>80%</option>
-                    <option value="90" {% if threshold == 90 %}selected{% endif %}>90%</option>
+                    <option value="5"   {% if threshold == 5   %}selected{% endif %}>5%</option>
+                    <option value="10"  {% if threshold == 10  %}selected{% endif %}>10%</option>
+                    <option value="15"  {% if threshold == 15  %}selected{% endif %}>15%</option>
+                    <option value="20"  {% if threshold == 20  %}selected{% endif %}>20%</option>
+                    <option value="25"  {% if threshold == 25  %}selected{% endif %}>25%</option>
+                    <option value="30"  {% if threshold == 30  %}selected{% endif %}>30%</option>
+                    <option value="40"  {% if threshold == 40  %}selected{% endif %}>40%</option>
+                    <option value="50"  {% if threshold == 50  %}selected{% endif %}>50%</option>
+                    <option value="60"  {% if threshold == 60  %}selected{% endif %}>60%</option>
+                    <option value="70"  {% if threshold == 70  %}selected{% endif %}>70%</option>
+                    <option value="80"  {% if threshold == 80  %}selected{% endif %}>80%</option>
+                    <option value="90"  {% if threshold == 90  %}selected{% endif %}>90%</option>
                     <option value="100" {% if threshold == 100 %}selected{% endif %}>100%</option>
                 </select>
-                <span style="color:#888;font-size:0.82rem;">(showing &ge; {{ threshold }}% matches)</span>
+                <span class="threshold-hint">(showing &ge; {{ threshold }}% matches)</span>
             </div>
         </div>
 
@@ -225,23 +84,19 @@
                         {% if item.project.client.profile_image %}
                         <img src="{{ item.project.client.profile_image.url }}" alt="Company Logo" class="company-logo">
                         {% else %}
-                        <img src="{% static 'core/images/default_profile.png' %}" alt="Company Logo"
-                            class="company-logo">
+                        <img src="{% static 'core/images/default_profile.png' %}" alt="Company Logo" class="company-logo">
                         {% endif %}
                         <div class="company-details">
                             <h4 class="company-name">{{ item.project.client.company_name }}</h4>
-                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                            <div class="company-meta">
                                 {% if item.score >= 70 %}
-                                <span class="score-badge score-high"><i class="fas fa-star"></i> {{ item.score }}%
-                                    Match</span>
+                                <span class="score-badge score-high"><i class="fas fa-star"></i> {{ item.score }}% Match</span>
                                 {% elif item.score >= 40 %}
                                 <span class="score-badge score-mid"><i class="fas fa-check-circle"></i> {{ item.score }}% Match</span>
                                 {% else %}
-                                <span class="score-badge score-low"><i class="fas fa-info-circle"></i> {{ item.score }}%
-                                    Match</span>
+                                <span class="score-badge score-low"><i class="fas fa-info-circle"></i> {{ item.score }}% Match</span>
                                 {% endif %}
-                                <a href="{% url 'freelancer_match_result_by_project' item.project.id %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="info-btn"
-                                    title="View Detailed AI Match Analysis">&#x2139;</a>
+                                <a href="{% url 'freelancer_match_result_by_project' item.project.id %}{% if query %}?q={{ query|urlencode }}{% endif %}" class="info-btn" title="View Detailed AI Match Analysis">&#x2139;</a>
                             </div>
                         </div>
                     </div>
@@ -259,60 +114,52 @@
 
                     <!-- Hidden expanded details -->
                     <div class="project-extra-details" id="details-{{ item.project.id }}" style="display:none;">
-                        <hr>
                         <div class="details-grid">
                             <div class="detail-item">
-                                <label>Deadline:</label>
+                                <label>Deadline</label>
                                 <span>{{ item.project.deadline|date:"M d, Y" }}</span>
                             </div>
                             <div class="detail-item">
-                                <label>Experience Level:</label>
+                                <label>Experience Level</label>
                                 <span>{{ item.project.get_experience_level_display }}</span>
                             </div>
                             <div class="detail-item">
-                                <label>Preferred Language:</label>
+                                <label>Preferred Language</label>
                                 <span>{{ item.project.preferred_language|default:"Not specified" }}</span>
                             </div>
                             <div class="detail-item">
-                                <label>Published at:</label>
+                                <label>Published At</label>
                                 <span>{{ item.project.published_at|date:"M d, Y" }}</span>
                             </div>
                             <div class="detail-item">
-                                <label>Experience Required:</label>
+                                <label>Experience Required</label>
                                 <span>{{ item.project.year_of_experience }} yr{% if item.project.year_of_experience != 1 %}s{% endif %}</span>
                             </div>
                             <div class="detail-item">
-                                <label>Budget:</label>
+                                <label>Budget</label>
                                 <span>RM {{ item.project.budget }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="job-item-footer" style="display:flex; gap:10px; align-items:center;">
-                    <button class="toggle-details-btn" onclick="toggleDetails({{ item.project.id }}, this)">View
-                        Details</button>
+                <div class="job-item-footer">
+                    <button class="toggle-details-btn" onclick="toggleDetails({{ item.project.id }}, this)">View Details</button>
                     {% if item.project.status == 'open' or item.project.status == 'in_progress' %}
                         {% if item.project.status == 'open' or item.project.accepted_freelancers_count < item.project.max_freelancers %}
-                        <button class="btn-primary"
-                            onclick="document.getElementById('applyModal_{{ item.project.id }}').style.display='block'"
-                            style="padding:8px 16px; border-radius:6px; font-weight:500; border:none; cursor:pointer; background-color:#1976d2; color:white;">
-                            Apply Now
-                        </button>
+                        <button class="btn-apply" onclick="openApplyModal('applyModal_{{ item.project.id }}')">Apply Now</button>
                         {% endif %}
                     {% endif %}
                 </div>
             </div>
-
-            <!-- Old Info modol block removed -> moved to separate match result page -->
             {% endfor %}
+
             {% else %}
-            <div class="no-results" style="text-align:center; padding:60px 20px; color:#888;">
-                <i class="fas fa-search" style="font-size:48px; margin-bottom:16px; opacity:0.3;"></i>
-                <p style="font-size:1.1rem; font-weight:500;">No projects found matching your search.</p>
+            <div class="no-results">
+                <i class="fas fa-search"></i>
+                <p class="no-results-title">No projects found matching your search.</p>
                 {% if threshold > 5 %}
-                <p style="font-size:0.9rem;">Try lowering the minimum match score threshold or broadening your keywords.
-                </p>
+                <p class="no-results-hint">Try lowering the minimum match score threshold or broadening your keywords.</p>
                 {% endif %}
             </div>
             {% endif %}
@@ -322,38 +169,26 @@
 
 <!-- Apply Modals -->
 {% for item in matched %}
-<div id="applyModal_{{ item.project.id }}" class="modal"
-    style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.5);">
-    <div class="modal-content"
-        style="background-color:#fefefe; margin:10% auto; padding:25px; border-radius:12px; max-width:500px; box-shadow:0 4px 20px rgba(0,0,0,0.15);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h2 style="margin:0; font-size:1.4rem;">Apply for: {{ item.project.title }}</h2>
-            <span onclick="document.getElementById('applyModal_{{ item.project.id }}').style.display='none'"
-                style="cursor:pointer; font-size:24px; color:#888;">&times;</span>
+<div id="applyModal_{{ item.project.id }}" class="apply-modal-overlay" onclick="closeApplyModalIfOutside(event, 'applyModal_{{ item.project.id }}')">
+    <div class="apply-modal-box">
+        <div class="apply-modal-header">
+            <h2 class="apply-modal-title">Apply for: {{ item.project.title }}</h2>
+            <button class="apply-modal-close" onclick="closeApplyModal('applyModal_{{ item.project.id }}')">&times;</button>
         </div>
         <form action="{% url 'freelancer_apply_project' item.project.id %}" method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            <div style="margin-bottom:20px;">
-                <label for="message_{{ item.project.id }}"
-                    style="display:block; font-weight:500; margin-bottom:8px;">Cover Letter / Message:</label>
+            <div class="apply-modal-field">
+                <label for="message_{{ item.project.id }}">Cover Letter / Message</label>
                 <textarea name="message" id="message_{{ item.project.id }}" rows="5"
-                    style="width:100%; padding:12px; border:1px solid #ddd; border-radius:8px; resize:vertical;"
                     required placeholder="Introduce yourself and explain why you're a great fit..."></textarea>
             </div>
-            <div style="margin-bottom:20px;">
-                <label for="attachment_{{ item.project.id }}"
-                    style="display:block; font-weight:500; margin-bottom:8px;">Attachment (Optional &mdash;
-                    PDF):</label>
-                <input type="file" name="attachment" id="attachment_{{ item.project.id }}" accept=".pdf"
-                    style="width:100%; padding:10px; border:1px solid #ddd; border-radius:8px; background-color:#f9f9f9;">
+            <div class="apply-modal-field">
+                <label for="attachment_{{ item.project.id }}">Attachment (Optional — PDF)</label>
+                <input type="file" name="attachment" id="attachment_{{ item.project.id }}" accept=".pdf">
             </div>
-            <div style="display:flex; justify-content:flex-end; gap:10px;">
-                <button type="button"
-                    onclick="document.getElementById('applyModal_{{ item.project.id }}').style.display='none'"
-                    style="padding:10px 16px; border-radius:6px; border:1px solid #ccc; cursor:pointer; background:white; color:black;">Cancel</button>
-                <button type="submit"
-                    style="background-color:#1976d2; padding:10px 16px; border-radius:6px; border:none; color:white; cursor:pointer;">Submit
-                    Application</button>
+            <div class="apply-modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeApplyModal('applyModal_{{ item.project.id }}')">Cancel</button>
+                <button type="submit" class="btn-submit">Submit Application</button>
             </div>
         </form>
     </div>
@@ -361,85 +196,68 @@
 {% endfor %}
 
 <script>
-    function toggleDetails(projectId, btn) {
-        var details = document.getElementById('details-' + projectId);
-        if (details.style.display === 'none') {
-            details.style.display = 'block';
-            btn.textContent = 'Show less';
-            btn.classList.add('active');
-        } else {
-            details.style.display = 'none';
-            btn.textContent = 'View Details';
-            btn.classList.remove('active');
-        }
+    /* ── Modal helpers ── */
+    function openApplyModal(id) {
+        document.getElementById(id).classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeApplyModal(id) {
+        document.getElementById(id).classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    function closeApplyModalIfOutside(event, id) {
+        if (event.target.id === id) closeApplyModal(id);
     }
 
+    /* ── Toggle expanded details ── */
+    function toggleDetails(projectId, btn) {
+        var details = document.getElementById('details-' + projectId);
+        var isHidden = details.style.display === 'none';
+        details.style.display = isHidden ? 'block' : 'none';
+        btn.textContent = isHidden ? 'Show less' : 'View Details';
+        btn.classList.toggle('active', isHidden);
+    }
+
+    /* ── Info modal helpers ── */
     function showInfoModal(id) {
         document.getElementById(id).classList.add('active');
         document.body.style.overflow = 'hidden';
     }
-
     function hideInfoModal(id) {
         document.getElementById(id).classList.remove('active');
         document.body.style.overflow = '';
     }
-
     function closeInfoIfOutside(event, id) {
-        if (event.target.id === id) {
-            hideInfoModal(id);
-        }
+        if (event.target.id === id) hideInfoModal(id);
     }
 
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.info-modal-overlay.active').forEach(function (m) {
-                m.classList.remove('active');
-            });
-            document.body.style.overflow = '';
-        }
+    /* ── Escape key closes all modals ── */
+    document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.info-modal-overlay.active, .apply-modal-overlay.active').forEach(function(m) {
+            m.classList.remove('active');
+        });
+        document.body.style.overflow = '';
     });
 
-    // Experience Required filter
+    /* ── Client-side experience / level filter ── */
     function applyExpFilter() {
-        var expChecked = Array.from(document.querySelectorAll('input[name="exp_filter"]:checked'))
-                              .map(function(cb) { return parseInt(cb.value); });
+        var expChecked   = Array.from(document.querySelectorAll('input[name="exp_filter"]:checked')).map(function(cb) { return parseInt(cb.value); });
+        var levelChecked = Array.from(document.querySelectorAll('input[name="level_filter"]:checked')).map(function(cb) { return cb.value; });
 
-        var levelChecked = Array.from(document.querySelectorAll('input[name="level_filter"]:checked'))
-                                .map(function(cb) { return cb.value; });
-
-        var cards = document.querySelectorAll('.job-item-card[data-exp]');
-        cards.forEach(function(card) {
-            var exp = parseInt(card.getAttribute('data-exp')) || 0;
+        document.querySelectorAll('.job-item-card[data-exp]').forEach(function(card) {
+            var exp   = parseInt(card.getAttribute('data-exp')) || 0;
             var level = card.getAttribute('data-level') || '';
-            
-            var matchExp = false;
-            if (expChecked.length === 0) {
-                matchExp = true;
-            } else {
-                matchExp = expChecked.some(function(v) {
-                    if (v === 5) return exp >= 5;   // "5+ yr" bucket
-                    return exp === v;
-                });
-            }
-            
-            var matchLevel = false;
-            if (levelChecked.length === 0) {
-                matchLevel = true;
-            } else {
-                matchLevel = levelChecked.includes(level);
-            }
-            
+
+            var matchExp   = expChecked.length === 0 || expChecked.some(function(v) { return v === 5 ? exp >= 5 : exp === v; });
+            var matchLevel = levelChecked.length === 0 || levelChecked.includes(level);
+
             card.style.display = (matchExp && matchLevel) ? '' : 'none';
         });
 
-        // Update visible result count
-        var visible = document.querySelectorAll('.job-item-card[data-exp]');
-        var visibleCount = 0;
-        visible.forEach(function(c) { if (c.style.display !== 'none') visibleCount++; });
+        var visible = Array.from(document.querySelectorAll('.job-item-card[data-exp]')).filter(function(c) { return c.style.display !== 'none'; }).length;
         var countEl = document.querySelector('.results-count strong');
-        if (countEl) {
-            countEl.textContent = visibleCount;
-        }
+        if (countEl) countEl.textContent = visible;
     }
 </script>
 {% endblock %}
