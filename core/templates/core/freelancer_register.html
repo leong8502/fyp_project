@@ -3,79 +3,514 @@
 {% block title %}Join as Freelancer - TalentSync{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'core/css/freelancer_register.css' %}">
+<style>
+    body {
+        background-color: #f8fafc;
+        margin: 0;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .register-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 80px); /* Adjust based on navbar height */
+        padding: 40px 20px;
+    }
+
+    .modern-card {
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.06);
+        overflow: hidden;
+        width: 100%;
+        max-width: 580px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .card-header {
+        background: #4f46e5;
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+        position: relative;
+    }
+
+    .card-header h1 {
+        margin: 0 0 10px 0;
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+    }
+
+    .card-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.05rem;
+    }
+
+    .card-body {
+        padding: 40px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+        position: relative;
+    }
+
+    .form-row {
+        display: flex;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+    .form-row .form-group {
+        margin-bottom: 0;
+        flex: 1;
+    }
+
+    label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 8px;
+    }
+    
+    .required-star {
+        color: #ef4444;
+    }
+
+    input, textarea {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        font-family: inherit;
+        color: #1e293b;
+        background: #f8fafc;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    input:focus, textarea:focus {
+        outline: none;
+        border-color: #4f46e5;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+    
+    input:disabled {
+        background-color: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+    .password-container {
+        position: relative;
+    }
+
+    .eye-icon {
+        position: absolute;
+        right: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+        cursor: pointer;
+        transition: color 0.2s;
+        font-size: 1.1rem;
+    }
+
+    .eye-icon:hover {
+        color: #475569;
+    }
+
+    .error-msg {
+        color: #ef4444;
+        font-size: 0.85rem;
+        margin-top: 6px;
+        display: none;
+        font-weight: 500;
+    }
+
+    /* Button Styles */
+    .btn-primary, .btn-secondary {
+        width: 100%;
+        padding: 16px;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .btn-primary {
+        background: #4f46e5;
+        color: white;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.2);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        background: #4338ca;
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+    }
+    
+    .btn-primary:disabled {
+        background: #a5a2f3;
+        box-shadow: none;
+        transform: none;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        margin-bottom: 20px;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    .login-link {
+        text-align: center;
+        margin-top: 30px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .login-link a {
+        color: #4f46e5;
+        text-decoration: none;
+        font-weight: 700;
+        transition: color 0.2s;
+    }
+
+    .login-link a:hover {
+        color: #4338ca;
+        text-decoration: underline;
+    }
+
+    /* OTP Flow Styles */
+    #otp-section {
+        display: none;
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+        animation: fadeIn 0.4s ease forwards;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #verified-badge {
+        display: none;
+        color: #4f46e5;
+        font-weight: 700;
+        background: #eef2ff;
+        padding: 12px 16px;
+        border-radius: 12px;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+        justify-content: center;
+        border: 1px solid #c7d2fe;
+    }
+
+    @media (max-width: 576px) {
+        .form-row {
+            flex-direction: column;
+            gap: 24px;
+        }
+        .card-body {
+            padding: 30px 20px;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="register-container">
-    <div class="register-card">
-        <div class="header">
+<div class="register-wrapper">
+    <div class="modern-card">
+        <div class="card-header">
             <h1>Become a Freelancer</h1>
             <p>Showcase your skills and connect with amazing opportunities</p>
         </div>
 
-        <form method="POST" class="register-form" id="freelancer-form">
-            {% csrf_token %}
+        <div class="card-body">
+            {% if messages %}
+                {% for message in messages %}
+                <div style="padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: 600; 
+                    {% if message.tags == 'error' %}background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;
+                    {% else %}background:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe;{% endif %}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="full_name">Full Name *</label>
-                    <input type="text" id="full_name" name="full_name" required placeholder="e.g., Gun Yu Xing">
+            <form method="POST" id="freelancer-form">
+                {% csrf_token %}
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="full_name">Full Name <span class="required-star">*</span></label>
+                        <input type="text" id="full_name" name="full_name" required placeholder="e.g., Gun Yu Xing">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="username">Username <span class="required-star">*</span></label>
+                        <input type="text" id="username" name="username" required placeholder="e.g., gunyuxing">
+                    </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="username">Username *</label>
-                    <input type="text" id="username" name="username" required placeholder="e.g., gunyuxing">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="email">Email Address *</label>
-                <input type="email" id="email" name="email" required placeholder="you@example.com">
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="password">Password *</label>
-                    <input type="password" id="password" name="password" required>
+                    <label for="email">Email Address <span class="required-star">*</span></label>
+                    <input type="email" id="email" name="email" required placeholder="you@example.com">
                 </div>
 
-                <div class="form-group">
-                    <label for="confirm_password">Confirm Password *</label>
-                    <input type="password" id="confirm_password" name="confirm_password" required>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password <span class="required-star">*</span></label>
+                        <div class="password-container">
+                            <input type="password" id="password" name="password" required placeholder="Minimum 8 characters">
+                            <i class="far fa-eye eye-icon" onclick="togglePassword('password', this)"></i>
+                        </div>
+                        <div id="password-error" class="error-msg">Password must be at least 8 characters.</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password <span class="required-star">*</span></label>
+                        <div class="password-container">
+                            <input type="password" id="confirm_password" name="confirm_password" required placeholder="Confirm password">
+                            <i class="far fa-eye eye-icon" onclick="togglePassword('confirm_password', this)"></i>
+                        </div>
+                        <div id="match-error" class="error-msg">Passwords do not match.</div>
+                    </div>
                 </div>
+
+                <div class="form-group" style="margin-bottom: 25px;">
+                    <label for="skills">Your Top Skills (Optional)</label>
+                    <textarea id="skills" name="skills" rows="3"
+                        placeholder="Python, Django, React, UI/UX, Machine Learning"></textarea>
+                </div>
+
+                <!-- OTP VERIFICATION BLOCKS -->
+                <button type="button" id="btn-request-otp" class="btn-secondary">
+                    <i class="fas fa-envelope-circle-check"></i> Verify Account
+                </button>
+
+                <div id="otp-section">
+                    <label for="otp_code">Enter 6-digit code sent to your email</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="otp_code" maxlength="6" placeholder="123456" style="letter-spacing: 4px; font-size: 1.2rem; text-align: center;">
+                        <button type="button" id="btn-verify-otp" class="btn-primary" style="width: auto; padding: 0 24px;">Confirm</button>
+                    </div>
+                    <div id="otp-error" class="error-msg"></div>
+                </div>
+
+                <div id="verified-badge">
+                    <i class="fas fa-check-circle" style="font-size: 1.2rem;"></i> Email Verified Successfully!
+                </div>
+                <!-- END OTP BLOCKS -->
+
+                <!-- Submit Button initially hidden until email verified -->
+                <button type="submit" id="btn-submit" class="btn-primary" style="display: none;">
+                    Create account <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="login-link">
+                Already have an account? <a href="{% url 'login' %}">Login here</a>
             </div>
-
-            <div class="form-group">
-                <label for="skills">Your Top Skills (comma separated)</label>
-                <textarea id="skills" name="skills" rows="3"
-                    placeholder="Python, Django, React, UI/UX, Machine Learning"></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="portfolio_url">Portfolio / GitHub Link (optional)</label>
-                <input type="url" id="portfolio_url" name="portfolio_url" placeholder="https://github.com/yourname">
-            </div>
-
-            <button type="submit" class="btn-register">Create Freelancer Account</button>
-        </form>
-
-        <div class="login-link">
-            Already have an account? <a href="{% url 'login' %}">Login here</a>
         </div>
     </div>
 </div>
 
 <script>
-    // Simple client-side password match check
+    // Config
+    const sendOtpUrl = "{% url 'api_send_registration_otp' %}";
+    const verifyOtpUrl = "{% url 'api_verify_registration_otp' %}";
+    
+    // Elements
     const form = document.getElementById('freelancer-form');
+    const emailInput = document.getElementById('email');
+    const pwInput = document.getElementById('password');
+    const confirmInput = document.getElementById('confirm_password');
+    const pwError = document.getElementById('password-error');
+    const matchError = document.getElementById('match-error');
+    
+    const btnRequestOtp = document.getElementById('btn-request-otp');
+    const otpSection = document.getElementById('otp-section');
+    const optInput = document.getElementById('otp_code');
+    const btnVerifyOtp = document.getElementById('btn-verify-otp');
+    const otpError = document.getElementById('otp-error');
+    
+    const verifiedBadge = document.getElementById('verified-badge');
+    const btnSubmit = document.getElementById('btn-submit');
+    
+    let isEmailVerified = false;
+
+    // Password Toggle
+    window.togglePassword = function(inputId, icon) {
+        const input = document.getElementById(inputId);
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Passwords Validation
+    function validatePasswords() {
+        let valid = true;
+        
+        if (pwInput.value.length > 0 && pwInput.value.length < 8) {
+            pwError.style.display = 'block';
+            pwInput.style.borderColor = '#ef4444';
+            valid = false;
+        } else {
+            pwError.style.display = 'none';
+            if (pwInput.value.length >= 8) pwInput.style.borderColor = '#4f46e5';
+            else pwInput.style.borderColor = '#e2e8f0';
+        }
+
+        if (confirmInput.value.length > 0 && confirmInput.value !== pwInput.value) {
+            matchError.style.display = 'block';
+            confirmInput.style.borderColor = '#ef4444';
+            valid = false;
+        } else {
+            matchError.style.display = 'none';
+            if (confirmInput.value.length > 0) confirmInput.style.borderColor = '#4f46e5';
+            else confirmInput.style.borderColor = '#e2e8f0';
+        }
+        return valid && pwInput.value.length >= 8;
+    }
+
+    pwInput.addEventListener('input', validatePasswords);
+    confirmInput.addEventListener('input', validatePasswords);
+
+    // Form Submission
     form.addEventListener('submit', function (e) {
-        const pw = document.getElementById('password').value;
-        const confirm = document.getElementById('confirm_password').value;
-        if (pw !== confirm) {
+        if (!validatePasswords()) {
             e.preventDefault();
-            alert("Passwords do not match!");
+            alert("Please ensure your password is at least 8 characters and matches.");
+            return;
+        }
+        if (!isEmailVerified) {
+            e.preventDefault();
+            alert("Please verify your email address before creating an account.");
+            return;
+        }
+        // Enable email so it gets submitted
+        emailInput.disabled = false;
+    });
+
+    // Verification Flow
+    // 1. Request OTP
+    btnRequestOtp.addEventListener('click', async () => {
+        const email = emailInput.value.trim();
+        if (!email) {
+            alert("Please enter your email address first.");
+            emailInput.focus();
+            return;
+        }
+        
+        // Simple HTML5 Check
+        if (!emailInput.checkValidity()) {
+            alert("Please enter a valid email address.");
+            return;
+        }
+
+        const originalText = btnRequestOtp.innerHTML;
+        btnRequestOtp.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending code...';
+        btnRequestOtp.disabled = true;
+        emailInput.disabled = true;
+
+        try {
+            const res = await fetch(sendOtpUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ email: email })
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                btnRequestOtp.style.display = 'none';
+                otpSection.style.display = 'block';
+                optInput.focus();
+            } else {
+                throw new Error(data.error || "Failed to send code.");
+            }
+        } catch (err) {
+            alert(err.message);
+            btnRequestOtp.innerHTML = originalText;
+            btnRequestOtp.disabled = false;
+            emailInput.disabled = false;
         }
     });
+
+    // 2. Verify OTP
+    btnVerifyOtp.addEventListener('click', async () => {
+        const otp = optInput.value.trim();
+        if (otp.length !== 6) {
+            otpError.innerText = "Please enter the 6-digit code";
+            otpError.style.display = 'block';
+            return;
+        }
+
+        const originalText = btnVerifyOtp.innerText;
+        btnVerifyOtp.innerText = 'Checking...';
+        btnVerifyOtp.disabled = true;
+        otpError.style.display = 'none';
+
+        try {
+            const res = await fetch(verifyOtpUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ 
+                    email: emailInput.value.trim(),
+                    otp: otp 
+                })
+            });
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                isEmailVerified = true;
+                otpSection.style.display = 'none';
+                verifiedBadge.style.display = 'flex';
+                btnSubmit.style.display = 'flex';
+            } else {
+                throw new Error(data.error || "Invalid code.");
+            }
+        } catch (err) {
+            otpError.innerText = err.message;
+            otpError.style.display = 'block';
+            optInput.style.borderColor = '#ef4444';
+            btnVerifyOtp.innerText = originalText;
+            btnVerifyOtp.disabled = false;
+        }
+    });
+
 </script>
 {% endblock %}

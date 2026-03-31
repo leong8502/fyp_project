@@ -191,6 +191,28 @@ def admin_update_user(request, user_id):
 
 
 @admin_required
+def admin_delete_user(request, user_id):
+    if request.method == 'POST':
+        user = get_object_or_404(User, id=user_id)
+        
+        if user.is_superuser:
+            return JsonResponse({'status': 'error', 'message': 'Cannot delete superuser accounts.'}, status=403)
+            
+        username = user.username
+        user.delete()
+        
+        AdminLog.objects.create(
+            admin_user=request.user,
+            action='delete',
+            target_model='User',
+            target_id=str(user_id),
+            description=f"Deleted user account '{username}' (ID: {user_id})."
+        )
+        return JsonResponse({'status': 'success', 'message': 'User deleted successfully.'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
+
+
+@admin_required
 def admin_activity_log(request):
     logs = AdminLog.objects.select_related('admin_user').all()
 

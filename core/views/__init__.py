@@ -10,6 +10,8 @@ from core.views.auth import (
     register_client,
     register_freelancer,
     verify_email,
+    api_send_registration_otp,
+    api_verify_registration_otp,
 )
 
 from core.views.common import home, aboutUS, guest_search
@@ -102,6 +104,7 @@ from core.views.admin import (
     admin_update_ticket,
     admin_user_management,
     admin_update_user,
+    admin_delete_user,
     admin_activity_log,
     admin_reference_data,
     admin_staff_management,

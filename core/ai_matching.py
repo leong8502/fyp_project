@@ -30,7 +30,7 @@ class MatchEngine:
 
     def generate_embedding(self, text):
         if not self.model or not text:
-            return []
+            return None
         
         # Normalize text
         text = text.lower().strip()

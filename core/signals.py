@@ -44,11 +44,11 @@ def trigger_project_matching_milestone(sender, instance, **kwargs):
 def update_freelancer_embedding(sender, instance, created, **kwargs):
     # Avoid recursion - AI profile updates are handled separately
     # This signal now generates the AI profile
-    logger.info(f"Generating AI profile for Freelancer {instance.id}")
-    engine = MatchEngine()
+    logger.info(f"Skipping AI profile generation for Freelancer {instance.id} during registration")
+    # engine = MatchEngine()
     
     # Generate AI profile (includes embedding, keywords, metrics)
-    engine.generate_freelancer_ai_profile(instance)
+    # engine.generate_freelancer_ai_profile(instance)
 
 @receiver(post_save, sender=FreelancerWorkExperience)
 @receiver(post_delete, sender=FreelancerWorkExperience)

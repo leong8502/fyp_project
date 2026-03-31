@@ -15,6 +15,8 @@ urlpatterns = [
     path('register/selection/', views.registerSelection, name='registerSelection'),
     path('register/freelancer/', views.register_freelancer, name='register_freelancer'),
     path('register/client/', views.register_client, name='register_client'),
+    path('api/register/send-otp/', views.api_send_registration_otp, name='api_send_registration_otp'),
+    path('api/register/verify-otp/', views.api_verify_registration_otp, name='api_verify_registration_otp'),
     path('verify-email/<str:uidb64>/<str:token>/', views.verify_email, name='verify_email'),
 
     # ── Password Reset (Django built-in) ────────────────────────────────────
@@ -142,6 +144,7 @@ urlpatterns = [
     path('panel/staff/', views.admin_staff_management, name='admin_staff_management'),
     path('panel/staff/update/<int:staff_id>/', views.admin_update_staff, name='admin_update_staff'),
     path('panel/users/<int:user_id>/update/', views.admin_update_user, name='admin_update_user'),
+    path('panel/users/<int:user_id>/delete/', views.admin_delete_user, name='admin_delete_user'),
     path('panel/activity-log/', views.admin_activity_log, name='admin_activity_log'),
     path('panel/reference-data/', views.admin_reference_data, name='admin_reference_data'),
 ]

@@ -171,13 +171,101 @@ def register_freelancer(request):
         skills = request.POST.get('skills')
 
         try:
+            # Check if email was verified in current session
+            session_verified_email = request.session.get('verified_registration_email')
+            if session_verified_email != email:
+                messages.error(request, "Please verify your email address before registering.")
+                return render(request, 'core/freelancer_register.html')
+
             AuthService.register_freelancer(username, email, password, full_name, skills)
+            
+            # Clear the session var after successful registration
+            if 'verified_registration_email' in request.session:
+                del request.session['verified_registration_email']
+                
             messages.success(request, "Freelancer account created successfully! Please log in.")
             return redirect('login')
         except Exception as e:
             messages.error(request, f"Error: {str(e)}")
 
     return render(request, 'core/freelancer_register.html')
+
+
+import random
+from django.http import JsonResponse
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.contrib.auth.models import User
+
+def api_send_registration_otp(request):
+    """Generates an OTP, saves it in session, and emails it to the user."""
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            email = data.get('email', '').strip().lower()
+            
+            if not email:
+                return JsonResponse({"error": "Email is required."}, status=400)
+            
+            if User.objects.filter(email__iexact=email).exists():
+                return JsonResponse({"error": "An account with this email already exists."}, status=400)
+                
+            # Generate 6 digit OTP
+            otp_code = str(random.randint(100000, 999999))
+            
+            # Save to session
+            request.session['registration_otp'] = otp_code
+            request.session['registration_otp_email'] = email
+            
+            # Send Email
+            email_subject = "Your TalentSync Verification Code"
+            email_body = render_to_string('emails/otp_email.html', {'otp': otp_code})
+            msg = EmailMessage(email_subject, email_body, settings.DEFAULT_FROM_EMAIL, [email])
+            msg.content_subtype = "html"
+            msg.send(fail_silently=False)
+            
+            return JsonResponse({"success": True, "message": "OTP sent successfully."})
+            
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"error": "Invalid method"}, status=405)
+
+
+def api_verify_registration_otp(request):
+    """Verifies the OTP submitted by the user."""
+    if request.method == 'POST':
+        import json
+        try:
+            data = json.loads(request.body)
+            email = data.get('email', '').strip().lower()
+            otp = data.get('otp', '').strip()
+            
+            session_otp = request.session.get('registration_otp')
+            session_email = request.session.get('registration_otp_email')
+            
+            if not session_otp or not session_email:
+                return JsonResponse({"error": "OTP expired or not requested. Please request a new code."}, status=400)
+                
+            if email != session_email:
+                return JsonResponse({"error": "Email mismatch."}, status=400)
+                
+            if otp != session_otp:
+                return JsonResponse({"error": "Invalid OTP code."}, status=400)
+                
+            # Success - mark email as verified for registration
+            request.session['verified_registration_email'] = email
+            
+            # Clear standard OTP vars so it can't be reused
+            del request.session['registration_otp']
+            del request.session['registration_otp_email']
+            
+            return JsonResponse({"success": True})
+            
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"error": "Invalid method"}, status=405)
 
 
 def verify_email(request, uidb64, token):
