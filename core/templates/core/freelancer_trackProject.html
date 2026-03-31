@@ -315,6 +315,27 @@
                         </div>
                     </div>
 
+                    {% if project.pending_cancellation %}
+                    <div style="background: #fee2e2; border: 1px solid #f87171; padding: 20px; border-radius: 12px; margin-bottom: 20px;">
+                        <span style="font-weight: 800; color: #b91c1c; font-size: 1.1rem; display: block; margin-bottom: 5px;"><i class="fas fa-exclamation-triangle"></i> Cancellation Request</span>
+                        <p style="color: #7f1d1d; margin: 0 0 15px 0;">
+                            <strong>Reason: </strong> {{ project.pending_cancellation.reason|default:"The client has requested to remove you from this project." }}
+                        </p>
+                        <div style="display: flex; gap: 10px;">
+                            <form action="{% url 'freelancer_respond_cancellation' project.pending_cancellation.id %}" method="post" style="flex: 1;" onsubmit="return confirm('Are you sure you want to AGREE? You will be removed from the project.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="response" value="agree">
+                                <button class="btn-submit-milestone" style="background: #ef4444; color: white;">Agree to Cancel</button>
+                            </form>
+                            <form action="{% url 'freelancer_respond_cancellation' project.pending_cancellation.id %}" method="post" style="flex: 1;" onsubmit="return confirm('Are you sure you want to DECLINE? The project will continue.');">
+                                {% csrf_token %}
+                                <input type="hidden" name="response" value="decline">
+                                <button class="btn-submit-milestone" style="background: white; border: 1px solid #cbd5e1; color: #475569;">Decline</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if project.status == 'in_progress' %}
                     <div class="milestones-section">
                         <h4 style="font-weight: 700; margin-bottom: 15px;"><i class="fas fa-tasks"></i> Active Milestones</h4>
