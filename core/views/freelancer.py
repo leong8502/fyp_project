@@ -872,3 +872,46 @@ def freelancer_profile(request):
         'language_form': language_form,
         'languages': languages,
     })
+
+
+# ---------------------------------------------------------------------------
+# Company Profile (read-only view for freelancer to view a client's profile)
+# ---------------------------------------------------------------------------
+
+@freelancer_required
+def freelancer_company_profile(request, client_id):
+    """Read-only company profile page shown to freelancers."""
+    from core.models import Client, Review, RatingSummary
+    client = get_object_or_404(Client, id=client_id)
+
+    # Open/in-progress projects by this client visible to freelancers
+    open_projects = Project.objects.filter(
+        client=client, status__in=['open', 'in_progress']
+    ).select_related('category').order_by('-published_at')[:6]
+
+    # Reviews received by this client (as reviewee)
+    reviews = Review.objects.filter(
+        reviewee=client.user, is_hidden=False
+    ).select_related('reviewer', 'project').order_by('-created_at')[:5]
+
+    # Rating summary
+    try:
+        rating_summary = client.user.rating_summary
+    except Exception:
+        rating_summary = None
+
+    # Tags list
+    tags = client.tags_list if hasattr(client, 'tags_list') else []
+
+    # Languages list
+    languages = [lang.strip() for lang in client.languages.split(',') if lang.strip()] if client.languages else []
+
+    return render(request, 'core/freelancer_companyProfile.html', {
+        'client': client,
+        'open_projects': open_projects,
+        'reviews': reviews,
+        'rating_summary': rating_summary,
+        'tags': tags,
+        'languages': languages,
+    })
+

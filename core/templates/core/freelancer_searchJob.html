@@ -81,13 +81,17 @@
             <div class="job-item-card" id="project-{{ item.project.id }}" data-exp="{{ item.project.year_of_experience }}" data-level="{{ item.project.experience_level }}">
                 <div class="job-item-header">
                     <div class="client-info">
-                        {% if item.project.client.profile_image %}
-                        <img src="{{ item.project.client.profile_image.url }}" alt="Company Logo" class="company-logo">
-                        {% else %}
-                        <img src="{% static 'core/images/default_profile.png' %}" alt="Company Logo" class="company-logo">
-                        {% endif %}
+                        <a href="{% url 'freelancer_company_profile' item.project.client.id %}" class="company-logo-link" title="View {{ item.project.client.company_name }} Profile">
+                            {% if item.project.client.profile_image %}
+                            <img src="{{ item.project.client.profile_image.url }}" alt="Company Logo" class="company-logo" onerror="this.onerror=null; this.src='{% static "core/images/talentsync_logo.png" %}';">
+                            {% else %}
+                            <img src="{% static 'core/images/talentsync_logo.png' %}" alt="Company Logo" class="company-logo">
+                            {% endif %}
+                        </a>
                         <div class="company-details">
-                            <h4 class="company-name">{{ item.project.client.company_name }}</h4>
+                            <h4 class="company-name">
+                                <a href="{% url 'freelancer_company_profile' item.project.client.id %}" class="company-name-link">{{ item.project.client.company_name }}</a>
+                            </h4>
                             <div class="company-meta">
                                 {% if item.score >= 70 %}
                                 <span class="score-badge score-high"><i class="fas fa-star"></i> {{ item.score }}% Match</span>

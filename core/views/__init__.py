@@ -78,6 +78,7 @@ from core.views.freelancer import (
     freelancer_support,
     freelancer_respond_cancellation,
     freelancer_performance,
+    freelancer_company_profile,
     api_request_pin_otp,
     api_verify_pin_otp,
 )

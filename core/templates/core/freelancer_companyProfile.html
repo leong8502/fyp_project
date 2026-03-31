@@ -1,0 +1,356 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}{{ client.company_name }} | Company Profile - TalentSync{% endblock %}
+
+{% block meta %}
+<meta property="og:title" content="{{ client.company_name }} - Company Profile | TalentSync" />
+<meta property="og:description" content="{{ client.tagline|default:client.description|truncatechars:150 }}" />
+{% if client.profile_image %}
+<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ client.profile_image.url }}" />
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_companyProfile.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- ── Hero Banner ── -->
+<div class="cp-hero">
+    {% if client.background_image %}
+    <img src="{{ client.background_image.url }}" alt="Company Banner" class="cp-hero-bg" onerror="this.onerror=null; this.src='{% static "core/images/talentsync_banner.png" %}';">
+    {% else %}
+    <img src="{% static 'core/images/talentsync_banner.png' %}" alt="Company Banner" class="cp-hero-bg">
+    {% endif %}
+    <div class="cp-hero-overlay"></div>
+</div>
+
+<div class="cp-page-wrapper">
+
+    <!-- Back Button -->
+    <a href="javascript:history.back()" class="cp-back-link" id="cp-back-btn">
+        <i class="fas fa-arrow-left"></i> Back to Search
+    </a>
+
+    <!-- ── Profile Bar ── -->
+    <div class="cp-profile-bar">
+        <div class="cp-avatar-wrap">
+            {% if client.profile_image %}
+            <img src="{{ client.profile_image.url }}" alt="{{ client.company_name }}" class="cp-avatar" onerror="this.onerror=null; this.src='{% static "core/images/talentsync_logo.png" %}';">
+            {% else %}
+            <img src="{% static 'core/images/talentsync_logo.png' %}" alt="{{ client.company_name }}" class="cp-avatar">
+            {% endif %}
+        </div>
+
+        <div class="cp-identity">
+            <h1 class="cp-company-name">{{ client.company_name }}</h1>
+            {% if client.tagline %}
+            <p class="cp-tagline">{{ client.tagline }}</p>
+            {% endif %}
+
+            <div class="cp-meta-row">
+                {% if client.industry_type %}
+                <span class="cp-meta-chip"><i class="fas fa-industry"></i> {{ client.industry_type }}</span>
+                {% endif %}
+
+                {% if client.address %}
+                <span class="cp-meta-chip"><i class="fas fa-map-marker-alt"></i> {{ client.address|truncatechars:40 }}</span>
+                {% endif %}
+
+                {% if client.company_size %}
+                <span class="cp-meta-chip"><i class="fas fa-users"></i> {{ client.get_company_size_display }}</span>
+                {% endif %}
+
+                {% if rating_summary and rating_summary.total_reviews > 0 %}
+                <span class="cp-meta-chip cp-rating-chip">
+                    <i class="fas fa-star"></i>
+                    {{ rating_summary.average_rating|floatformat:1 }} ({{ rating_summary.total_reviews }} review{{ rating_summary.total_reviews|pluralize }})
+                </span>
+                {% else %}
+                <span class="cp-meta-chip"><i class="fas fa-star"></i> No reviews yet</span>
+                {% endif %}
+
+                {% if client.created_at %}
+                <span class="cp-meta-chip"><i class="fas fa-calendar-check"></i> Member since {{ client.created_at|date:"M Y" }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="cp-actions">
+            <a href="{% url 'start_chat' client.user.id %}" class="cp-btn-primary" id="cp-message-btn">
+                <i class="fas fa-comment-dots"></i> Message
+            </a>
+            {% if client.website_url %}
+            <a href="{{ client.website_url }}" target="_blank" rel="noopener noreferrer" class="cp-btn-outline" id="cp-website-btn">
+                <i class="fas fa-external-link-alt"></i> Website
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Main Grid ── -->
+    <div class="cp-grid">
+
+        <!-- ─────────── LEFT COL ─────────── -->
+        <div class="cp-main-col">
+
+            <!-- About Company -->
+            <div class="cp-card">
+                <h2 class="cp-card-title">About Company</h2>
+                {% if client.description %}
+                <p class="cp-about-text">{{ client.description }}</p>
+                {% else %}
+                <div class="cp-empty">
+                    <i class="fas fa-building"></i>
+                    <p>No company description provided yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Achievements -->
+            {% if client.achievements %}
+            <div class="cp-card">
+                <h2 class="cp-card-title">Achievements & Highlights</h2>
+                <p class="cp-achievements">{{ client.achievements }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Tags -->
+            {% if tags %}
+            <div class="cp-card">
+                <h2 class="cp-card-title">Expertise & Focus Areas</h2>
+                <div class="cp-tags">
+                    {% for tag in tags %}
+                    <span class="cp-tag">{{ tag }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Open Projects -->
+            <div class="cp-card">
+                <h2 class="cp-card-title">Open Opportunities</h2>
+                {% if open_projects %}
+                {% for project in open_projects %}
+                <div class="cp-project-item">
+                    <div>
+                        <p class="cp-project-title">{{ project.title }}</p>
+                        <div class="cp-project-meta">
+                            {% if project.status == 'open' %}
+                            <span class="cp-status-open">Open</span>
+                            {% else %}
+                            <span class="cp-status-inprogress">In Progress</span>
+                            {% endif %}
+                            <span class="cp-project-badge budget">RM {{ project.budget }}</span>
+                            <span class="cp-project-badge deadline">{{ project.deadline|date:"M d, Y" }}</span>
+                            {% if project.category %}
+                            <span class="cp-project-badge category">{{ project.category }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{% url 'freelancer_search_job' %}?q={{ project.required_skills|urlencode }}" class="cp-project-link" title="Search for this project">
+                        View <i class="fas fa-chevron-right"></i>
+                    </a>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="cp-empty">
+                    <i class="fas fa-folder-open"></i>
+                    <p>No open projects at the moment.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Reviews -->
+            <div class="cp-card">
+                <h2 class="cp-card-title">Reviews from Freelancers</h2>
+
+                {% if rating_summary and rating_summary.total_reviews > 0 %}
+                <div class="cp-rating-section">
+                    <div class="cp-rating-big">{{ rating_summary.average_rating|floatformat:1 }}</div>
+                    <div>
+                        <div class="cp-rating-stars">
+                            {% for i in "12345" %}
+                            <i class="fas fa-star {% if forloop.counter <= rating_summary.average_rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                        <div class="cp-rating-count">{{ rating_summary.total_reviews }} review{{ rating_summary.total_reviews|pluralize }}</div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if reviews %}
+                {% for review in reviews %}
+                <div class="cp-review-item">
+                    <div class="cp-reviewer-row">
+                        {% if review.reviewer.freelancer.profile_image %}
+                        <img src="{{ review.reviewer.freelancer.profile_image.url }}" alt="{{ review.reviewer.username }}" class="cp-reviewer-avatar">
+                        {% else %}
+                        <img src="{% static 'core/images/dummy_profile.png' %}" alt="{{ review.reviewer.username }}" class="cp-reviewer-avatar">
+                        {% endif %}
+                        <div>
+                            <p class="cp-reviewer-name">{{ review.reviewer.freelancer.full_name|default:review.reviewer.username }}</p>
+                            <p class="cp-review-project">{{ review.project.title|truncatechars:40 }}</p>
+                        </div>
+                        <div class="cp-review-stars">
+                            {% for i in "12345" %}
+                            <i class="fas fa-star {% if forloop.counter <= review.rating %}text-warning{% else %}text-muted{% endif %}"></i>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% if review.comment %}
+                    <p class="cp-review-text">"{{ review.comment }}"</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="cp-empty">
+                    <i class="fas fa-comment-slash"></i>
+                    <p>No reviews yet for this company.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+        <!-- end left col -->
+
+        <!-- ─────────── RIGHT SIDEBAR ─────────── -->
+        <div class="cp-sidebar">
+
+            <!-- Company Details -->
+            <div class="cp-card">
+                <h2 class="cp-card-title">Company Details</h2>
+                <div class="cp-info-list">
+                    {% if client.industry_type %}
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Industry</span>
+                        <span class="cp-info-value">{{ client.industry_type }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if client.company_size %}
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Company Size</span>
+                        <span class="cp-info-value">{{ client.get_company_size_display }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if client.year_founded %}
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Founded</span>
+                        <span class="cp-info-value">{{ client.year_founded }}</span>
+                    </div>
+                    {% endif %}
+
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Member Since</span>
+                        <span class="cp-info-value">{{ client.created_at|date:"M Y" }}</span>
+                    </div>
+
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Projects Posted</span>
+                        <span class="cp-info-value">{{ client.projects.count }}</span>
+                    </div>
+
+                    {% if rating_summary %}
+                    <div class="cp-info-item">
+                        <span class="cp-info-label">Avg. Rating</span>
+                        <span class="cp-info-value">
+                            {% if rating_summary.total_reviews > 0 %}
+                            ⭐ {{ rating_summary.average_rating|floatformat:1 }} / 5.0
+                            {% else %}
+                            No ratings yet
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    {% if languages %}
+                    <div class="cp-info-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                        <span class="cp-info-label">Languages</span>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for lang in languages %}
+                            <span class="cp-lang-pill"><i class="fas fa-language"></i> {{ lang }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="cp-card">
+                <h2 class="cp-card-title">Contact Information</h2>
+                <ul class="cp-contact-list">
+                    {% if client.phone %}
+                    <li class="cp-contact-item">
+                        <div class="cp-contact-icon"><i class="fas fa-phone"></i></div>
+                        <span>{{ client.phone }}</span>
+                    </li>
+                    {% endif %}
+
+                    {% if client.user.email %}
+                    <li class="cp-contact-item">
+                        <div class="cp-contact-icon"><i class="fas fa-envelope"></i></div>
+                        <a href="mailto:{{ client.user.email }}">{{ client.user.email }}</a>
+                    </li>
+                    {% endif %}
+
+                    {% if client.address %}
+                    <li class="cp-contact-item">
+                        <div class="cp-contact-icon"><i class="fas fa-map-marker-alt"></i></div>
+                        <span>{{ client.address }}</span>
+                    </li>
+                    {% endif %}
+
+                    {% if client.website_url %}
+                    <li class="cp-contact-item">
+                        <div class="cp-contact-icon"><i class="fas fa-globe"></i></div>
+                        <a href="{{ client.website_url }}" target="_blank" rel="noopener">{{ client.website_url|truncatechars:35 }}</a>
+                    </li>
+                    {% endif %}
+
+                    {% if not client.phone and not client.user.email and not client.address and not client.website_url %}
+                    <li class="cp-contact-item" style="color: #94a3b8; font-size: 0.85rem;">
+                        <div class="cp-contact-icon"><i class="fas fa-info-circle"></i></div>
+                        <span>No contact info provided.</span>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Social Links -->
+            {% if client.linkedIn_url or client.facebook_url or client.instagram_url or client.website_url %}
+            <div class="cp-card">
+                <h2 class="cp-card-title">Social Links</h2>
+                <div class="cp-social-row">
+                    {% if client.linkedIn_url %}
+                    <a href="{{ client.linkedIn_url }}" target="_blank" rel="noopener" class="cp-social-btn linkedin">
+                        <i class="fab fa-linkedin-in"></i> LinkedIn
+                    </a>
+                    {% endif %}
+                    {% if client.facebook_url %}
+                    <a href="{{ client.facebook_url }}" target="_blank" rel="noopener" class="cp-social-btn facebook">
+                        <i class="fab fa-facebook-f"></i> Facebook
+                    </a>
+                    {% endif %}
+                    {% if client.instagram_url %}
+                    <a href="{{ client.instagram_url }}" target="_blank" rel="noopener" class="cp-social-btn instagram">
+                        <i class="fab fa-instagram"></i> Instagram
+                    </a>
+                    {% endif %}
+                    {% if client.website_url %}
+                    <a href="{{ client.website_url }}" target="_blank" rel="noopener" class="cp-social-btn website">
+                        <i class="fas fa-globe"></i> Website
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+        <!-- end sidebar -->
+    </div>
+</div>
+{% endblock %}
