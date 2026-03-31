@@ -184,8 +184,7 @@
                         <div class="timeline-content">
                             <h3>{{ exp.job_title }}</h3>
                             <h4>{{ exp.company }}</h4>
-                            <span class="period">{{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else
-                                %}{{ exp.end_date|date:"M Y" }}{% endif %}</span>
+                            <span class="period">{{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}</span>
                             <p>{{ exp.description }}</p>
                         </div>
                     </div>
