@@ -93,6 +93,17 @@
                             <i class="fas fa-map-marker-alt"></i>
                             {{ freelancer.location|default:"Location not set" }} -
                             <span class="local-time">{% now "h:i a" %} local time</span>
+                            &nbsp;·&nbsp;
+                            <i class="fas fa-briefcase" style="color: #6366f1;"></i>
+                            {% if freelancer.experience_years >= 5 %}
+                                5+ years experience
+                            {% elif freelancer.experience_years == 1 %}
+                                1 year experience
+                            {% elif freelancer.experience_years == 0 %}
+                                Fresh graduate (0 years experience)
+                            {% else %}
+                                {{ freelancer.experience_years }} years experience
+                            {% endif %}
                         </p>
                     </div>
 

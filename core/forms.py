@@ -370,14 +370,33 @@ class FreelancerProfileForm(forms.ModelForm):
         }
 
 class FreelancerHeaderForm(forms.ModelForm):
+    EXPERIENCE_CHOICES = [
+        (0, '0 (Fresh Graduate / No experience)'),
+        (1, '1 year'),
+        (2, '2 years'),
+        (3, '3 years'),
+        (4, '4 years'),
+        (5, '5+ years'),
+    ]
+
+    experience_years = forms.ChoiceField(
+        choices=EXPERIENCE_CHOICES,
+        label='Year of working experience',
+        widget=forms.Select(attrs={'class': 'form-control', 'id': 'id_experience_years'}),
+    )
+
     class Meta:
         model = Freelancer
-        fields = ['full_name', 'tagline', 'location']
+        fields = ['full_name', 'tagline', 'location', 'experience_years']
         widgets = {
              'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your Full Name'}),
              'tagline': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Senior Python Developer'}),
              'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'City, Country'}),
         }
+
+    def clean_experience_years(self):
+        return int(self.cleaned_data['experience_years'])
+
 
 class FreelancerRateForm(forms.ModelForm):
     class Meta:

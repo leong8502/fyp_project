@@ -25,7 +25,7 @@
                     </span>
                     <span
                         style="font-size: 13px; background: #fff3e0; color: #ef6c00; padding: 2px 8px; border-radius: 10px; margin-left: 5px;">
-                        Exp: {{ match.freelancer.experience_years }} yrs
+                        Exp: {% if match.freelancer.experience_years >= 5 %}5+{% else %}{{ match.freelancer.experience_years }}{% endif %} yrs
                     </span>
                     <span
                         style="font-size: 13px; background: #fff8e1; color: #f57f17; padding: 2px 8px; border-radius: 10px; margin-left: 5px;">

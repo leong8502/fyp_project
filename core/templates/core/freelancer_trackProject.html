@@ -382,7 +382,10 @@
                     </div>
                     <div style="margin-top: 15px; display: flex; gap: 10px;">
                         {% if app.application_type == 'invite' %}
-                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;"><button class="btn-submit-milestone" style="background: #10b981;">Accept</button></form>
+                            <form action="{% url 'accept_application' app.id %}" method="post" style="flex: 1;">
+                                {% csrf_token %}
+                                <button class="btn-submit-milestone" style="background: #10b981;">Accept</button>
+                            </form>
                         {% else %}
                             <div style="width: 100%; text-align: center; padding: 10px; background: #fffbeb; color: #854d0e; border-radius: 10px;">Awaiting Review</div>
                         {% endif %}

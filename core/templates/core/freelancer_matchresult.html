@@ -287,7 +287,7 @@
       <h1>{{ freelancer.full_name|default:freelancer.user.username }}</h1>
       <div class="sub">Analysing match for: <strong style="color:#a5b4fc">{{ project.title }}</strong></div>
       <div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px">
-        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:.78rem;color:#cbd5e1"><i class="fas fa-briefcase" style="color:#818cf8;margin-right:5px"></i>{{ freelancer.experience_years }} yr exp</span>
+        <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:.78rem;color:#cbd5e1"><i class="fas fa-briefcase" style="color:#818cf8;margin-right:5px"></i>{% if freelancer.experience_years >= 5 %}5+{% else %}{{ freelancer.experience_years }}{% endif %} yr exp</span>
         <span style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:4px 12px;font-size:.78rem;color:#cbd5e1"><i class="fas fa-clock" style="color:#34d399;margin-right:5px"></i>{{ freelancer.get_availability_status_display }}</span>
       </div>
     </div>
@@ -477,7 +477,7 @@
       </div>
       <div class="calc-row">
         <span class="cr-label">Your experience</span>
-        <span class="cr-value {% if details.fl_exp_years >= details.proj_exp_req %}cv-match{% else %}cv-partial{% endif %}">{{ details.fl_exp_years }} year{{ details.fl_exp_years|pluralize }}</span>
+        <span class="cr-value {% if details.fl_exp_years >= details.proj_exp_req %}cv-match{% else %}cv-partial{% endif %}">{% if details.fl_exp_years >= 5 %}5+ years{% else %}{{ details.fl_exp_years }} year{{ details.fl_exp_years|pluralize }}{% endif %}</span>
       </div>
       <div class="calc-row">
         <span class="cr-label">Formula</span>
@@ -485,7 +485,7 @@
           {% if details.proj_exp_req == 0 %}
             No minimum → 100%
           {% else %}
-            min({{ details.fl_exp_years }} ÷ {{ details.proj_exp_req }}, 1.0) = {{ details.experience_pct }}%
+            {% if details.fl_exp_years >= 5 %}min(5 ÷ {{ details.proj_exp_req }}, 1.0){% else %}min({{ details.fl_exp_years }} ÷ {{ details.proj_exp_req }}, 1.0){% endif %} = {{ details.experience_pct }}%
           {% endif %}
         </span>
       </div>

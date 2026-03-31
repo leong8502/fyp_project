@@ -219,7 +219,8 @@ class MatchEngine:
         if freelancer.tagline:
             summary_parts.append(freelancer.tagline)
         if freelancer.experience_years > 0:
-            summary_parts.append(f"{freelancer.experience_years} years of experience")
+            exp_str = "5+" if freelancer.experience_years >= 5 else freelancer.experience_years
+            summary_parts.append(f"{exp_str} years of experience")
         if top_skills:
             summary_parts.append(f"Skilled in {', '.join(top_skills[:3])}")
         
@@ -526,7 +527,8 @@ class MatchEngine:
             exp_score = 1.0
             # Only show reason if they meet the requirement effectively to avoid "0 years" weirdness for entry level
             if freelancer.experience_years > 0:
-                 reasons.append(f"<strong>Relevant Experience:</strong> {freelancer.experience_years} years of professional experience.")
+                 exp_str = "5+" if freelancer.experience_years >= 5 else freelancer.experience_years
+                 reasons.append(f"<strong>Relevant Experience:</strong> {exp_str} years of professional experience.")
         else:
             exp_score = 0.5 # Partial credit
             # Do NOT show reason if under-qualified or 0 years

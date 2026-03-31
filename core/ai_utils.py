@@ -381,8 +381,14 @@ class AISearchManager:
             lang_score = 1.0
 
         # 3) Experience years (20%)
+        # Note: experience_years == 5 in the Freelancer model means "5+ years"
+        # For matching, treat 5 as "at least 5" — so any project requiring ≤5 years
+        # is always fully met, and for projects requiring 0 years score is 1.0.
         if proj_exp_req == 0:
             exp_score = 1.0
+        elif effective_exp >= 5:
+            # "5+" always satisfies any requirement (capped by the stored max of 5)
+            exp_score = 1.0 if proj_exp_req <= 5 else min(5 / proj_exp_req, 1.0)
         else:
             exp_score = min(effective_exp / proj_exp_req, 1.0)
 
@@ -432,11 +438,13 @@ class AISearchManager:
             else:
                 lang_source = ' (not found)'
 
+        exp_display = f"{effective_exp}+" if effective_exp >= 5 else str(effective_exp)
+
         logic = (
             f"Skills Coverage: {skills_jaccard:.0%} "
             f"({len(common_skills)} common: {common_list}) x 40%\n"
             f"Language ({lang_display}): {lang_score:.0%}{lang_source} x 20%\n"
-            f"Experience: {effective_exp} yr / {proj_exp_req} yr req -> {exp_score:.0%} x 20%\n"
+            f"Experience: {exp_display} yr / {proj_exp_req} yr req -> {exp_score:.0%} x 20%\n"
             f"Past Project overlap: {work_title_jaccard:.0%} x 10%\n"
             f"Availability ({effective_avail or 'unknown'}): {avail_score:.0%} x 10%\n"
             f"Total: {score:.1f}%"
@@ -479,10 +487,11 @@ def _build_sentence(score, common_skills, fl_exp, proj_exp, fl_avail, lang_score
         parts.append("no direct skill overlap found")
 
     if proj_exp > 0:
+        exp_label = f"{fl_exp}+" if fl_exp >= 5 else str(fl_exp)
         if fl_exp >= proj_exp:
-            parts.append(f"your {fl_exp} yr experience meets the {proj_exp} yr requirement")
+            parts.append(f"your {exp_label} yr experience meets the {proj_exp} yr requirement")
         else:
-            parts.append(f"your {fl_exp} yr experience is below the {proj_exp} yr requirement")
+            parts.append(f"your {exp_label} yr experience is below the {proj_exp} yr requirement")
 
     if proj_lang:
         if lang_score >= 0.85:

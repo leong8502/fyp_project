@@ -992,7 +992,10 @@ def accept_application(request, app_id):
 
     try:
         ProjectService.accept_application(application, request.user)
-        messages.success(request, f"Application from {application.freelancer.user.username} accepted! You can now assign milestones to them.")
+        if is_freelancer_accepting:
+            messages.success(request, "Invitation accepted! You can now start your work.")
+        else:
+            messages.success(request, f"Application from {application.freelancer.user.username} accepted! You can now assign milestones to them.")
     except Exception as e:
         messages.error(request, f"Error: {e}")
 
@@ -1219,7 +1222,8 @@ def client_scoreCalculate(request, match_id):
 
     # 3. Experience
     req_exp = project.get_experience_level_display()
-    free_exp = f"{freelancer.experience_years} year{'s' if freelancer.experience_years != 1 else ''}"
+    free_exp_str = "5+" if freelancer.experience_years >= 5 else freelancer.experience_years
+    free_exp = f"{free_exp_str} year{'s' if freelancer.experience_years != 1 else ''}"
     exp_pct = percentages['experience']
     
     if exp_pct == 100:
