@@ -16,7 +16,7 @@
 
     .settings-header {
         border-bottom: 2px solid #f0f0f0;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         padding-bottom: 15px;
     }
 
@@ -24,6 +24,47 @@
         font-size: 2rem;
         font-weight: 700;
         color: #333;
+    }
+
+    /* Tabs Styling */
+    .nav-tabs {
+        display: flex;
+        border-bottom: 2px solid #f0f0f0;
+        margin-bottom: 30px;
+    }
+
+    .nav-tab {
+        padding: 12px 20px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #666;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+        margin-bottom: -2px; /* overlap border */
+    }
+
+    .nav-tab:hover {
+        color: #007bff;
+    }
+
+    .nav-tab.active {
+        color: #007bff;
+        border-bottom-color: #007bff;
+    }
+
+    .tab-content {
+        display: none;
+    }
+
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.4s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
     }
 
     .settings-group {
@@ -65,6 +106,28 @@
     .btn-save:hover {
         background-color: #0056b3;
     }
+
+    /* OTP Modal Inline Style */
+    #otp-section {
+        display: none;
+        background: #fff3cd;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid #ffeeba;
+        margin-bottom: 20px;
+    }
+
+    .forgot-link {
+        font-size: 0.9rem;
+        float: right;
+        color: #007bff;
+        cursor: pointer;
+        text-decoration: none;
+    }
+
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
 </style>
 {% endblock %}
 
@@ -74,38 +137,207 @@
         <h1 class="settings-title">Account Settings</h1>
     </div>
 
-    <div class="settings-group">
-        <h3 class="group-title"><i class="fas fa-shield-alt"></i> Security & PIN</h3>
-        <p class="text-muted mb-4">Update your secure PIN used for sensitive transactions like withdrawals.</p>
+    <!-- Tabs -->
+    <div class="nav-tabs">
+        <div class="nav-tab active" data-target="tab-security">Security & PIN</div>
+        <div class="nav-tab" data-target="tab-account">Account Information</div>
+    </div>
 
-        <div class="form-card">
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label">New 6-Digit PIN</label>
-                    {{ form.new_pin }}
+    <!-- Tab Content: Security & PIN -->
+    <div id="tab-security" class="tab-content active">
+        <div class="settings-group">
+            <h3 class="group-title"><i class="fas fa-shield-alt"></i> Security & PIN</h3>
+            <p class="text-muted mb-4">Update your secure PIN used for sensitive transactions like withdrawals.</p>
+
+            <div class="form-card">
+                {% if is_verified_otp %}
+                    <div class="alert alert-success">OTP verified. You can now set your new PIN securely.</div>
+                {% endif %}
+                
+                <div id="otp-section">
+                    <p class="mb-2"><strong>Reset PIN</strong></p>
+                    <p class="text-muted small">We've sent a 6-digit OTP to your registered email ({{ request.user.email }}).</p>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="otp-input" class="form-control" placeholder="Enter 6-digit OTP" maxlength="6" style="max-width: 200px;">
+                        <button type="button" class="btn-save" id="btn-verify-otp" style="padding: 6px 15px;">Verify</button>
+                    </div>
+                    <div id="otp-message" class="mt-2 small"></div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Confirm New PIN</label>
-                    {{ form.confirm_pin }}
-                </div>
-                <button type="submit" class="btn-save">Update PIN</button>
-            </form>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if not form.current_pin.is_hidden %}
+                    <div class="mb-3">
+                        <label class="form-label w-100">
+                            Current PIN 
+                            <a class="forgot-link" id="btn-forgot-pin">Forgot PIN?</a>
+                        </label>
+                        {{ form.current_pin }}
+                        {% if form.current_pin.errors %}
+                            <div class="text-danger small mt-1">{{ form.current_pin.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                        {{ form.current_pin }}
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label class="form-label">New 6-Digit PIN</label>
+                        {{ form.new_pin }}
+                        {% if form.new_pin.errors %}
+                            <div class="text-danger small mt-1">{{ form.new_pin.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Confirm New PIN</label>
+                        {{ form.confirm_pin }}
+                        {% if form.confirm_pin.errors %}
+                            <div class="text-danger small mt-1">{{ form.confirm_pin.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <button type="submit" class="btn-save">Update PIN</button>
+                </form>
+            </div>
         </div>
     </div>
 
-    <div class="settings-group">
-        <h3 class="group-title"><i class="fas fa-bell"></i> Notifications</h3>
-        <div class="form-card">
-            <div class="form-check form-switch mb-3">
-                <input class="form-check-switch" type="checkbox" id="emailNotif" checked>
-                <label class="form-check-label" for="emailNotif">Email notifications for new job matches</label>
-            </div>
-            <div class="form-check form-switch">
-                <input class="form-check-switch" type="checkbox" id="msgNotif" checked>
-                <label class="form-check-label" for="msgNotif">Push notifications for new messages</label>
+    <!-- Tab Content: Account Information -->
+    <div id="tab-account" class="tab-content">
+        <div class="settings-group">
+            <h3 class="group-title"><i class="fas fa-user-circle"></i> Account Information</h3>
+            <div class="form-card">
+                <div class="mb-3">
+                    <label class="form-label">Registered Email</label>
+                    <input type="text" class="form-control" value="{{ request.user.email }}" readonly disabled style="background-color: #e9ecef;">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" class="form-control" value="{{ request.user.username }}" readonly disabled style="background-color: #e9ecef;">
+                </div>
+                <p class="text-muted small mt-3"><i class="fas fa-info-circle"></i> To change these details, please contact platform support.</p>
             </div>
         </div>
     </div>
+
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Tab switching logic
+        const tabs = document.querySelectorAll('.nav-tab');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(tab.getAttribute('data-target')).classList.add('active');
+            });
+        });
+
+        // Forgot PIN logic
+        const btnForgotPin = document.getElementById('btn-forgot-pin');
+        const otpSection = document.getElementById('otp-section');
+        const btnVerifyOtp = document.getElementById('btn-verify-otp');
+        const otpInput = document.getElementById('otp-input');
+        const otpMessage = document.getElementById('otp-message');
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        if (btnForgotPin) {
+            btnForgotPin.addEventListener('click', function() {
+                btnForgotPin.innerText = "Sending...";
+                btnForgotPin.style.pointerEvents = "none";
+                
+                fetch("{% url 'api_request_pin_otp' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        otpSection.style.display = 'block';
+                        btnForgotPin.innerText = "OTP Sent!";
+                    } else {
+                        btnForgotPin.innerText = "Forgot PIN?";
+                        btnForgotPin.style.pointerEvents = "auto";
+                        alert(data.message || "Failed to send OTP.");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    btnForgotPin.innerText = "Forgot PIN?";
+                    btnForgotPin.style.pointerEvents = "auto";
+                    alert("Network error.");
+                });
+            });
+        }
+
+        if (btnVerifyOtp) {
+            btnVerifyOtp.addEventListener('click', function() {
+                const otp = otpInput.value.trim();
+                if (!otp || otp.length !== 6) {
+                    otpMessage.innerText = "Please enter a valid 6-digit OTP.";
+                    otpMessage.className = "mt-2 small text-danger";
+                    return;
+                }
+
+                btnVerifyOtp.disabled = true;
+                btnVerifyOtp.innerText = "Verifying...";
+
+                fetch("{% url 'api_verify_pin_otp' %}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ otp: otp })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        otpMessage.innerText = "Successfully verified! Reloading...";
+                        otpMessage.className = "mt-2 small text-success";
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        btnVerifyOtp.disabled = false;
+                        btnVerifyOtp.innerText = "Verify";
+                        otpMessage.innerText = data.message || "Verification failed.";
+                        otpMessage.className = "mt-2 small text-danger";
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    btnVerifyOtp.disabled = false;
+                    btnVerifyOtp.innerText = "Verify";
+                    otpMessage.innerText = "Network error.";
+                    otpMessage.className = "mt-2 small text-danger";
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

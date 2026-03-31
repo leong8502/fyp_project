@@ -305,11 +305,13 @@ class SecurePinForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         self.user_security = kwargs.pop('user_security', None)
+        self.is_verified_otp = kwargs.pop('is_verified_otp', False)
         super(SecurePinForm, self).__init__(*args, **kwargs)
         
-        # If user has no PIN yet, hide current_pin field
-        if not self.user_security or not self.user_security.secure_pin:
+        # If user has no PIN yet, or if they verified via OTP, hide current_pin field
+        if not self.user_security or not self.user_security.secure_pin or self.is_verified_otp:
             self.fields['current_pin'].widget = forms.HiddenInput()
+            self.fields['current_pin'].required = False
         else:
             self.fields['current_pin'].required = True
 
@@ -322,8 +324,8 @@ class SecurePinForm(forms.Form):
         if new_pin and confirm_pin and new_pin != confirm_pin:
             self.add_error('confirm_pin', "PINs do not match.")
 
-        # If user already has a PIN, validate current PIN
-        if self.user_security and self.user_security.secure_pin:
+        # If user already has a PIN and hasn't bypassed via OTP, validate current PIN
+        if self.user_security and self.user_security.secure_pin and not self.is_verified_otp:
             from django.contrib.auth.hashers import check_password
             if current_pin and not check_password(current_pin, self.user_security.secure_pin):
                  self.add_error('current_pin', "Incorrect current PIN.")

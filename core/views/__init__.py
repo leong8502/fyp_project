@@ -77,6 +77,9 @@ from core.views.freelancer import (
     freelancer_profile,
     freelancer_support,
     freelancer_respond_cancellation,
+    freelancer_performance,
+    api_request_pin_otp,
+    api_verify_pin_otp,
 )
 
 from core.views.chat import (

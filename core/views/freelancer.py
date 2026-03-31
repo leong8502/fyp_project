@@ -12,8 +12,16 @@ from core.decorators import freelancer_required
 from core.models import (
     Project, ProjectApplication, Review, Wallet, Transaction,
     UserSecurity, Milestone, MilestoneAttachment, CancellationRequest,
-    Ticket
+    Ticket, MatchScore
 )
+from core.ai_utils import get_recommendations, AISearchManager
+from django.db.models import Sum, Count, Q
+from django.db.models.functions import ExtractYear
+import json
+from decimal import Decimal
+import random
+from django.core.mail import send_mail, get_connection
+from django.http import JsonResponse
 from core.forms import (
     SecurePinForm,
     FreelancerProfileForm, FreelancerPortfolioForm, FreelancerWorkExperienceForm,
@@ -22,7 +30,7 @@ from core.forms import (
     FreelancerSkillsForm, FreelancerLanguageForm, SupportForm,
 )
 from core.services.project_service import ProjectService
-from core.ai_utils import get_recommendations
+
 
 
 # ---------------------------------------------------------------------------
@@ -42,9 +50,6 @@ def freelancer_home(request):
 
 @freelancer_required
 def freelancer_search_job(request):
-    from core.ai_utils import AISearchManager
-    from core.models import MatchScore
-
     query = request.GET.get('q', '').strip()
     freelancer = request.user.freelancer
 
@@ -59,7 +64,6 @@ def freelancer_search_job(request):
     manager = AISearchManager()
 
     # Use the new detailed method
-    from django.db.models import Count, Q
     projects_qs = Project.objects.filter(
         status__in=['open', 'in_progress']
     ).select_related('client').prefetch_related('milestones').annotate(
@@ -326,6 +330,263 @@ def freelancer_wallet(request):
 
 
 @freelancer_required
+def freelancer_performance(request):
+    freelancer = request.user.freelancer
+    wallet, _ = Wallet.objects.get_or_create(user=request.user)
+
+    # Card Year filter (independent of graph year)
+    now      = timezone.now()
+    all_txns = Transaction.objects.filter(wallet=wallet, status='completed')
+    card_year = request.GET.get('card_year', str(now.year))
+
+    # Card Metrics — filtered by card_year
+    card_txns        = all_txns.filter(created_at__year=card_year)
+    total_topup      = card_txns.filter(transaction_type='top_up').aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    total_withdrawal = card_txns.filter(transaction_type='withdrawal').aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    total_income     = card_txns.filter(transaction_type='payout', direction='credit').aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+
+    # Graph / Skill-table Period Selection
+    selected_year  = request.GET.get('year', str(now.year))
+    selected_month = request.GET.get('month', '')
+
+    txn_years = set(all_txns.annotate(y=ExtractYear('created_at')).values_list('y', flat=True))
+    range_years = set(range(now.year - 3, now.year + 2))  # 3 past + current + 1 future
+    year_list = sorted(txn_years | range_years, reverse=True)
+
+    if selected_month:
+        graph_labels = ['Week 1', 'Week 2', 'Week 3', 'Week 4+']
+        week_ranges  = [(1, 7), (8, 14), (15, 21), (22, 31)]
+        period_type  = 'weekly'
+    else:
+        graph_labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+        period_type  = 'monthly'
+
+    n = len(graph_labels)
+
+    # Transactions in selected period
+    period_txns = all_txns.filter(created_at__year=selected_year)
+    if selected_month:
+        period_txns = period_txns.filter(created_at__month=int(selected_month))
+
+    # Collect all unique skills for colour consistency
+    income_txns_all = all_txns.filter(
+        transaction_type='payout', direction='credit'
+    ).select_related('related_milestone__project')
+
+    PALETTE = ['#22d3ee','#f59e0b','#3b82f6','#f97316','#8b5cf6','#ec4899','#10b981','#6366f1']
+    all_skills = []
+    for txn in income_txns_all:
+        if txn.related_milestone:
+            for s in (txn.related_milestone.project.required_skills or '').split(','):
+                s = s.strip()
+                if s and s not in all_skills:
+                    all_skills.append(s)
+    skill_color = {sk: PALETTE[i % len(PALETTE)] for i, sk in enumerate(all_skills)}
+
+    # Per-period aggregation
+    # Initialise to 0.0 so past periods with no activity stay at zero (line connects).
+    # Future periods will be overwritten to None so Chart.js draws no point there.
+    data_topup     = [0.0] * n
+    data_withdrawn = [0.0] * n
+    skill_amt  = {sk: [0.0] * n for sk in all_skills}
+    skill_tips = {sk: [[] for _ in range(n)] for sk in all_skills}
+
+    # Helper: is this period entirely in the future?
+    yr = int(selected_year)
+    def is_future_period(month_num=None, week_start_day=None):
+        if yr > now.year:
+            return True
+        if yr < now.year:
+            return False
+        # Same year
+        if period_type == 'monthly':
+            return month_num > now.month
+        else:  # weekly
+            sm = int(selected_month)
+            if sm > now.month:
+                return True
+            if sm < now.month:
+                return False
+            return week_start_day > now.day
+
+    def process_period(idx, p_txns):
+        tu = p_txns.filter(transaction_type='top_up').aggregate(s=Sum('amount'))['s'] or 0
+        wd = p_txns.filter(transaction_type='withdrawal').aggregate(s=Sum('amount'))['s'] or 0
+        data_topup[idx]     = float(tu)
+        data_withdrawn[idx] = float(wd)
+        for txn in p_txns.filter(transaction_type='payout', direction='credit').select_related('related_milestone__project'):
+            if not txn.related_milestone:
+                continue
+            ms     = txn.related_milestone
+            skills = [x.strip() for x in (ms.project.required_skills or '').split(',') if x.strip()]
+            n_s    = len(skills) or 1
+            per    = float(txn.amount) / n_s
+            for sk in skills:
+                if sk in all_skills:
+                    skill_amt[sk][idx] += per
+                    skill_tips[sk][idx].append({
+                        'project': ms.project.title,
+                        'milestone': ms.title,
+                        'amount': round(per, 2)
+                    })
+
+    if period_type == 'weekly':
+        for i, (sd, ed) in enumerate(week_ranges):
+            if is_future_period(week_start_day=sd):
+                # Mark future — no point drawn
+                data_topup[i] = None
+                data_withdrawn[i] = None
+                for sk in all_skills:
+                    skill_amt[sk][i] = None
+            else:
+                process_period(i, period_txns.filter(created_at__day__range=(sd, ed)))
+    else:
+        for i, m in enumerate(range(1, 13)):
+            if is_future_period(month_num=m):
+                data_topup[i] = None
+                data_withdrawn[i] = None
+                for sk in all_skills:
+                    skill_amt[sk][i] = None
+            else:
+                process_period(i, period_txns.filter(created_at__month=m))
+
+    for sk in all_skills:
+        skill_amt[sk] = [round(v, 2) if v is not None else None for v in skill_amt[sk]]
+
+    # Running Balance — None for future periods
+    pre_txns = all_txns.filter(created_at__year__lt=int(selected_year))
+    if selected_month:
+        pre_txns = pre_txns | all_txns.filter(
+            created_at__year=selected_year, created_at__month__lt=int(selected_month))
+    running = Decimal('0.00')
+    for t in pre_txns:
+        running += t.amount if t.direction == 'credit' else -t.amount
+
+    data_balance = []
+    if period_type == 'weekly':
+        for sd, ed in week_ranges:
+            if is_future_period(week_start_day=sd):
+                data_balance.append(None)
+            else:
+                for t in period_txns.filter(created_at__day__range=(sd, ed)).order_by('created_at'):
+                    running += t.amount if t.direction == 'credit' else -t.amount
+                data_balance.append(round(float(running), 2))
+    else:
+        for m in range(1, 13):
+            if is_future_period(month_num=m):
+                data_balance.append(None)
+            else:
+                for t in period_txns.filter(created_at__month=m).order_by('created_at'):
+                    running += t.amount if t.direction == 'credit' else -t.amount
+                data_balance.append(round(float(running), 2))
+
+    # Build Chart.js datasets — spanGaps:false so nulls create real gaps
+    datasets = [
+        {'label':'Total Wallet','data':data_balance,'borderColor':'#a855f7',
+         'backgroundColor':'rgba(168,85,247,0.08)','borderWidth':2.5,'fill':True,
+         'tension':0.4,'pointRadius':4,'pointHoverRadius':7,'dtype':'balance','spanGaps':False,
+         'tooltipData':[({'amount':v} if v is not None else None) for v in data_balance]},
+        {'label':'Top-up','data':data_topup,'borderColor':'#22c55e',
+         'backgroundColor':'transparent','borderWidth':2.5,'borderDash':[5,5],
+         'fill':False,'tension':0.4,'pointRadius':4,'pointHoverRadius':7,'dtype':'topup','spanGaps':False,
+         'tooltipData':[({'amount':v} if v is not None else None) for v in data_topup]},
+        {'label':'Withdrawn','data':data_withdrawn,'borderColor':'#ef4444',
+         'backgroundColor':'transparent','borderWidth':2.5,'borderDash':[5,5],
+         'fill':False,'tension':0.4,'pointRadius':4,'pointHoverRadius':7,'dtype':'withdrawn','spanGaps':False,
+         'tooltipData':[({'amount':v} if v is not None else None) for v in data_withdrawn]},
+    ]
+    for sk in all_skills:
+        datasets.append({
+            'label':sk,'data':skill_amt[sk],'borderColor':skill_color[sk],
+            'backgroundColor':'transparent','borderWidth':2.5,'fill':False,
+            'tension':0.4,'pointRadius':5,'pointHoverRadius':8,'spanGaps':False,
+            'dtype':'income','skill':sk,'tooltipData':skill_tips[sk],
+        })
+
+    # Skill table — filtered by graph's selected_year
+    income_txns_year = income_txns_all.filter(created_at__year=selected_year)
+    total_ms_income_year = float(
+        income_txns_year.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    ) or 1.0
+    sk_totals_year     = {sk: 0.0 for sk in all_skills}
+    sk_milestones_year = {sk: [] for sk in all_skills}
+    for txn in income_txns_year:
+        if not txn.related_milestone:
+            continue
+        ms     = txn.related_milestone
+        skills = [x.strip() for x in (ms.project.required_skills or '').split(',') if x.strip()]
+        n_s    = len(skills) or 1
+        per    = float(txn.amount) / n_s
+        for sk in skills:
+            if sk in all_skills:
+                sk_totals_year[sk] += per
+                sk_milestones_year[sk].append({
+                    'project': ms.project.title,
+                    'milestone': ms.title,
+                    'amount': round(per, 2)
+                })
+
+    skill_table = []
+    for sk in all_skills:
+        if sk_totals_year[sk] == 0.0:
+            continue  # skip skills with no income this year
+        pct = (sk_totals_year[sk] / total_ms_income_year) * 100
+        skill_table.append({
+            'skill':      sk,
+            'color':      skill_color[sk],
+            'total':      round(sk_totals_year[sk], 2),
+            'percent':    round(pct, 2),
+            'milestones': sk_milestones_year[sk],
+        })
+
+    # Income card mini-skill breakdown — filtered by card_year
+    income_txns_card = income_txns_all.filter(created_at__year=card_year)
+    total_card_income_f = float(
+        income_txns_card.aggregate(s=Sum('amount'))['s'] or Decimal('0.00')
+    ) or 1.0
+    sk_totals_card = {sk: 0.0 for sk in all_skills}
+    for txn in income_txns_card:
+        if not txn.related_milestone:
+            continue
+        ms     = txn.related_milestone
+        skills = [x.strip() for x in (ms.project.required_skills or '').split(',') if x.strip()]
+        n_s    = len(skills) or 1
+        per    = float(txn.amount) / n_s
+        for sk in skills:
+            if sk in all_skills:
+                sk_totals_card[sk] += per
+
+    card_skill_table = []
+    for sk in all_skills:
+        if sk_totals_card[sk] == 0.0:
+            continue
+        card_skill_table.append({
+            'skill':   sk,
+            'color':   skill_color[sk],
+            'percent': round((sk_totals_card[sk] / total_card_income_f) * 100, 2),
+        })
+
+    context = {
+        'wallet_balance':    wallet.balance,
+        'total_topup':       total_topup,
+        'total_withdrawal':  total_withdrawal,
+        'total_income':      total_income,
+        'card_year':         card_year,
+        'card_skill_table':  card_skill_table,
+        'selected_year':     selected_year,
+        'selected_month':    str(selected_month),
+        'year_list':         year_list,
+        'graph_labels_json': json.dumps(graph_labels),
+        'datasets_json':     json.dumps(datasets),
+        'skill_table':       skill_table,
+        'all_skills':        all_skills,
+        'all_skills_info':   [{'skill': sk, 'color': skill_color[sk]} for sk in all_skills],
+        'skill_color':       skill_color,
+    }
+    return render(request, 'core/freelancer_performance.html', context)
+
+
+@freelancer_required
 def freelancer_transaction(request):
     from django.core.paginator import Paginator
     wallet, _ = Wallet.objects.get_or_create(user=request.user)
@@ -367,20 +628,86 @@ def freelancer_transaction(request):
 @freelancer_required
 def freelancer_settings(request):
     user_security, _ = UserSecurity.objects.get_or_create(user=request.user)
+    is_verified_otp = request.session.get('pin_reset_verified', False)
 
     if request.method == 'POST':
-        form = SecurePinForm(request.POST, user_security=user_security)
+        form = SecurePinForm(request.POST, user_security=user_security, is_verified_otp=is_verified_otp)
         if form.is_valid():
             user_security.secure_pin = make_password(form.cleaned_data['new_pin'])
             user_security.save()
+            # Clear verified flag upon successful save
+            if 'pin_reset_verified' in request.session:
+                del request.session['pin_reset_verified']
             messages.success(request, "Secure PIN updated successfully.")
             return redirect('freelancer_settings')
         else:
             messages.error(request, "Please correct the errors below.")
     else:
-        form = SecurePinForm(user_security=user_security)
+        form = SecurePinForm(user_security=user_security, is_verified_otp=is_verified_otp)
 
-    return render(request, 'core/freelancer_settings.html', {'form': form})
+    return render(request, 'core/freelancer_settings.html', {'form': form, 'is_verified_otp': is_verified_otp})
+
+@freelancer_required
+def api_request_pin_otp(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method.'})
+    
+    otp = f"{random.randint(0, 999999):06d}"
+    
+    request.session['pin_reset_otp'] = otp
+    request.session['pin_reset_expires'] = (timezone.now() + timezone.timedelta(minutes=5)).timestamp()
+    
+    # Custom connection config to use gunyx-wp22@student.tarc.edu.my
+    try:
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host='smtp.gmail.com',
+            port=587,
+            use_tls=True,
+            username='gunyx-wp22@student.tarc.edu.my',
+            password='xdji yfoq izud sysy',
+        )
+        
+        send_mail(
+            subject='TalentSync - Your PIN Reset OTP',
+            message=f'Your OTP for resetting your Secure PIN is: {otp}. It will expire in 5 minutes.',
+            from_email='gunyx-wp22@student.tarc.edu.my',
+            recipient_list=[request.user.email],
+            connection=connection,
+            fail_silently=False,
+        )
+        return JsonResponse({'success': True, 'message': 'OTP sent successfully to your email.'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error sending email: {str(e)}'})
+
+@freelancer_required
+def api_verify_pin_otp(request):
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Invalid method.'})
+    
+    try:
+        data = json.loads(request.body)
+        submitted_otp = data.get('otp', '').strip()
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'message': 'Invalid data.'})
+
+    session_otp = request.session.get('pin_reset_otp')
+    expires = request.session.get('pin_reset_expires')
+
+    if not session_otp or not expires:
+        return JsonResponse({'success': False, 'message': 'OTP has expired or was not requested.'})
+
+    if timezone.now().timestamp() > expires:
+        return JsonResponse({'success': False, 'message': 'OTP has expired. Please request a new one.'})
+
+    if submitted_otp == session_otp:
+        request.session['pin_reset_verified'] = True
+        # Clear the old OTP
+        del request.session['pin_reset_otp']
+        del request.session['pin_reset_expires']
+        return JsonResponse({'success': True, 'message': 'OTP verified successfully.'})
+    else:
+        return JsonResponse({'success': False, 'message': 'Invalid OTP.'})
 
 
 # ---------------------------------------------------------------------------

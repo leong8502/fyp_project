@@ -121,6 +121,11 @@ urlpatterns = [
     path('freelancer/settings/', views.freelancer_settings, name='freelancer_settings'),
     path('freelancer/support/', views.freelancer_support, name='freelancer_support'),
     path('freelancer/cancellation/<int:cancellation_id>/respond/', views.freelancer_respond_cancellation, name='freelancer_respond_cancellation'),
+    path('freelancer/performance/', views.freelancer_performance, name='freelancer_performance'),
+
+    # ── Freelancer PIN Setting API ─────────────────────────────────────────
+    path('api/settings/request-pin-otp/', views.api_request_pin_otp, name='api_request_pin_otp'),
+    path('api/settings/verify-pin-otp/', views.api_verify_pin_otp, name='api_verify_pin_otp'),
 
     # ── Admin ──────────────────────────────────────────────────────────────
     path('panel/dashboard/', views.admin_dashboard, name='admin_dashboard'),
