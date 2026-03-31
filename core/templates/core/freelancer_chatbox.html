@@ -46,16 +46,12 @@
         justify-content: center;
     }
 
-    /* ── Chat window ──
-       - bottom: 98px keeps it above the FAB
-       - max-height: calc(100vh - 120px) prevents the window from going above
-         the viewport top regardless of how many messages there are            */
+    /* ── Chat window ── */
     #ami-window {
         position: fixed;
         bottom: 98px;
         right: 28px;
         width: 370px;
-        /* Responsive height: fills screen but never overlaps the very top */
         max-height: calc(100vh - 120px);
         background: #fff;
         border-radius: 20px;
@@ -105,7 +101,7 @@
     #ami-header .ami-info { flex: 1; min-width: 0; }
     #ami-header .ami-title { font-weight: 700; font-size: .95rem; line-height: 1.2; }
 
-    /* Subtitle row: TalentSync text + quota pill side by side */
+    /* Subtitle row */
     #ami-header .ami-sub {
         font-size: .68rem;
         opacity: .85;
@@ -295,7 +291,6 @@
     #ami-send:hover { transform: scale(1.1); box-shadow: 0 4px 14px rgba(46,125,50,.45); }
     #ami-send:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-    /* ── Branding strip (replaces old footer, much subtler) ── */
     #ami-branding {
         text-align: center;
         font-size: .6rem;
@@ -346,7 +341,7 @@
         </div>
     </div>
 
-    <!-- Quick suggestion chips (shown when chat opens fresh) -->
+    <!-- Quick suggestion chips -->
     <div id="ami-suggestions">
         {% if user.freelancer %}
         <button class="ami-chip" onclick="amiChip('How do I withdraw my earnings?')">💰 Withdraw</button>
@@ -409,8 +404,8 @@
                 input.placeholder = 'Daily limit reached. Resets ~3–4 pm (MYT).';
             }
         } else {
-            if (remaining <= 5) pill.classList.add('low');  // warn at ≤5 of 20
-            // Restore input if it was locked by quota (not by a pending send)
+            if (remaining <= 5) pill.classList.add('low');
+            
             if (!sending) {
                 input.disabled    = false;
                 btn.disabled      = false;
@@ -419,18 +414,18 @@
         }
     }
 
-    /* Fetch quota from server and update the pill */
+    
     function fetchQuota() {
         fetch('{% url "ami_quota" %}', { credentials: 'same-origin' })
             .then(r => r.json())
             .then(data => updateQuotaPill(data.remaining))
-            .catch(() => {/* silently ignore */});
+            .catch(() => { });
     }
 
-    /* ── Fetch quota immediately on page load (persists across login/logout) ── */
+    
     fetchQuota();
 
-    /* ── Auto-refresh quota every 2 minutes in case of background changes ── */
+    
     setInterval(fetchQuota, 2 * 60 * 1000);
 
     /* ── Toggle open / close ── */
@@ -440,7 +435,7 @@
         if (isOpen && !opened) {
             opened = true;
             loadHistory();
-            fetchQuota();  // refresh on first open too
+            fetchQuota(); 
         }
         if (isOpen) {
             setTimeout(() => document.getElementById('ami-input').focus(), 280);
@@ -531,11 +526,11 @@
             setTyping(false);
             setSending(false);
             addMsg(data.response || "Oops! Something went wrong.", 'ami');
-            // Always update pill from authoritative server value
+            
             if (data.remaining !== undefined) {
                 updateQuotaPill(data.remaining);
             } else {
-                fetchQuota();  // fallback: re-fetch from server
+                fetchQuota();
             }
         })
         .catch(() => {

@@ -52,25 +52,6 @@
                     <input type="file" name="profile_image" id="profile_image_input" accept="image/*"
                         onchange="document.getElementById('avatar-submit').click();">
                     <input type="hidden" name="update_profile" value="1">
-                    <!-- We need to ensure other required fields in FreelancerProfileForm don't block this.
-                             Ideally, we'd have a separate view or form for just image, but reusing update_profile 
-                             works if form valid. If form checks other fields, might fail. 
-                             Let's check FreelancerProfileForm. It seems fields are not explicitly required=True 
-                             in the model (blank=True), so partial update via instance might work if we pass instance.
-                             However, standard Django ModelForm needs all fields if we use the same form class?
-                             Actually, if we just submit the image, other fields might be missing in request.POST 
-                             and thus empty?
-                             Better approach: Use a dedicated modal or JS to submit full form, 
-                             OR (quickest for now) make sure the main edit modal handles it and this pen just opens that modal?
-                             User asked for "function that can let user to upload image".
-                             Let's simple trigger the update_profile with JS submitting the specific form?
-                             Wait, if I submit just profile_image, other fields will be cleared if I use ModelForm save?
-                             Yes, ModelForm expects all fields.
-                             
-                             SAFE APPROACH: Just open the Edit Profile Modal focused on image, OR 
-                             add a specific 'update_avatar' handler in views.
-                             Let's add 'update_avatar' handler in views.py to be safe.
-                        -->
                     <button type="submit" id="avatar-submit" name="update_avatar_direct"></button>
                 </form>
                 {% endif %}

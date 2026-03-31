@@ -317,7 +317,6 @@ class AISearchManager:
         query_avail  = parsed.get('availability')  # str or None
 
         # ── Effective values for scoring ───────────────────────────────
-        # User requested: use BOTH the freelancer's profile skills AND the queried skills for Jaccard.
         effective_skills = fl_skills_set | query_skills
 
         # Experience: prefer query if specified, else profile
@@ -333,8 +332,6 @@ class AISearchManager:
             effective_lang_map[ql] = max(effective_lang_map.get(ql, 0.0), 0.95)
 
         # ── Relevance gate (only when a query is provided) ─────────────
-        # If a query was given but produced NO skill tokens (e.g. "hi", "hello"),
-        # suppress ALL results — nothing can match an empty keyword set.
         if has_query and not query_skills:
             logic = "Search query did not contain any recognisable skill keywords."
             sentence = "No recognisable keywords found — please try a specific skill, technology, or role."

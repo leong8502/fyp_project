@@ -4,7 +4,6 @@
     padding: 0 20px;
 }
 
-/* Modern Header Style */
 .track-header {
     margin-bottom: 30px;
     border-left: 5px solid #007bff;
@@ -23,7 +22,6 @@
     font-size: 1.1rem;
 }
 
-/* Enhanced Tab Controls Bar */
 .track-tabs-header {
     display: flex;
     justify-content: space-between;

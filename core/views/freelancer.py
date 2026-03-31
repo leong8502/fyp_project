@@ -112,7 +112,7 @@ def freelancer_search_job(request):
                     }
                 )
             except Exception:
-                pass  # Never crash the page due to DB errors
+                pass
 
     return render(request, 'core/freelancer_searchJob.html', {
         'query':             query,
@@ -180,7 +180,7 @@ def freelancer_respond_cancellation(request, cancellation_id):
     project = cancellation_req.project
 
     if request.method == 'POST':
-        response = request.POST.get('response')  # 'agree' or 'decline'
+        response = request.POST.get('response')
         if response == 'agree':
             try:
                 ProjectService.confirm_cancellation(cancellation_req, request.user)
@@ -350,7 +350,7 @@ def freelancer_performance(request):
     selected_month = request.GET.get('month', '')
 
     txn_years = set(all_txns.annotate(y=ExtractYear('created_at')).values_list('y', flat=True))
-    range_years = set(range(now.year - 3, now.year + 2))  # 3 past + current + 1 future
+    range_years = set(range(now.year - 3, now.year + 2))
     year_list = sorted(txn_years | range_years, reverse=True)
 
     if selected_month:

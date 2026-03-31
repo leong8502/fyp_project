@@ -251,9 +251,6 @@ def freelancer_match_result_by_project(request, project_id):
     
     details    = _compute_match_details(project, freelancer, query_skills)
 
-    # ── Use stored search-time score if available (ensures consistency with search list) ──
-    # The search view saves scores to MatchScore; we display that score here so the
-    # "42%" shown on the card always matches the "42%" shown on the detail page.
     try:
         from core.models import MatchScore
         stored_ms = MatchScore.objects.filter(
@@ -406,7 +403,7 @@ Respond ONLY in this exact JSON format (no markdown, no extra keys):
                 if attempt < MAX_RETRIES - 1 and ('429' in err_str or 'quota' in err_str or 'exhausted' in err_str or 'rate' in err_str):
                     time.sleep(1) # Sleep briefly, then retry
                     continue
-                # If we hit max retries or it's a quota error on the last attempt, use the offline fallback generator
+                # If hit max retries or it's a quota error on the last attempt, use the offline fallback generator
                 fallback_data = _generate_fallback_feedback(d)
                 # Don't cache fallbacks for 24h, just in case their quota resets soon. Use 10 minutes (600s).
                 cache.set(cache_key, fallback_data, 600)

@@ -21,9 +21,6 @@ from core.models import ChatMessage
 
 logger = logging.getLogger(__name__)
 
-# Daily quota per user for Ami chat.
-# Matches gemini-2.5-flash free-tier limit (~25 requests/day via the API).
-# Gemini quota resets at midnight Pacific Time = ~3–4pm Malaysia time.
 AMI_DAILY_LIMIT = 20
 
 
@@ -140,7 +137,7 @@ def _build_prompt(user_message: str, user, history: list) -> str:
     history_block = ""
     if history:
         pairs = []
-        for h in history[-6:]:   # last 6 exchanges for context window
+        for h in history[-6:]:
             pairs.append(f"User: {h['message']}")
             pairs.append(f"Ami: {h['response']}")
         history_block = "\n\nRECENT CONVERSATION:\n" + "\n".join(pairs)
@@ -259,7 +256,7 @@ def _call_gemini(user_message: str, user, history: list) -> str:
     full_prompt = _build_prompt(user_message, user, history)
 
     max_retries = 4
-    delay       = 2  # seconds — doubles each retry
+    delay       = 2 
     last_exc    = None
 
     for attempt in range(1, max_retries + 1):
@@ -391,6 +388,5 @@ def ami_quota(request):
     return JsonResponse({
         'remaining': remaining,
         'daily_limit': AMI_DAILY_LIMIT,
-        # Gemini free-tier quota resets at midnight Pacific Time (~3pm MYT)
         'reset_note': 'Resets ~3–4 pm Malaysia time daily',
     })

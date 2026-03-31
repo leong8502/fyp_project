@@ -48,7 +48,7 @@
                                 <button class="mark-all-read" onclick="markAllNotificationsAsRead(event)">Mark all as read</button>
                             </div>
                             <div class="notification-list" id="notificationList">
-                                <!-- Notifications will be loaded here -->
+                                
                                 <div class="empty-notifications">Loading...</div>
                             </div>
                             <div class="notification-footer">
@@ -249,7 +249,7 @@
             .catch(error => console.error('Error marking all as read:', error));
         }
 
-        // Close the dropdown if the user clicks outside of it
+        
         window.onclick = function (event) {
             if (!event.target.closest('.profile-dropdown') && !event.target.closest('.notification-menu')) {
                 var dropdowns = document.getElementsByClassName("dropdown-content");
@@ -273,7 +273,7 @@
         </div>
         {% endif %}
         {% block content %}
-        <!-- Child page content goes here -->
+        
         {% endblock %}
     </main>
 
@@ -377,7 +377,7 @@
         updateUnreadCounts();
         initGlobalSocket();
         
-        // Fallback polling (every 60s instead of 30s now that we have WS)
+        
         setInterval(updateUnreadCounts, 60000);
     </script>
     {% block extra_js %}{% endblock %}

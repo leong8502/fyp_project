@@ -615,7 +615,7 @@
     </a>
   </div>
 
-</div><!-- /page -->
+</div>
 
 <!-- Apply Modal -->
 <div id="applyModal" class="modal-overlay">
@@ -667,7 +667,6 @@ async function loadAIFeedback() {
   const fields = ['skills','language','experience','work_title','availability','overall'];
   const loading = name => `<div class="ai-loading"><div class="dot"></div><div class="dot"></div><div class="dot"></div><span style="margin-left:6px">Generating…</span></div>`;
 
-  // Read the original query from the URL so we pass it to the analysis API
   const urlParams = new URLSearchParams(window.location.search);
   const qStr = urlParams.has('q') ? '?q=' + encodeURIComponent(urlParams.get('q')) : '';
 
