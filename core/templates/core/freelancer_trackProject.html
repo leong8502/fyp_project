@@ -438,8 +438,16 @@
                             <span class="info-value search-client">{{ project.client.company_name }}</span>
                         </div>
                     </div>
-                    <div style="margin-top: 15px; text-align: center; background: #f8fafc; padding: 10px; border-radius: 12px; color: #94a3b8; font-weight: 600;">
-                        {% if project.has_reviewed %}Review Submitted{% else %}Completed{% endif %}
+                    <div style="margin-top: 15px; text-align: center;">
+                        {% if project.has_reviewed %}
+                            <div style="background: #f8fafc; padding: 10px; border-radius: 12px; color: #94a3b8; font-weight: 600;">
+                                Review Submitted
+                            </div>
+                        {% else %}
+                            <a href="{% url 'submit_review' project.id %}" class="btn-submit-milestone" style="display: block; text-decoration: none; text-align: center; background: #007bff; color: white;">
+                                Review Client
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
