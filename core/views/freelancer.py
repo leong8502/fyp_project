@@ -878,6 +878,216 @@ def freelancer_profile(request):
 # Company Profile (read-only view for freelancer to view a client's profile)
 # ---------------------------------------------------------------------------
 
+
+# ---------------------------------------------------------------------------
+# Resume Upload / View / Delete
+# ---------------------------------------------------------------------------
+
+@freelancer_required
+def freelancer_upload_resume(request):
+    """Handle resume file upload and AI-powered data extraction."""
+    if request.method != 'POST':
+        return redirect('freelancer_profile')
+
+    freelancer = request.user.freelancer
+    uploaded_file = request.FILES.get('resume_file')
+
+    if not uploaded_file:
+        messages.error(request, "No file selected. Please choose a PDF or image file.")
+        return redirect('freelancer_profile')
+
+    # Validate file type
+    allowed_types = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
+    content_type = uploaded_file.content_type
+    if content_type not in allowed_types:
+        messages.error(request, "Invalid file type. Please upload a PDF, JPEG, PNG, or WebP file.")
+        return redirect('freelancer_profile')
+
+    # Validate file size (max 10 MB)
+    if uploaded_file.size > 10 * 1024 * 1024:
+        messages.error(request, "File too large. Maximum size is 10 MB.")
+        return redirect('freelancer_profile')
+
+    # Delete old resume file if one exists
+    if freelancer.resume:
+        try:
+            import os
+            if os.path.isfile(freelancer.resume.path):
+                os.remove(freelancer.resume.path)
+        except Exception:
+            pass
+
+    # Save the new resume file
+    freelancer.resume = uploaded_file
+    freelancer.save(update_fields=['resume'])
+
+    # Call Gemini AI to extract resume data
+    try:
+        import os
+        from core.ai_utils import extract_resume_data
+        from core.models import FreelancerLanguage, FreelancerWorkExperience
+        import datetime
+
+        file_path = freelancer.resume.path
+        extracted = extract_resume_data(file_path)
+
+        # --- Skills ---
+        new_skills = extracted.get('skills', [])
+        if new_skills:
+            existing_skills = [s.strip().lower() for s in (freelancer.skills or '').split(',') if s.strip()]
+            added_skills = []
+            for sk in new_skills:
+                if sk.strip().lower() not in existing_skills:
+                    added_skills.append(sk.strip())
+
+            if added_skills:
+                current = freelancer.skills.strip().rstrip(',') if freelancer.skills else ''
+                freelancer.skills = (current + ', ' + ', '.join(added_skills)).strip().strip(',')
+                # Track which skills were added by this resume
+                freelancer.resume_skills = ', '.join(added_skills)
+            else:
+                freelancer.resume_skills = ''
+            freelancer.save(update_fields=['skills', 'resume_skills'])
+
+        # --- Languages ---
+        # Remove previously AI-added languages first, then add fresh ones
+        FreelancerLanguage.objects.filter(freelancer=freelancer, is_from_resume=True).delete()
+        for lang_data in extracted.get('languages', []):
+            lang_name = lang_data.get('language', '').strip()
+            if not lang_name:
+                continue
+            # Skip if this language already exists manually
+            if not FreelancerLanguage.objects.filter(
+                freelancer=freelancer, language__iexact=lang_name, is_from_resume=False
+            ).exists():
+                FreelancerLanguage.objects.create(
+                    freelancer=freelancer,
+                    language=lang_name,
+                    proficiency=lang_data.get('proficiency', 'Basic'),
+                    is_from_resume=True,
+                )
+
+        # --- Work Experiences ---
+        # Remove previously AI-added work experiences, then add fresh ones
+        FreelancerWorkExperience.objects.filter(freelancer=freelancer, is_from_resume=True).delete()
+        for exp_data in extracted.get('work_experiences', []):
+            company   = exp_data.get('company', '').strip()
+            job_title = exp_data.get('job_title', '').strip()
+            if not company or not job_title:
+                continue
+
+            start_str = exp_data.get('start_date')
+            end_str   = exp_data.get('end_date')
+
+            def parse_iso(val):
+                if not val:
+                    return None
+                try:
+                    return datetime.date.fromisoformat(str(val))
+                except Exception:
+                    return None
+
+            FreelancerWorkExperience.objects.create(
+                freelancer=freelancer,
+                company=company,
+                job_title=job_title,
+                description=exp_data.get('description', ''),
+                start_date=parse_iso(start_str) or datetime.date(2000, 1, 1),
+                end_date=parse_iso(end_str),
+                is_current=bool(exp_data.get('is_current', False)),
+                is_from_resume=True,
+            )
+
+        messages.success(
+            request,
+            f"Resume uploaded and parsed successfully! "
+            f"Added {len(new_skills)} skills, "
+            f"{len(extracted.get('languages', []))} languages, "
+            f"and {len(extracted.get('work_experiences', []))} work experiences."
+        )
+
+    except Exception as e:
+        # Resume was saved, but AI parsing failed — inform the user gracefully
+        error_msg = str(e)
+        if "429" in error_msg or "quota" in error_msg.lower():
+            friendly_err = "The AI service is currently unavailable due to strict usage limits on the Gemini API Free Tier."
+        else:
+            friendly_err = f"A processing error occurred ({error_msg[:50]}...)."
+            
+        messages.warning(
+            request,
+            f"Resume uploaded successfully, but AI extraction failed: {friendly_err} "
+            "You can manually update your profile using the edit buttons."
+        )
+
+    return redirect('freelancer_profile')
+
+
+@freelancer_required
+def freelancer_view_resume(request):
+    """Display the freelancer's uploaded resume."""
+    freelancer = request.user.freelancer
+    if not freelancer.resume:
+        messages.error(request, "You have not uploaded a resume yet.")
+        return redirect('freelancer_profile')
+        
+    resume_skills_list = []
+    if freelancer.resume_skills:
+        resume_skills_list = [s.strip() for s in freelancer.resume_skills.split(',') if s.strip()]
+        
+    return render(request, 'core/freelancer_resume.html', {
+        'freelancer': freelancer,
+        'resume_skills_list': resume_skills_list
+    })
+
+
+@freelancer_required
+def freelancer_delete_resume(request):
+    """Delete the resume and remove only the AI-added profile data."""
+    if request.method != 'POST':
+        return redirect('freelancer_profile')
+
+    freelancer = request.user.freelancer
+
+    if not freelancer.resume:
+        messages.error(request, "No resume to delete.")
+        return redirect('freelancer_profile')
+
+    from core.models import FreelancerLanguage, FreelancerWorkExperience
+
+    # 1. Delete the physical file
+    try:
+        import os
+        if os.path.isfile(freelancer.resume.path):
+            os.remove(freelancer.resume.path)
+    except Exception:
+        pass
+
+    # 2. Remove AI-added skills stored in resume_skills
+    if freelancer.resume_skills:
+        ai_skills = {s.strip().lower() for s in freelancer.resume_skills.split(',') if s.strip()}
+        remaining = [s for s in freelancer.skills_list if s.lower() not in ai_skills]
+        freelancer.skills = ', '.join(remaining)
+
+    # 3. Clear resume fields
+    freelancer.resume = None
+    freelancer.resume_skills = ''
+    freelancer.save(update_fields=['resume', 'resume_skills', 'skills'])
+
+    # 4. Delete AI-added languages and work experiences
+    lang_count = FreelancerLanguage.objects.filter(freelancer=freelancer, is_from_resume=True).count()
+    exp_count  = FreelancerWorkExperience.objects.filter(freelancer=freelancer, is_from_resume=True).count()
+    FreelancerLanguage.objects.filter(freelancer=freelancer, is_from_resume=True).delete()
+    FreelancerWorkExperience.objects.filter(freelancer=freelancer, is_from_resume=True).delete()
+
+    messages.success(
+        request,
+        f"Resume deleted. Removed AI-added skills, {lang_count} language(s), and {exp_count} work experience(s). "
+        "Manually entered data is preserved."
+    )
+    return redirect('freelancer_profile')
+
+
 @freelancer_required
 def freelancer_company_profile(request, client_id):
     """Read-only company profile page shown to freelancers."""

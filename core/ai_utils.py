@@ -520,3 +520,151 @@ def get_recommendations(freelancer, limit=4):
     scored: list[tuple] = manager.calculate_match_scores(open_projects, freelancer=freelancer)
     scored = sorted(scored, key=lambda x: x[1], reverse=True)
     return list(islice(scored, limit))
+
+
+# ---------------------------------------------------------------------------
+# Resume Data Extraction
+# ---------------------------------------------------------------------------
+
+def extract_resume_data(file_path: str) -> dict:
+    """
+    Uses Gemini to extract structured data from an uploaded resume file (PDF or image).
+
+    Returns a dict:
+    {
+        'skills': ['Python', 'Django', ...],
+        'languages': [{'language': 'English', 'proficiency': 'Native'}, ...],
+        'work_experiences': [
+            {
+                'company': 'Acme Corp',
+                'job_title': 'Software Engineer',
+                'description': '...',
+                'start_date': 'YYYY-MM-DD',   # or None
+                'end_date': 'YYYY-MM-DD',      # or None
+                'is_current': False,
+            },
+            ...
+        ]
+    }
+    Raises an Exception if parsing fails.
+    """
+    import os
+    import json
+    import mimetypes
+    import google.generativeai as genai
+
+    try:
+        from django.conf import settings as _s
+        api_key = (
+            getattr(_s, 'FREELANCER_GEMINI_API_KEY', '')
+            or os.environ.get('FREELANCER_GEMINI_API_KEY', '')
+            or getattr(_s, 'GEMINI_API_KEY', '')
+            or os.environ.get('GEMINI_API_KEY', '')
+        )
+    except Exception:
+        api_key = (
+            os.environ.get('FREELANCER_GEMINI_API_KEY', '')
+            or os.environ.get('GEMINI_API_KEY', '')
+        )
+
+    if not api_key:
+        raise Exception("No Gemini API key configured. Please set GEMINI_API_KEY in your environment.")
+
+    genai.configure(api_key=api_key)
+
+    # Detect MIME type
+    mime_type, _ = mimetypes.guess_type(file_path)
+    if not mime_type:
+        ext = os.path.splitext(file_path)[1].lower()
+        mime_map = {'.pdf': 'application/pdf', '.png': 'image/png',
+                    '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp'}
+        mime_type = mime_map.get(ext, 'application/octet-stream')
+
+    with open(file_path, 'rb') as f:
+        file_bytes = f.read()
+
+    prompt = (
+        "You are a resume parser. Extract the following information from the provided resume document/image.\n\n"
+        "Return ONLY valid JSON (no markdown, no explanation) in this exact structure:\n"
+        "{\n"
+        '  "skills": ["skill1", "skill2", ...],\n'
+        '  "languages": [\n'
+        '    {"language": "English", "proficiency": "Native"},\n'
+        '    ...\n'
+        "  ],\n"
+        '  "work_experiences": [\n'
+        "    {\n"
+        '      "company": "Company Name",\n'
+        '      "job_title": "Job Title",\n'
+        '      "description": "Brief description of responsibilities",\n'
+        '      "start_date": "YYYY-MM-DD or YYYY-MM or null",\n'
+        '      "end_date": "YYYY-MM-DD or YYYY-MM or null",\n'
+        '      "is_current": false\n'
+        "    }\n"
+        "  ]\n"
+        "}\n\n"
+        "Rules:\n"
+        "- proficiency must be one of: Basic, Conversational, Fluent, Native\n"
+        "- For dates, use the first day of the month if only year/month is provided (e.g. 2022-01 → 2022-01-01)\n"
+        "- If a date is missing or unclear, use null\n"
+        "- is_current should be true if the person is still working there\n"
+        "- skills should be individual technology/skill names (e.g. Python, React, Project Management)\n"
+        "- Keep descriptions concise (under 200 chars)\n"
+        "- Return empty arrays if section not found"
+    )
+
+    model = genai.GenerativeModel('gemini-2.0-flash')
+
+    response = model.generate_content([
+        {'mime_type': mime_type, 'data': file_bytes},
+        prompt
+    ])
+
+    raw = response.text.strip()
+    # Strip markdown code fences if present
+    raw = re.sub(r'^```[a-z]*\n?', '', raw)
+    raw = re.sub(r'\n?```$', '', raw)
+
+    data = json.loads(raw)
+
+    # Normalise proficiency values
+    valid_proficiency = {'Basic', 'Conversational', 'Fluent', 'Native'}
+    clean_languages = []
+    for lang in data.get('languages', []):
+        prof = lang.get('proficiency', 'Basic').strip().capitalize()
+        if prof not in valid_proficiency:
+            prof = 'Basic'
+        clean_languages.append({
+            'language': str(lang.get('language', '')).strip(),
+            'proficiency': prof,
+        })
+
+    # Normalise work experience dates
+    import datetime
+    def parse_date(val):
+        if not val:
+            return None
+        val = str(val).strip()
+        for fmt in ('%Y-%m-%d', '%Y-%m', '%Y'):
+            try:
+                return datetime.datetime.strptime(val, fmt).date().isoformat()
+            except ValueError:
+                continue
+        return None
+
+    clean_work_exps = []
+    for exp in data.get('work_experiences', []):
+        clean_work_exps.append({
+            'company':    str(exp.get('company', '')).strip(),
+            'job_title':  str(exp.get('job_title', '')).strip(),
+            'description': str(exp.get('description', '')).strip()[:500],
+            'start_date': parse_date(exp.get('start_date')),
+            'end_date':   parse_date(exp.get('end_date')),
+            'is_current': bool(exp.get('is_current', False)),
+        })
+
+    return {
+        'skills':          [str(s).strip() for s in data.get('skills', []) if s],
+        'languages':       clean_languages,
+        'work_experiences': clean_work_exps,
+    }

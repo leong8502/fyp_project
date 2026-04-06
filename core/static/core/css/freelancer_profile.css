@@ -312,3 +312,150 @@
         margin-top: 15px;
     }
 }
+
+/* ── AI Badge Tag ────────────────────────────────────────────────────────── */
+.badge-ai-tag {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.12));
+    color: #6366f1;
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 7px;
+    margin-left: 6px;
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+}
+
+/* ── Resume Card ─────────────────────────────────────────────────────────── */
+.resume-card {
+    border: 1px solid rgba(99,102,241,0.15);
+    background: linear-gradient(135deg, #fff 0%, rgba(99,102,241,0.02) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.resume-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.resume-status-box {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.resume-file-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.resume-filename {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    word-break: break-all;
+}
+
+.resume-ai-note {
+    font-size: 11px;
+    color: #6366f1;
+    margin: 2px 0 0;
+}
+
+.resume-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.btn-resume-view,
+.btn-resume-upload,
+.btn-resume-delete {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-resume-view {
+    background: rgba(99,102,241,0.1);
+    color: #6366f1;
+    border: 1px solid rgba(99,102,241,0.2);
+}
+.btn-resume-view:hover {
+    background: #6366f1;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.3);
+}
+
+.btn-resume-upload {
+    background: rgba(34,197,94,0.1);
+    color: #16a34a;
+    border: 1px solid rgba(34,197,94,0.2);
+}
+.btn-resume-upload:hover {
+    background: #22c55e;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+}
+
+.btn-resume-delete {
+    background: rgba(239,68,68,0.1);
+    color: #dc2626;
+    border: 1px solid rgba(239,68,68,0.2);
+}
+.btn-resume-delete:hover {
+    background: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+}
+
+/* ── Resume Upload Dropzone ──────────────────────────────────────────────── */
+.resume-dropzone {
+    border: 2px dashed rgba(99,102,241,0.35);
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(99,102,241,0.03);
+    transition: all 0.25s ease;
+    min-height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resume-dropzone:hover,
+.resume-dropzone.drag-over {
+    border-color: #6366f1;
+    background: rgba(99,102,241,0.07);
+    transform: scale(1.01);
+}
+
+.dropzone-inner,
+.dropzone-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}

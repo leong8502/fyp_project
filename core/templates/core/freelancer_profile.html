@@ -174,7 +174,9 @@
                     <div class="timeline-item">
                         <div class="timeline-dot"></div>
                         <div class="timeline-content">
-                            <h3>{{ exp.job_title }}</h3>
+                            <h3>{{ exp.job_title }}
+                                {% if exp.is_from_resume %}<span class="badge-ai-tag" title="Added from resume">✨ AI</span>{% endif %}
+                            </h3>
                             <h4>{{ exp.company }}</h4>
                             <span class="period">{{ exp.start_date|date:"M Y" }} - {% if exp.is_current %}Present{% else %}{{ exp.end_date|date:"M Y" }}{% endif %}</span>
                             <p>{{ exp.description }}</p>
@@ -343,7 +345,10 @@
                 <h3>Languages</h3>
                 <ul class="language-list">
                     {% for lang in languages %}
-                    <li>{{ lang.language }}: <span class="text-muted">{{ lang.proficiency }}</span></li>
+                    <li>
+                        {{ lang.language }}: <span class="text-muted">{{ lang.proficiency }}</span>
+                        {% if lang.is_from_resume %}<span class="badge-ai-tag" title="Added from resume">✨</span>{% endif %}
+                    </li>
                     {% empty %}
                     <li class="text-muted">No languages added</li>
                     {% endfor %}
@@ -366,6 +371,50 @@
                     </li>
                 </ul>
             </div>
+
+            {% if is_owner %}
+            <!-- Resume Card -->
+            <div class="sidebar-card resume-card">
+                <div class="section-header" style="margin-bottom: 12px;">
+                    <h3 style="margin:0; display:flex; align-items:center; gap:8px;">
+                        <i class="fas fa-file-alt" style="color:#6366f1;"></i> Resume
+                    </h3>
+                </div>
+
+                {% if freelancer.resume %}
+                <!-- Resume exists -->
+                <div class="resume-status-box">
+                    <div class="resume-file-info">
+                        <i class="fas fa-check-circle" style="color:#22c55e; font-size:18px;"></i>
+                        <div>
+                            <p class="resume-filename">{{ freelancer.resume.name|slice:"20:" }}</p>
+                            <p class="resume-ai-note">✨ AI-parsed skills, languages &amp; experience applied</p>
+                        </div>
+                    </div>
+                    <div class="resume-actions">
+                        <a href="{% url 'freelancer_view_resume' %}" class="btn-resume-view">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <button class="btn-resume-upload" data-bs-toggle="modal" data-bs-target="#uploadResumeModal">
+                            <i class="fas fa-sync-alt"></i> Replace
+                        </button>
+                        <button class="btn-resume-delete" onclick="document.getElementById('deleteResumeForm').submit()">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
+                </div>
+                <form id="deleteResumeForm" method="post" action="{% url 'freelancer_delete_resume' %}">
+                    {% csrf_token %}
+                </form>
+                {% else %}
+                <!-- No resume yet -->
+                <p class="text-muted" style="font-size:13px; margin-bottom:12px;">Upload your resume and let AI automatically fill in your skills, languages, and work experience.</p>
+                <button class="btn-resume-upload w-100" data-bs-toggle="modal" data-bs-target="#uploadResumeModal">
+                    <i class="fas fa-cloud-upload-alt"></i> Upload Resume
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
 
         </div>
     </div>
@@ -543,10 +592,125 @@
         </div>
     </div>
 </div>
+<!-- Upload Resume Modal -->
+<div class="modal fade" id="uploadResumeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:none; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); border-radius:16px 16px 0 0; border:none;">
+                <h5 class="modal-title" style="color:#fff; font-weight:700; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-magic"></i> AI Resume Upload
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:28px;">
+                <form method="post" action="{% url 'freelancer_upload_resume' %}" enctype="multipart/form-data" id="resumeUploadForm">
+                    {% csrf_token %}
+
+                    <!-- Drop zone -->
+                    <div class="resume-dropzone" id="resumeDropzone" onclick="document.getElementById('resumeFileInput').click()">
+                        <div class="dropzone-inner" id="dropzoneInner">
+                            <i class="fas fa-cloud-upload-alt" style="font-size:40px; color:#6366f1; margin-bottom:12px;"></i>
+                            <p style="font-weight:600; margin:0; color:#1e293b;">Drag &amp; drop your resume here</p>
+                            <p style="color:#64748b; font-size:13px; margin:4px 0 0;">or click to browse &mdash; PDF, JPEG, PNG, WebP (max 10 MB)</p>
+                        </div>
+                        <div class="dropzone-preview" id="dropzonePreview" style="display:none;">
+                            <i class="fas fa-file-check" style="font-size:36px; color:#22c55e;"></i>
+                            <p id="selectedFileName" style="font-weight:600; margin:8px 0 0; color:#1e293b;"></p>
+                            <p id="selectedFileSize" style="color:#64748b; font-size:13px; margin:2px 0 0;"></p>
+                        </div>
+                    </div>
+                    <input type="file" name="resume_file" id="resumeFileInput" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;">
+
+                    <!-- AI Info Banner -->
+                    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08)); border:1px solid rgba(99,102,241,0.2); border-radius:10px; padding:14px 16px; margin-top:18px;">
+                        <p style="font-size:13px; margin:0; color:#4338ca;">
+                            <i class="fas fa-sparkles"></i> <strong>Powered by Gemini AI</strong> &mdash;
+                            Your resume will be automatically analysed to extract and populate:
+                        </p>
+                        <ul style="font-size:13px; margin:8px 0 0; padding-left:20px; color:#4338ca;">
+                            <li>Skills &amp; Technologies</li>
+                            <li>Languages &amp; Proficiency</li>
+                            <li>Work Experience History</li>
+                        </ul>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:20px;">
+                        <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn flex-fill" id="resumeSubmitBtn"
+                            style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-weight:600; border:none;">
+                            <i class="fas fa-magic"></i> Upload &amp; Parse
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 <div class="text-center mt-5 mb-5">
     <a href="{% url 'logout' %}" class="btn btn-danger btn-lg"><i class="fas fa-sign-out-alt"></i> Logout</a>
 </div>
+
+<script>
+// ── Resume Dropzone drag-and-drop ───────────────────────────────────────────
+(function () {
+    const dropzone   = document.getElementById('resumeDropzone');
+    const fileInput  = document.getElementById('resumeFileInput');
+    const inner      = document.getElementById('dropzoneInner');
+    const preview    = document.getElementById('dropzonePreview');
+    const nameEl     = document.getElementById('selectedFileName');
+    const sizeEl     = document.getElementById('selectedFileSize');
+    const submitBtn  = document.getElementById('resumeSubmitBtn');
+    const uploadForm = document.getElementById('resumeUploadForm');
+
+    if (!dropzone) return;   // not owner
+
+    function formatBytes(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    function showPreview(file) {
+        nameEl.textContent  = file.name;
+        sizeEl.textContent  = formatBytes(file.size);
+        inner.style.display   = 'none';
+        preview.style.display = 'flex';
+    }
+
+    fileInput.addEventListener('change', function () {
+        if (this.files[0]) showPreview(this.files[0]);
+    });
+
+    dropzone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        this.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', function () {
+        this.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            showPreview(file);
+        }
+    });
+
+    // Show loading state on submit
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function () {
+            if (!fileInput.files || !fileInput.files[0]) return;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Parsing with AI…';
+        });
+    }
+})();
+</script>
 
 {% endblock %}

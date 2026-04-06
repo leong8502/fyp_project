@@ -276,6 +276,10 @@ class Freelancer(models.Model):
     email_verification_token = models.CharField(max_length=100, blank=True)
     last_active = models.DateTimeField(default=timezone.now)
 
+    # Resume upload
+    resume = models.FileField(upload_to='freelancer_resumes/', blank=True, null=True)
+    resume_skills = models.TextField(blank=True, help_text="Comma-separated skills extracted from resume by AI")
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -503,6 +507,7 @@ class FreelancerWorkExperience(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_current = models.BooleanField(default=False)
+    is_from_resume = models.BooleanField(default=False, help_text="True if this entry was automatically added from resume upload")
 
     def __str__(self):
         return f"{self.job_title} at {self.company}"
@@ -530,6 +535,7 @@ class FreelancerLanguage(models.Model):
     freelancer = models.ForeignKey(Freelancer, on_delete=models.CASCADE, related_name='languages')
     language = models.CharField(max_length=100)
     proficiency = models.CharField(max_length=50, choices=PROFICIENCY_CHOICES, default='Basic')
+    is_from_resume = models.BooleanField(default=False, help_text="True if this entry was automatically added from resume upload")
     
     def __str__(self):
         return f"{self.language} ({self.proficiency})"

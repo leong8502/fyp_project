@@ -1,0 +1,447 @@
+{% extends 'core/freelancer_master.html' %}
+{% load static %}
+
+{% block title %}My Resume | TalentSync{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core/css/freelancer_profile.css' %}">
+
+<style>
+.resume-viewer-page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 30px 20px 60px;
+}
+
+.resume-viewer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.resume-viewer-header h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.resume-viewer-header h1 i {
+    color: #6366f1;
+}
+
+.resume-header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.resume-container {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: relative;
+}
+
+.resume-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.resume-toolbar .file-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(99,102,241,0.1);
+    color: #6366f1;
+    border: 1px solid rgba(99,102,241,0.2);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.resume-embed {
+    width: 100%;
+    min-height: 75vh;
+    display: block;
+    border: none;
+}
+
+.resume-image-wrapper {
+    padding: 30px;
+    display: flex;
+    justify-content: center;
+    background: #f8fafc;
+}
+
+.resume-image-wrapper img {
+    max-width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+
+.resume-fallback {
+    padding: 60px 30px;
+    text-align: center;
+    color: #64748b;
+}
+
+.resume-fallback i {
+    font-size: 48px;
+    color: #6366f1;
+    margin-bottom: 16px;
+}
+
+.resume-ai-summary {
+    background: linear-gradient(135deg, rgba(99,102,241,0.05), rgba(139,92,246,0.05));
+    border: 1px solid rgba(99,102,241,0.15);
+    border-radius: 16px;
+    padding: 24px;
+    margin-top: 24px;
+}
+
+.resume-ai-summary h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #4338ca;
+    margin: 0 0 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ai-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+}
+
+.ai-info-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    border: 1px solid rgba(99,102,241,0.1);
+    text-align: center;
+}
+
+.ai-info-card .ai-count {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #6366f1;
+    line-height: 1;
+}
+
+.ai-info-card .ai-label {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #6366f1;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: gap 0.2s ease;
+}
+.back-link:hover {
+    gap: 10px;
+    color: #4338ca;
+}
+
+/* New Premium Fallback Styles */
+.pdf-fallback-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin: 20px;
+    border: 2px dashed #e2e8f0;
+}
+
+.pdf-fallback-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.pdf-fallback-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 8px;
+}
+
+.pdf-fallback-text {
+    color: #64748b;
+    font-size: 14px;
+    max-width: 400px;
+    margin-bottom: 24px;
+    line-height: 1.6;
+}
+
+.btn-download-premium {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 10px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.btn-download-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+    color: white;
+}
+</style>
+
+<div class="resume-viewer-page">
+
+    <!-- Header -->
+    <div class="resume-viewer-header">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            <a href="{% url 'freelancer_profile' %}" class="back-link">
+                <i class="fas fa-arrow-left"></i> Back to Profile
+            </a>
+            <h1><i class="fas fa-file-alt"></i> My Resume</h1>
+        </div>
+
+        <div class="resume-header-actions">
+            <button class="btn-resume-upload" data-bs-toggle="modal" data-bs-target="#uploadResumeModal"
+                style="padding: 10px 18px; font-size: 13px;">
+                <i class="fas fa-sync-alt"></i> Replace Resume
+            </button>
+            <button class="btn-resume-delete" onclick="document.getElementById('deleteResumeForm').submit()"
+                style="padding: 10px 18px; font-size: 13px;">
+                <i class="fas fa-trash"></i> Delete Resume
+            </button>
+        </div>
+    </div>
+
+    <!-- Resume Viewer -->
+    <div class="resume-container">
+        <div class="resume-toolbar">
+            {% with name=freelancer.resume.name|lower %}
+            {% if '.pdf' in name %}
+                <span class="file-type-badge"><i class="fas fa-file-pdf"></i> PDF Document</span>
+            {% elif '.png' in name or '.jpg' in name or '.jpeg' in name or '.webp' in name %}
+                <span class="file-type-badge"><i class="fas fa-file-image"></i> Image File</span>
+            {% else %}
+                <span class="file-type-badge"><i class="fas fa-file"></i> Document</span>
+            {% endif %}
+            {% endwith %}
+            <a href="{{ freelancer.resume.url }}" download class="btn btn-sm btn-outline-secondary" style="font-size:12px;">
+                <i class="fas fa-download"></i> Download
+            </a>
+        </div>
+
+        {% with name=freelancer.resume.name|lower %}
+        {% if '.pdf' in name %}
+            <div class="resume-viewer-wrapper">
+                <object data="{{ freelancer.resume.url }}" type="application/pdf" width="100%" height="800" style="min-height: 80vh; border:none; display: block;">
+                    <!-- Premium Fallback for browsers that don't support PDF preview -->
+                    <div class="pdf-fallback-container">
+                        <div class="pdf-fallback-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <h3 class="pdf-fallback-title">PDF Preview Unavailable</h3>
+                        <p class="pdf-fallback-text">
+                            Your browser doesn't have a built-in PDF viewer or it was blocked. 
+                            Don't worry, you can still view your resume by downloading it.
+                        </p>
+                        <a href="{{ freelancer.resume.url }}" download class="btn-download-premium">
+                            <i class="fas fa-download"></i> Download PDF Resume
+                        </a>
+                    </div>
+                </object>
+            </div>
+        {% elif '.png' in name or '.jpg' in name or '.jpeg' in name or '.webp' in name %}
+            <div class="resume-image-wrapper">
+                <img src="{{ freelancer.resume.url }}" alt="Resume Image">
+            </div>
+        {% else %}
+            <div class="resume-fallback">
+                <i class="fas fa-file-alt"></i>
+                <p>Preview not available for this file type.</p>
+                <a href="{{ freelancer.resume.url }}" download class="btn btn-primary mt-2">
+                    <i class="fas fa-download"></i> Download Resume
+                </a>
+            </div>
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- AI Summary Cards -->
+    <div class="resume-ai-summary">
+        <h3><i class="fas fa-magic"></i> AI Extraction Summary</h3>
+        <div class="ai-info-grid">
+            <div class="ai-info-card">
+                <div class="ai-count">
+                    {{ resume_skills_list|length }}
+                </div>
+                <div class="ai-label">Skills Extracted</div>
+            </div>
+            <div class="ai-info-card">
+                <div class="ai-count">{{ freelancer.languages.all|length }}</div>
+                <div class="ai-label">Languages Detected</div>
+            </div>
+            <div class="ai-info-card">
+                <div class="ai-count">{{ freelancer.work_experiences.all|length }}</div>
+                <div class="ai-label">Work Experiences</div>
+            </div>
+        </div>
+
+        {% if resume_skills_list %}
+        <div style="margin-top: 16px;">
+            <p style="font-size:13px; color:#4338ca; font-weight:600; margin-bottom:8px;">Skills extracted from this resume:</p>
+            <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                {% for skill in resume_skills_list %}
+                <span class="badge-ai-tag" style="font-size:11px; padding:3px 10px;">{{ skill }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Delete form -->
+<form id="deleteResumeForm" method="post" action="{% url 'freelancer_delete_resume' %}">
+    {% csrf_token %}
+</form>
+
+<!-- Upload Resume Modal (reused from profile) -->
+<div class="modal fade" id="uploadResumeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px; border:none; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <div class="modal-header" style="background:linear-gradient(135deg,#6366f1,#8b5cf6); border-radius:16px 16px 0 0; border:none;">
+                <h5 class="modal-title" style="color:#fff; font-weight:700; display:flex; align-items:center; gap:10px;">
+                    <i class="fas fa-magic"></i> Replace Resume
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:28px;">
+                <form method="post" action="{% url 'freelancer_upload_resume' %}" enctype="multipart/form-data" id="resumeUploadForm">
+                    {% csrf_token %}
+
+                    <div class="resume-dropzone" id="resumeDropzone" onclick="document.getElementById('resumeFileInput').click()">
+                        <div class="dropzone-inner" id="dropzoneInner">
+                            <i class="fas fa-cloud-upload-alt" style="font-size:40px; color:#6366f1; margin-bottom:12px;"></i>
+                            <p style="font-weight:600; margin:0; color:#1e293b;">Drag &amp; drop your resume here</p>
+                            <p style="color:#64748b; font-size:13px; margin:4px 0 0;">or click to browse &mdash; PDF, JPEG, PNG, WebP (max 10 MB)</p>
+                        </div>
+                        <div class="dropzone-preview" id="dropzonePreview" style="display:none;">
+                            <i class="fas fa-file-check" style="font-size:36px; color:#22c55e;"></i>
+                            <p id="selectedFileName" style="font-weight:600; margin:8px 0 0; color:#1e293b;"></p>
+                            <p id="selectedFileSize" style="color:#64748b; font-size:13px; margin:2px 0 0;"></p>
+                        </div>
+                    </div>
+                    <input type="file" name="resume_file" id="resumeFileInput" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;">
+
+                    <div style="background:linear-gradient(135deg,rgba(99,102,241,0.08),rgba(139,92,246,0.08)); border:1px solid rgba(99,102,241,0.2); border-radius:10px; padding:14px 16px; margin-top:18px;">
+                        <p style="font-size:13px; margin:0; color:#4338ca;">
+                            <strong>⚠ Note:</strong> Replacing your resume will re-run AI extraction. Previously AI-added data will be updated.
+                        </p>
+                    </div>
+
+                    <div style="display:flex; gap:10px; margin-top:20px;">
+                        <button type="button" class="btn btn-outline-secondary flex-fill" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn flex-fill" id="resumeSubmitBtn"
+                            style="background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; font-weight:600; border:none;">
+                            <i class="fas fa-magic"></i> Upload &amp; Parse
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Dropzone for the view page replace modal
+(function () {
+    const dropzone   = document.getElementById('resumeDropzone');
+    const fileInput  = document.getElementById('resumeFileInput');
+    const inner      = document.getElementById('dropzoneInner');
+    const preview    = document.getElementById('dropzonePreview');
+    const nameEl     = document.getElementById('selectedFileName');
+    const sizeEl     = document.getElementById('selectedFileSize');
+    const submitBtn  = document.getElementById('resumeSubmitBtn');
+    const uploadForm = document.getElementById('resumeUploadForm');
+
+    if (!dropzone) return;
+
+    function formatBytes(b) {
+        if (b < 1024) return b + ' B';
+        if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+        return (b / 1048576).toFixed(1) + ' MB';
+    }
+
+    function showPreview(file) {
+        nameEl.textContent  = file.name;
+        sizeEl.textContent  = formatBytes(file.size);
+        inner.style.display   = 'none';
+        preview.style.display = 'flex';
+    }
+
+    fileInput.addEventListener('change', function () { if (this.files[0]) showPreview(this.files[0]); });
+
+    dropzone.addEventListener('dragover',  function (e) { e.preventDefault(); this.classList.add('drag-over'); });
+    dropzone.addEventListener('dragleave', function ()  { this.classList.remove('drag-over'); });
+    dropzone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        this.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            showPreview(file);
+        }
+    });
+
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', function () {
+            if (!fileInput.files || !fileInput.files[0]) return;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Parsing with AI…';
+        });
+    }
+})();
+</script>
+
+{% endblock %}
