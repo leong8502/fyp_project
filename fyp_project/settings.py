@@ -55,7 +55,6 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
 ROOT_URLCONF = 'fyp_project.urls'
@@ -163,3 +162,6 @@ STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
 # Gemini AI Configuration
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 FREELANCER_GEMINI_API_KEY = os.environ.get('FREELANCER_GEMINI_API_KEY', '')
+
+# Allow framing of media properties internally
+X_FRAME_OPTIONS = 'SAMEORIGIN'
